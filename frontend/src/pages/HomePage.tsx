@@ -7,7 +7,7 @@ const HomePage: React.FC = () => {
         Welcome to Ignacio Bot
       </h1>
       <p className="text-xl text-gray-600 mb-8 text-center max-w-2xl">
-        Your construction project assistant
+        Your project development assistant for the Action Lab program
       </p>
       <div className="space-x-4">
         <button className="btn-primary">

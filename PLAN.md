@@ -218,12 +218,12 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 - [ ] Technical expert agent with TechnicalResponse model
 - [ ] Project management advisor agent with PMResponse model
 - [ ] Financial advisor agent with FinancialResponse model
-- [ ] Construction domain expert agent for project-specific questions
+- [ ] Project development expert agent for Action Lab program-specific questions
 - [ ] Implement agent routing based on question classification
 
 ### 7.3 Advanced File Integration
 - [ ] Implement document analysis and summarization
-- [ ] Build image analysis for construction photos
+- [ ] Build image analysis for project documentation photos
 - [ ] Create project document organization
 - [ ] Add cross-document knowledge retrieval
 

@@ -1,7 +1,7 @@
 [project]
 name = "ignacio-bot-backend"
 version = "1.0.0"
-description = "Backend API for Ignacio construction assistant chatbot"
+description = "Backend API for Ignacio, a chat assistant that helps users develop their projects as part of the Action Lab education program"
 authors = [
     {name = "Ignacio Bot Team"}
 ]

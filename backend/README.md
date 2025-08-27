@@ -1,6 +1,6 @@
 # Ignacio Bot Backend
 
-Backend API for Ignacio construction assistant chatbot, built with FastAPI and Python 3.12.
+Backend API for Ignacio, a chat assistant that helps users develop their projects as part of the Action Lab education program, built with FastAPI and Python 3.12.
 
 ## Setup
 

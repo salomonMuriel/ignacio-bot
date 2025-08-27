@@ -7,7 +7,7 @@ from app.routers import health
 # Create FastAPI application
 app = FastAPI(
     title="Ignacio Bot API",
-    description="API for Ignacio construction assistant chatbot",
+    description="API for Ignacio, a chat assistant that helps users develop their projects as part of the Action Lab education program",
     version="1.0.0",
     debug=settings.debug
 )

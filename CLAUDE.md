@@ -1,5 +1,9 @@
 ## Ignacio Bot Description
-Ignacio is a chat assistant that helps users in the construction of their project, which they are building as part of an education program.
+Ignacio is a chat assistant that helps users in the development of their project, which they are building as part of an education program.
+
+they are part of the Action Lab, an innovative education program that teaches people how to build projects.
+
+Their project is typically a new company, a new NGO or foundation, a company spinoff, or a new project inside a company that will allow it to grow to a new level.
 
 Ignacio is accessible through both WhatsApp and a web interface.
 
@@ -33,10 +37,12 @@ Any stored media (images, audio files, anything else) is saved in Supabase Stora
 ## About your workflow
 
 Always plan your steps, and keep track of your plans in PLAN.md.
-After planning, keep track of your TODO list for your current task in TODO.md
+After planning, keep track of your TODO list for your current task in TODO.md.
+Always check steps as done in your TODO.md file as you complete them.
 Never interact with the database destructively (changing schemas, deleting rows or tables, etc.) without explicit approval.
-Always commit your work after each edit.
-Always 
+Always commit your work after each file edit.
+Always mark steps of your PLAN.md file done as you finish them. 
+While going through the PLAN.md, stop after each subphase or phase.
 
 ## Code Styling
 
