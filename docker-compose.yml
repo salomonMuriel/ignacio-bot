@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env.local
+    depends_on:
+      - db
+    networks:
+      - ignacio-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    env_file:
+      - .env.local
+    depends_on:
+      - backend
+    networks:
+      - ignacio-network
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ignacio_db
+      POSTGRES_USER: ignacio
+      POSTGRES_PASSWORD: ignacio_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ignacio-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ignacio-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ignacio-network:
+    driver: bridge
