@@ -8,38 +8,38 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 **Goal**: Establish the basic project structure and development environment
 
 ### 1.1 Environment Setup
-- [ ] Initialize git repository with proper .gitignore
-- [ ] Set up project directory structure
-- [ ] Create environment files (.env.example, .env.local)
-- [ ] Set up Docker configuration for development
+- [x] Initialize git repository with proper .gitignore
+- [x] Set up project directory structure
+- [x] Create environment files (.env.example, .env.local)
+- [x] Set up Docker configuration for development
 
 ### 1.2 Backend Foundation
-- [ ] Create FastAPI project structure
-  - [ ] `app/` - Main application directory
-  - [ ] `app/models/` - Database models
-  - [ ] `app/routers/` - API route handlers
-  - [ ] `app/services/` - Business logic services
-  - [ ] `app/core/` - Core configuration and utilities
-- [ ] Set up poetry/pip requirements management
-  - [ ] Add PydanticAI dependency
-  - [ ] Add OpenAI client dependency
-  - [ ] Add Pydantic v2 for response models
-- [ ] Configure FastAPI with basic CORS and middleware
-- [ ] Create basic health check endpoint
+- [x] Create FastAPI project structure
+  - [x] `app/` - Main application directory
+  - [x] `app/models/` - Database models
+  - [x] `app/routers/` - API route handlers
+  - [x] `app/services/` - Business logic services
+  - [x] `app/core/` - Core configuration and utilities
+- [x] Set up uv requirements management
+  - [x] Add PydanticAI dependency
+  - [x] Add OpenAI client dependency
+  - [x] Add Pydantic v2 for response models
+- [x] Configure FastAPI with basic CORS and middleware
+- [x] Create basic health check endpoint
 
 ### 1.3 Frontend Foundation
-- [ ] Create React project with TypeScript
-- [ ] Set up project structure
-  - [ ] `src/components/` - React components
-  - [ ] `src/pages/` - Page components
-  - [ ] `src/services/` - API services
-  - [ ] `src/types/` - TypeScript type definitions
-  - [ ] `src/contexts/` - React contexts
-- [ ] Install and configure essential dependencies
-  - [ ] React Router for navigation
-  - [ ] Axios for HTTP requests
-  - [ ] React Hook Form for forms
-  - [ ] Tailwind CSS for styling
+- [x] Create React project with TypeScript
+- [x] Set up project structure
+  - [x] `src/components/` - React components
+  - [x] `src/pages/` - Page components
+  - [x] `src/services/` - API services
+  - [x] `src/types/` - TypeScript type definitions
+  - [x] `src/contexts/` - React contexts
+- [x] Install and configure essential dependencies
+  - [x] React Router for navigation
+  - [x] Axios for HTTP requests
+  - [x] React Hook Form for forms
+  - [x] Tailwind CSS for styling
 
 ### 1.4 Database Setup
 - [ ] Create Supabase project
