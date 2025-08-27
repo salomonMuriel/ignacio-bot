@@ -1,0 +1,39 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from app.core.config import settings
+from app.routers import health
+
+# Create FastAPI application
+app = FastAPI(
+    title="Ignacio Bot API",
+    description="API for Ignacio construction assistant chatbot",
+    version="1.0.0",
+    debug=settings.debug
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add trusted host middleware for security
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["localhost", "127.0.0.1", settings.backend_host]
+)
+
+# Include routers
+app.include_router(health.router)
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Ignacio Bot API",
+        "version": "1.0.0",
+        "environment": settings.app_env
+    }
