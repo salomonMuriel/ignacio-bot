@@ -50,73 +50,18 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 
 **Success Criteria**: Development environment is fully set up, basic API responds to health checks, React app loads successfully
 
-## Phase 2: Core Authentication System
-**Duration**: 2-3 days  
-**Goal**: Implement OTP-based authentication for web users
-
-### 2.1 Backend Authentication
-- [ ] Implement OTP generation and storage
-- [ ] Create WhatsApp OTP sending service
-- [ ] Build OTP verification logic
-- [ ] Implement JWT token generation and validation
-- [ ] Create authentication middleware
-- [ ] Build user session management
-
-### 2.2 Frontend Authentication
-- [ ] Create login page with phone number input
-- [ ] Build OTP verification form
-- [ ] Implement authentication context
-- [ ] Create protected route wrapper
-- [ ] Build user profile components
-- [ ] Implement logout functionality
-
-### 2.3 Authentication API Endpoints
-- [ ] `POST /auth/request-otp` - Request OTP code
-- [ ] `POST /auth/verify-otp` - Verify OTP and login
-- [ ] `POST /auth/refresh` - Refresh session token
-- [ ] `POST /auth/logout` - Logout user
-- [ ] `GET /users/me` - Get current user profile
-
-**Success Criteria**: Users can log in via phone number + OTP, sessions are managed properly, protected routes work correctly
-
-## Phase 3: User Management System
-**Duration**: 2 days  
-**Goal**: Build complete user management for admins
-
-### 3.1 Backend User Management
-- [ ] Implement user CRUD operations
-- [ ] Add admin authorization middleware
-- [ ] Create user search and filtering
-- [ ] Build user status management (active/inactive)
-
-### 3.2 Frontend User Management
-- [ ] Create admin dashboard layout
-- [ ] Build user listing page with search/filter
-- [ ] Create user creation form
-- [ ] Build user editing modal
-- [ ] Implement user deletion confirmation
-- [ ] Add user status toggle
-
-### 3.3 User Management API Endpoints
-- [ ] `GET /users` - List all users (admin only)
-- [ ] `POST /users` - Create new user (admin only)
-- [ ] `PUT /users/{user_id}` - Update user (admin only)
-- [ ] `DELETE /users/{user_id}` - Delete user (admin only)
-
-**Success Criteria**: Admins can create, read, update, and delete users through the web interface
-
-## Phase 4: Basic Chat System (Web Only)
+## Phase 2: Basic Chat System (Web Only)
 **Duration**: 3-4 days  
-**Goal**: Implement core chat functionality for web users
+**Goal**: Implement core chat functionality for web users without authentication
 
-### 4.1 Backend Chat Infrastructure
+### 2.1 Backend Chat Infrastructure
 - [ ] Create conversation and message models
 - [ ] Implement conversation CRUD operations
 - [ ] Build message storage and retrieval
 - [ ] Create basic AI integration service
 - [ ] Implement message context management
 
-### 4.2 Frontend Chat Interface
+### 2.2 Frontend Chat Interface
 - [ ] Build chat interface layout
 - [ ] Create conversation list sidebar
 - [ ] Implement message display components
@@ -124,13 +69,13 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 - [ ] Add real-time message updates
 - [ ] Create conversation management (new, delete)
 
-### 4.3 Chat API Endpoints
+### 2.3 Chat API Endpoints
 - [ ] `GET /conversations` - Get user's conversations
 - [ ] `POST /conversations` - Create new conversation
 - [ ] `GET /conversations/{conversation_id}/messages` - Get messages
 - [ ] `POST /conversations/{conversation_id}/messages` - Send message
 
-### 4.4 PydanticAI Integration
+### 2.4 PydanticAI Integration
 - [ ] Set up PydanticAI with OpenAI models
 - [ ] Create Pydantic response models for different query types
 - [ ] Implement basic AI agents using PydanticAI framework
@@ -141,37 +86,98 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 
 **Success Criteria**: Users can create conversations, send messages, receive AI responses through web interface
 
-## Phase 5: File Upload and Management
+## Phase 3: File Upload and Management
 **Duration**: 2-3 days  
 **Goal**: Enable file uploads and document management
 
-### 5.1 Backend File Handling
+### 3.1 Backend File Handling
 - [ ] Configure Supabase Storage integration
 - [ ] Implement file upload service
 - [ ] Create file metadata management
 - [ ] Build file download/serving logic
 - [ ] Add file type validation and security
 
-### 5.2 Frontend File Management
+### 3.2 Frontend File Management
 - [ ] Build file upload components
 - [ ] Create drag-and-drop file interface
 - [ ] Implement file preview functionality
 - [ ] Add file management in chat interface
 - [ ] Build file listing for user files
 
-### 5.3 File API Endpoints
+### 3.3 File API Endpoints
 - [ ] `POST /files/upload` - Upload file
 - [ ] `GET /files/{file_id}` - Get file metadata
 - [ ] `GET /files/{file_id}/download` - Download file
 - [ ] `POST /conversations/{conversation_id}/files` - Upload to conversation
 
-### 5.4 AI Document Integration
+### 3.4 AI Document Integration
 - [ ] Implement document content extraction
 - [ ] Build document search and retrieval
 - [ ] Integrate documents into AI context
 - [ ] Create document-aware responses
 
 **Success Criteria**: Users can upload, manage, and reference files in conversations; AI can access document content
+
+## Phase 4: Authentication System
+**Duration**: 2-3 days  
+**Goal**: Implement OTP-based authentication for web users
+
+### 4.1 Backend Authentication
+- [ ] Implement OTP generation and storage
+- [ ] Create WhatsApp OTP sending service
+- [ ] Build OTP verification logic
+- [ ] Implement JWT token generation and validation
+- [ ] Create authentication middleware
+- [ ] Build user session management
+
+### 4.2 Frontend Authentication
+- [ ] Create login page with phone number input
+- [ ] Build OTP verification form
+- [ ] Implement authentication context
+- [ ] Create protected route wrapper
+- [ ] Build user profile components
+- [ ] Implement logout functionality
+
+### 4.3 Authentication API Endpoints
+- [ ] `POST /auth/request-otp` - Request OTP code
+- [ ] `POST /auth/verify-otp` - Verify OTP and login
+- [ ] `POST /auth/refresh` - Refresh session token
+- [ ] `POST /auth/logout` - Logout user
+- [ ] `GET /users/me` - Get current user profile
+
+### 4.4 Secure Existing Features
+- [ ] Add authentication to chat endpoints
+- [ ] Protect file operations with user ownership
+- [ ] Update frontend to handle authenticated state
+- [ ] Migrate existing data to support user accounts
+
+**Success Criteria**: Users can log in via phone number + OTP, sessions are managed properly, protected routes work correctly
+
+## Phase 5: User Management System
+**Duration**: 2 days  
+**Goal**: Build complete user management for admins
+
+### 5.1 Backend User Management
+- [ ] Implement user CRUD operations
+- [ ] Add admin authorization middleware
+- [ ] Create user search and filtering
+- [ ] Build user status management (active/inactive)
+
+### 5.2 Frontend User Management
+- [ ] Create admin dashboard layout
+- [ ] Build user listing page with search/filter
+- [ ] Create user creation form
+- [ ] Build user editing modal
+- [ ] Implement user deletion confirmation
+- [ ] Add user status toggle
+
+### 5.3 User Management API Endpoints
+- [ ] `GET /users` - List all users (admin only)
+- [ ] `POST /users` - Create new user (admin only)
+- [ ] `PUT /users/{user_id}` - Update user (admin only)
+- [ ] `DELETE /users/{user_id}` - Delete user (admin only)
+
+**Success Criteria**: Admins can create, read, update, and delete users through the web interface
 
 ## Phase 6: WhatsApp Integration
 **Duration**: 4-5 days  
@@ -354,3 +360,25 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 - File uploads and downloads work reliably
 - Admin users can monitor and manage the system effectively
 - System handles expected user load without performance issues
+
+## Key Changes in This Rearrangement
+
+### 🔄 **New Phase Order Logic**
+1. **Phase 1**: Foundation (unchanged)
+2. **Phase 2**: Basic Chat System - Build core functionality first
+3. **Phase 3**: File Management - Extend functionality
+4. **Phase 4**: Authentication - Secure existing functionality 
+5. **Phase 5+**: User Management, WhatsApp, Advanced Features, etc.
+
+### ✅ **Benefits of This Approach**
+- **Faster Value Delivery**: Users can interact with AI immediately
+- **Better Testing**: Core features can be tested without auth complexity
+- **Easier Development**: Build and debug features in isolation first
+- **Flexible Deployment**: Can launch with basic functionality, add auth later
+- **Reduced Risk**: Core features proven before adding security layers
+
+### 🎯 **Development Strategy**
+- Phase 2 creates a working chat system without user accounts (temporary/guest sessions)
+- Phase 3 adds file capabilities to enhance the AI experience  
+- Phase 4 adds authentication and user management to existing working system
+- Later phases build on the solid, tested foundation
