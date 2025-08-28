@@ -42,11 +42,11 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
   - [x] Tailwind CSS for styling
 
 ### 1.4 Database Setup
-- [ ] Create Supabase project
-- [ ] Configure Supabase connection in backend
-- [ ] Set up initial database migrations
-- [ ] Create all database tables from SPECS.md
-- [ ] Set up Supabase Storage buckets
+- [x] Create Supabase project
+- [x] Configure Supabase connection in backend
+- [x] Set up initial database migrations
+- [x] Create all database tables from SPECS.md
+- [x] Set up Supabase Storage buckets
 
 **Success Criteria**: Development environment is fully set up, basic API responds to health checks, React app loads successfully
 
