@@ -2,9 +2,9 @@
 Database models for Ignacio Bot
 Based on the database schema defined in SPECS.md
 """
+
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -21,7 +21,7 @@ class MessageType(str, Enum):
 # Base models for database tables
 class UserBase(BaseModel):
     phone_number: str
-    name: Optional[str] = None
+    name: str | None = None
     is_admin: bool = False
     is_active: bool = True
 
@@ -40,13 +40,13 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
-    is_admin: Optional[bool] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    is_admin: bool | None = None
+    is_active: bool | None = None
 
 
 class ConversationBase(BaseModel):
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class Conversation(ConversationBase):
@@ -64,15 +64,15 @@ class ConversationCreate(ConversationBase):
 
 
 class ConversationUpdate(BaseModel):
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class MessageBase(BaseModel):
-    content: Optional[str] = None
+    content: str | None = None
     message_type: MessageType = MessageType.TEXT
-    file_path: Optional[str] = None
+    file_path: str | None = None
     is_from_user: bool
-    whatsapp_message_id: Optional[str] = None
+    whatsapp_message_id: str | None = None
 
 
 class Message(MessageBase):
