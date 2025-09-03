@@ -96,17 +96,17 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at fields
-CREATE TRIGGER update_users_updated_at 
-    BEFORE UPDATE ON users 
-    FOR EACH ROW 
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_conversations_updated_at 
-    BEFORE UPDATE ON conversations 
-    FOR EACH ROW 
+CREATE TRIGGER update_conversations_updated_at
+    BEFORE UPDATE ON conversations
+    FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert initial admin user (with placeholder phone number)
 -- This should be updated with actual admin phone number after deployment
-INSERT INTO users (phone_number, name, is_admin, is_active) 
+INSERT INTO users (phone_number, name, is_admin, is_active)
 VALUES ('+1234567890', 'Initial Admin', true, true);

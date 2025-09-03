@@ -11,7 +11,7 @@ Users can message Ignacio through any of these channels, and Ignacio will respon
 
 ## Features
 
-Normal Users: 
+Normal Users:
 * Users should be able to chat with Ignacio using Whatsapp or a Web interface.
 * Any images, videos or audio files sent to Ignacio should be saved in that user's folder in Supabase Storage.
 * Users should be able to upload any other kind of file to Ignacio (documents, PDFs, presentations, etc). Ignacio should be able to pull these into context when it needs to.
@@ -41,10 +41,50 @@ After planning, keep track of your TODO list for your current task in TODO.md.
 Always check steps as done in your TODO.md file as you complete them.
 Never interact with the database destructively (changing schemas, deleting rows or tables, etc.) without explicit approval.
 Always commit your work after each file edit.
-Always mark steps of your PLAN.md file done as you finish them. 
+Always mark steps of your PLAN.md file done as you finish them.
 While going through the PLAN.md, stop after each subphase or phase.
+
+## Development Setup
+
+The backend uses `uv` as the package manager for Python dependencies.
+- Run `export PATH="$HOME/.local/bin:$PATH" && uv sync` to install dependencies
+- Use `uv run python -m app.core.migrations` to check database migration status
+- Database migrations are applied manually via Supabase SQL Editor
+- Environment variables are configured in `backend/.env.local`
+
+### Running the Backend
+- `export PATH="$HOME/.local/bin:$PATH" && uv run uvicorn app.main:app --reload` to start dev server
+- Backend runs on `http://localhost:8000`
+- API documentation available at `http://localhost:8000/docs`
+
+### Testing
+- `uv run pytest tests/` to run the test suite
+- `uv run pytest tests/ --cov=app` to run with coverage
+- 96 comprehensive tests covering database, AI service, and API endpoints
+- Pre-commit hooks automatically run tests on backend file changes
+
+
+## Code Quality & Testing
+
+### Pre-commit Hooks (Automated Quality Control)
+- **Test Suite**: Automatically runs backend tests when Python files change
+- **Code Formatting**: Black, isort, and Ruff for consistent Python formatting
+- **Type Checking**: MyPy ensures proper typing
+- **Security**: detect-secrets prevents committing sensitive data
+- **File Standards**: Trailing whitespace, end-of-file, YAML/JSON validation
+
+### Test Suite Coverage
+- **96 comprehensive tests** across all backend functionality
+- Database service tests (30+ tests) - All CRUD operations
+- AI service tests (18+ tests) - Response generation and context management
+- Chat API tests (48+ tests) - All endpoints with error scenarios
+- Health API tests (16+ tests) - System monitoring endpoints
+- **Configuration**: pytest with asyncio, coverage reporting, and proper fixtures
 
 ## Code Styling
 
-Always run a linter after modifying a file.
-Always make sure every component, class, model, function, etc are properly typed, in both Python and Typescript.
+Code formatting is automatically enforced via pre-commit hooks:
+- **Backend**: Black, isort, Ruff, and MyPy handle all Python formatting and type checking
+- **Frontend**: Prettier handles JS/TS/CSS/MD formatting
+- Manual linting is no longer required - pre-commit handles everything automatically
+- All components, classes, models, and functions are properly typed in both Python and TypeScript

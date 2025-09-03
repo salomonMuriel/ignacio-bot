@@ -45,7 +45,7 @@ Run all linting and formatting tools:
 Or run individual tools:
 ```bash
 uv run black app/          # Format code
-uv run isort app/          # Sort imports  
+uv run isort app/          # Sort imports
 uv run ruff check app/     # Lint code
 uv run mypy app/           # Type checking
 ```

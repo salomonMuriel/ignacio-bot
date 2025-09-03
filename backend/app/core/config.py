@@ -1,7 +1,12 @@
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    model_config = ConfigDict(
+        env_file=".env.local",
+        case_sensitive=False,
+    )
     # Database
     supabase_url: str
     supabase_anon_key: str
@@ -32,10 +37,6 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",")]
-
-    class Config:
-        env_file = ".env.local"
-        case_sensitive = False
 
 
 settings = Settings()

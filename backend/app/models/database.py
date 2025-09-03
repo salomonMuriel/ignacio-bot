@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MessageType(str, Enum):
@@ -27,12 +27,11 @@ class UserBase(BaseModel):
 
 
 class User(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class UserCreate(UserBase):
@@ -50,13 +49,12 @@ class ConversationBase(BaseModel):
 
 
 class Conversation(ConversationBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     user_id: UUID
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class ConversationCreate(ConversationBase):
@@ -76,13 +74,12 @@ class MessageBase(BaseModel):
 
 
 class Message(MessageBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     conversation_id: UUID
     user_id: UUID
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class MessageCreate(MessageBase):
@@ -96,12 +93,11 @@ class UserSessionBase(BaseModel):
 
 
 class UserSession(UserSessionBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     user_id: UUID
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class UserSessionCreate(UserSessionBase):
@@ -116,11 +112,10 @@ class OTPCodeBase(BaseModel):
 
 
 class OTPCode(OTPCodeBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class OTPCodeCreate(OTPCodeBase):
@@ -135,12 +130,11 @@ class UserFileBase(BaseModel):
 
 
 class UserFile(UserFileBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     user_id: UUID
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class UserFileCreate(UserFileBase):

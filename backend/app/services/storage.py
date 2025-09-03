@@ -28,35 +28,7 @@ class StorageService:
         except Exception:
             try:
                 # Create bucket if it doesn't exist
-                self.client.storage.create_bucket(
-                    self.bucket_name,
-                    {
-                        "public": False,  # Private bucket
-                        "fileSizeLimit": 26214400,  # 25MB limit
-                        "allowedMimeTypes": [
-                            "image/jpeg",
-                            "image/png",
-                            "image/gif",
-                            "image/webp",
-                            "audio/mpeg",
-                            "audio/wav",
-                            "audio/ogg",
-                            "audio/mp4",
-                            "video/mp4",
-                            "video/quicktime",
-                            "video/avi",
-                            "application/pdf",
-                            "application/msword",
-                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                            "text/plain",
-                            "application/rtf",
-                            "application/vnd.ms-powerpoint",
-                            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                            "application/vnd.ms-excel",
-                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        ],
-                    },
-                )
+                self.client.storage.create_bucket(self.bucket_name)
                 return True
             except Exception as e:
                 print(f"Failed to create bucket: {e}")
@@ -189,19 +161,19 @@ class StorageService:
         return """
         -- Enable RLS on the storage.objects table
         ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-        
+
         -- Policy for users to see only their own files
         CREATE POLICY "Users can view own files" ON storage.objects
             FOR SELECT USING (auth.uid()::text = (storage.foldername(name))[2]);
-        
+
         -- Policy for users to upload files to their own folder
         CREATE POLICY "Users can upload own files" ON storage.objects
             FOR INSERT WITH CHECK (auth.uid()::text = (storage.foldername(name))[2]);
-        
+
         -- Policy for users to update their own files
         CREATE POLICY "Users can update own files" ON storage.objects
             FOR UPDATE USING (auth.uid()::text = (storage.foldername(name))[2]);
-        
+
         -- Policy for users to delete their own files
         CREATE POLICY "Users can delete own files" ON storage.objects
             FOR DELETE USING (auth.uid()::text = (storage.foldername(name))[2]);

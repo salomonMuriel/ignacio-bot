@@ -276,3 +276,13 @@ class ProjectManagementResponse(BaseModel):
 - **Supabase**: Database and storage
 - **OpenAI**: LLM provider through PydanticAI
 - **Python 3.11+**: Runtime environment
+
+### Testing & Quality Assurance
+- **Test Suite**: 96 comprehensive tests covering all backend functionality
+  - Database service tests (30+ tests) - CRUD operations and data integrity
+  - AI service tests (18+ tests) - PydanticAI integration and response validation
+  - API endpoint tests (48+ tests) - Complete REST API coverage with error scenarios
+  - Health monitoring tests (16+ tests) - System reliability validation
+- **Test Framework**: pytest with async support, coverage reporting, and fixtures
+- **Pre-commit Hooks**: Automated code quality and test execution on file changes
+- **Code Quality**: Black, isort, Ruff, and MyPy for consistent formatting and type safety
