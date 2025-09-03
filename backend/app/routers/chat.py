@@ -8,11 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from app.models.database import (
-    ConversationCreate,
-    ConversationUpdate,
-    MessageType,
-)
+from app.models.database import ConversationCreate, ConversationUpdate, MessageType
 from app.services.ai_service import ai_service
 from app.services.database import db_service
 
