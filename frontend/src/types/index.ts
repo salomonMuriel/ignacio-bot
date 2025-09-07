@@ -62,10 +62,39 @@ export interface ConversationDetailResponse extends ConversationWithMessages {}
 
 export interface MessageResponse extends Message {}
 
+// File-related types
+export interface UserFile {
+  id: string;
+  user_id: string;
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface FileUploadRequest {
+  user_id: string;
+  file: File;
+}
+
+export interface FileValidation {
+  maxSize: number; // 10MB in bytes
+  allowedTypes: string[];
+  allowedExtensions: string[];
+}
+
 // Frontend-specific types
 export interface ChatState {
   conversations: Conversation[];
   currentConversation: ConversationWithMessages | null;
   isLoading: boolean;
   error: string | null;
+}
+
+export interface FileUploadState {
+  isUploading: boolean;
+  progress: number;
+  error: string | null;
+  uploadedFiles: UserFile[];
 }

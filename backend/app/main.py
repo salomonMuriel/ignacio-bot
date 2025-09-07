@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.core.config import settings
-from app.routers import chat, health
+from app.routers import admin, chat, files, health
 
 # Create FastAPI application
 app = FastAPI(
@@ -36,6 +36,8 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 app.include_router(chat.router)
+app.include_router(files.router, prefix="/files", tags=["files"])
+app.include_router(admin.router)
 
 
 @app.get("/")

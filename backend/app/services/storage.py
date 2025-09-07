@@ -15,9 +15,53 @@ from app.services.database import db_service
 class StorageService:
     """Service class for file storage operations using Supabase Storage"""
 
+    # File size limit: 10MB in bytes
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+    # Allowed file types
+    ALLOWED_EXTENSIONS = {
+        # Audio files
+        '.mp3', '.wav', '.m4a', '.ogg', '.flac',
+        # Documents
+        '.pdf', '.txt', '.doc', '.docx',
+        # Images
+        '.jpg', '.jpeg', '.png', '.gif', '.webp'
+    }
+
+    ALLOWED_MIME_TYPES = {
+        # Audio
+        'audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/ogg', 'audio/flac',
+        # Documents
+        'application/pdf', 'text/plain', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        # Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp'
+    }
+
     def __init__(self):
         self.client = supabase
         self.bucket_name = "user-files"
+
+    def validate_file(self, file_content: bytes, file_name: str, content_type: str | None = None) -> tuple[bool, str]:
+        """Validate file size and type"""
+
+        # Check file size
+        if len(file_content) > self.MAX_FILE_SIZE:
+            return False, f"File size ({len(file_content)} bytes) exceeds maximum allowed size of {self.MAX_FILE_SIZE} bytes (10MB)"
+
+        # Check file extension
+        file_extension = f".{file_name.split('.')[-1].lower()}" if "." in file_name else ""
+        if file_extension not in self.ALLOWED_EXTENSIONS:
+            allowed_exts = ", ".join(sorted(self.ALLOWED_EXTENSIONS))
+            return False, f"File type '{file_extension}' not allowed. Allowed types: {allowed_exts}"
+
+        # Check MIME type if provided
+        if content_type:
+            if content_type not in self.ALLOWED_MIME_TYPES:
+                allowed_types = ", ".join(sorted(self.ALLOWED_MIME_TYPES))
+                return False, f"MIME type '{content_type}' not allowed. Allowed types: {allowed_types}"
+
+        return True, "File validation passed"
 
     def ensure_bucket_exists(self) -> bool:
         """Ensure the storage bucket exists"""
@@ -47,6 +91,15 @@ class StorageService:
         if not self.ensure_bucket_exists():
             raise Exception("Storage bucket not available")
 
+        # Determine content type if not provided
+        if not content_type:
+            content_type, _ = mimetypes.guess_type(file_name)
+
+        # Validate file
+        is_valid, validation_message = self.validate_file(file_content, file_name, content_type)
+        if not is_valid:
+            raise Exception(validation_message)
+
         # Generate unique file path
         file_extension = file_name.split(".")[-1] if "." in file_name else ""
         unique_filename = (
@@ -54,11 +107,9 @@ class StorageService:
         )
         file_path = f"users/{user_id}/files/{unique_filename}"
 
-        # Determine content type if not provided
+        # Use fallback content type if still None
         if not content_type:
-            content_type, _ = mimetypes.guess_type(file_name)
-            if not content_type:
-                content_type = "application/octet-stream"
+            content_type = "application/octet-stream"
 
         try:
             # Upload file to Supabase Storage
@@ -68,8 +119,10 @@ class StorageService:
                 file_options={"content-type": content_type, "cache-control": "3600"},
             )
 
-            if response.status_code != 200:
-                raise Exception(f"Failed to upload file: {response}")
+            # Check if upload was successful
+            # Supabase storage upload() returns different response formats depending on success/failure
+            # If there's an error, it will be raised as an exception by the client library
+            # If we reach here, the upload was successful
 
             # Create database record
             file_record = UserFileCreate(
@@ -151,6 +204,15 @@ class StorageService:
         except Exception as e:
             print(f"File deletion failed: {e}")
             return False
+
+    async def get_file_content(self, file_path: str) -> bytes:
+        """Get file content as bytes for OpenAI upload"""
+        try:
+            response = self.client.storage.from_(self.bucket_name).download(file_path)
+            return response
+        except Exception as e:
+            print(f"Failed to get file content: {e}")
+            raise
 
     async def get_user_files(self, user_id: UUID) -> list[UserFile]:
         """Get all files for a user"""

@@ -91,6 +91,10 @@ user_files (
     file_path: VARCHAR(500), -- Supabase Storage path
     file_type: VARCHAR(100),
     file_size: BIGINT,
+    openai_file_id: VARCHAR(255), -- OpenAI file reference for Agent SDK
+    openai_vector_store_id: VARCHAR(255), -- OpenAI vector store ID
+    openai_uploaded_at: TIMESTAMP, -- When file was uploaded to OpenAI
+    openai_sync_status: VARCHAR(20) DEFAULT 'pending', -- 'pending', 'synced', 'failed', 'expired'
     created_at: TIMESTAMP DEFAULT NOW()
 )
 ```
@@ -183,18 +187,26 @@ user_files (
 
 ## 7. AI Assistant Integration
 
-### PydanticAI with OpenAI Models
-- **Framework**: PydanticAI for type-safe AI interactions
-- **Model Provider**: OpenAI (GPT-4, GPT-3.5-turbo)
-- **Response Validation**: Pydantic models for structured responses
-- **Error Handling**: Built-in validation and retry mechanisms
+### OpenAI Agent SDK Integration
+- **Framework**: OpenAI Agent SDK for streamlined AI agent development
+- **Documentation**: https://openai.github.io/openai-agents-python/
+- **Model Provider**: OpenAI (GPT-4o, GPT-4-turbo)
+- **Tools**: Integrated file_search and web_search capabilities
+- **State Management**: Built-in conversation context and memory
 
-### Conversation Context
-- AI assistant has access to user's conversation history
-- AI can reference uploaded documents and files through PydanticAI context
-- Responses are tailored based on user's project context
-- System maintains conversation memory across sessions using PydanticAI state management
-- Context is passed through structured Pydantic models
+### Agent SDK Features
+- **File Search**: Direct integration with uploaded documents via vector stores
+- **Web Search**: Real-time web search capabilities for current information
+- **Tool Calling**: Native function calling for complex interactions
+- **Conversation State**: Automatic conversation context management
+- **Error Handling**: Robust retry mechanisms and error recovery
+
+### Document Context Integration
+- Files uploaded through Supabase Storage are automatically synced to OpenAI
+- OpenAI Agent SDK provides native file_search tool for document queries
+- Vector stores created per user for isolated document access
+- File sync status tracked in user_files table (pending/synced/failed/expired)
+- Automatic re-upload of expired files (7-day OpenAI file retention)
 
 ### Specialized Response Models
 ```python
@@ -214,11 +226,12 @@ class ProjectManagementResponse(BaseModel):
     risk_factors: List[str]
 ```
 
-### Specialized AI Agents
-- Marketing questions → Marketing expert agent with MarketingResponse model
-- Technical questions → Technical expert agent with TechnicalResponse model
-- Project management → PM advisor agent with ProjectManagementResponse model
-- Financial questions → Financial advisor agent with FinancialResponse model
+### Agent-Based Response System
+The OpenAI Agent SDK enables specialized agent behavior based on conversation context:
+- **Adaptive Expertise**: Single agent that adapts its expertise based on question type
+- **Context-Aware Responses**: Agent references user documents and provides current information via web search
+- **Project-Focused Guidance**: Specialized prompts for Action Lab project development
+- **Tool Integration**: Seamless file_search and web_search tool usage within conversations
 
 ## 8. Security Requirements
 
@@ -257,10 +270,7 @@ class ProjectManagementResponse(BaseModel):
 - `WHATSAPP_PHONE_NUMBER_ID` - WhatsApp Business phone number ID
 - `WHATSAPP_VERIFY_TOKEN` - WhatsApp webhook verification token
 - `JWT_SECRET_KEY` - Secret key for JWT tokens
-- `OPENAI_API_KEY` - OpenAI API key for PydanticAI integration
-- `PYDANTIC_AI_MODEL` - OpenAI model name (default: gpt-4)
-- `PYDANTIC_AI_MAX_TOKENS` - Maximum tokens per response (default: 2000)
-- `PYDANTIC_AI_TEMPERATURE` - Model temperature (default: 0.7)
+- `OPENAI_API_KEY` - OpenAI API key for Agent SDK integration
 
 ### Deployment Architecture
 - **Backend**: Docker container deployed on cloud platform
@@ -268,21 +278,34 @@ class ProjectManagementResponse(BaseModel):
 - **Database**: Supabase managed PostgreSQL
 - **Storage**: Supabase Storage with CDN
 - **WhatsApp**: Meta Business API integration
-- **AI Service**: PydanticAI with OpenAI API integration
+- **AI Service**: OpenAI Agent SDK integration
 
 ### Core Dependencies
 - **FastAPI**: Web framework
-- **PydanticAI**: Type-safe AI framework for OpenAI integration
+- **OpenAI Agent SDK**: AI framework for OpenAI agent development
 - **Supabase**: Database and storage
-- **OpenAI**: LLM provider through PydanticAI
+- **OpenAI**: LLM provider through Agent SDK
 - **Python 3.11+**: Runtime environment
+
+### Agent SDK Integration Details
+- **Installation**: `pip install openai-agents`
+- **Documentation**: https://openai.github.io/openai-agents-python/
+- **Features**: Native file_search, web_search, and conversation management
+- **Migration**: Replaces current ai_service_responses.py implementation
+- **Benefits**: Simplified tool integration and better error handling
 
 ### Testing & Quality Assurance
 - **Test Suite**: 96 comprehensive tests covering all backend functionality
   - Database service tests (30+ tests) - CRUD operations and data integrity
-  - AI service tests (18+ tests) - PydanticAI integration and response validation
+  - AI service tests (18+ tests) - Agent SDK integration and response validation
   - API endpoint tests (48+ tests) - Complete REST API coverage with error scenarios
   - Health monitoring tests (16+ tests) - System reliability validation
 - **Test Framework**: pytest with async support, coverage reporting, and fixtures
 - **Pre-commit Hooks**: Automated code quality and test execution on file changes
 - **Code Quality**: Black, isort, Ruff, and MyPy for consistent formatting and type safety
+
+### Migration Notes
+- **Current Status**: Basic chat completions API in use (temporary)
+- **Next Phase**: Replace with OpenAI Agent SDK for full tool integration
+- **File Integration**: Vector store management already implemented
+- **Timeline**: Agent SDK migration planned for immediate next development phase

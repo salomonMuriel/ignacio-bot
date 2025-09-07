@@ -8,6 +8,8 @@ from uuid import UUID
 
 from app.core.database import supabase
 from app.models.database import (
+    AgentInteraction,
+    AgentInteractionCreate,
     Conversation,
     ConversationCreate,
     ConversationUpdate,
@@ -19,6 +21,9 @@ from app.models.database import (
     UserCreate,
     UserFile,
     UserFileCreate,
+    UserProject,
+    UserProjectCreate,
+    UserProjectUpdate,
     UserSession,
     UserSessionCreate,
     UserUpdate,
@@ -116,11 +121,30 @@ class DatabaseService:
         return len(response.data) > 0
 
     # Conversation operations
-    async def create_conversation(self, conv_data: ConversationCreate) -> Conversation:
-        """Create a new conversation"""
+    async def create_conversation(self, conv_data: ConversationCreate | dict) -> Conversation:
+        """Create a new conversation with Agent SDK support"""
+        if isinstance(conv_data, dict):
+            # Handle dict input from Agent SDK
+            insert_data = {
+                "user_id": str(conv_data["user_id"]),
+                "title": conv_data.get("title", "New Conversation"),
+                "language_preference": conv_data.get("language_preference", "es"),
+                "agent_state": conv_data.get("agent_state", {}),
+                "project_context": conv_data.get("project_context", {}),
+            }
+        else:
+            # Handle ConversationCreate model
+            insert_data = {
+                "user_id": str(conv_data.user_id),
+                "title": conv_data.title,
+                "language_preference": getattr(conv_data, 'language_preference', "es"),
+                "agent_state": getattr(conv_data, 'agent_state', {}),
+                "project_context": getattr(conv_data, 'project_context', {}),
+            }
+
         response = (
             self.client.table("conversations")
-            .insert({"user_id": str(conv_data.user_id), "title": conv_data.title})
+            .insert(insert_data)
             .execute()
         )
 
@@ -154,12 +178,17 @@ class DatabaseService:
         return None
 
     async def update_conversation(
-        self, conv_id: UUID, conv_data: ConversationUpdate
+        self, conv_id: UUID, conv_data: ConversationUpdate | dict
     ) -> Conversation | None:
-        """Update conversation"""
-        update_dict = {}
-        if conv_data.title is not None:
-            update_dict["title"] = conv_data.title
+        """Update conversation with Agent SDK support"""
+        if isinstance(conv_data, dict):
+            # Handle dict input from Agent SDK
+            update_dict = conv_data
+        else:
+            # Handle ConversationUpdate model
+            update_dict = {}
+            if conv_data.title is not None:
+                update_dict["title"] = conv_data.title
 
         if not update_dict:
             return await self.get_conversation_by_id(conv_id)
@@ -345,6 +374,137 @@ class DatabaseService:
         if response.data:
             return UserFile(**response.data[0])
         return None
+
+    async def update_file_openai_info(
+        self,
+        file_id: UUID,
+        openai_file_id: str | None = None,
+        vector_store_id: str | None = None,
+        sync_status: str | None = None,
+        uploaded_at: datetime | None = None,
+    ) -> bool:
+        """Update OpenAI-related information for a file"""
+        update_data = {}
+
+        if openai_file_id is not None:
+            update_data["openai_file_id"] = openai_file_id
+        if vector_store_id is not None:
+            update_data["openai_vector_store_id"] = vector_store_id
+        if sync_status is not None:
+            update_data["openai_sync_status"] = sync_status
+        if uploaded_at is not None:
+            update_data["openai_uploaded_at"] = uploaded_at.isoformat()
+
+        if not update_data:
+            return False
+
+        response = (
+            self.client.table("user_files")
+            .update(update_data)
+            .eq("id", str(file_id))
+            .execute()
+        )
+
+        return len(response.data) > 0
+
+    async def delete_user_file(self, file_id: UUID) -> bool:
+        """Delete a user file record"""
+        response = (
+            self.client.table("user_files")
+            .delete()
+            .eq("id", str(file_id))
+            .execute()
+        )
+        return len(response.data) > 0
+
+    # Enhanced methods for Agent SDK
+
+    async def get_conversation(self, conversation_id: UUID) -> Conversation | None:
+        """Get conversation by ID (alias for get_conversation_by_id for Agent SDK compatibility)"""
+        return await self.get_conversation_by_id(conversation_id)
+
+    async def update_user_file(self, file_id: UUID, update_data: dict) -> bool:
+        """Update user file with arbitrary data"""
+        response = (
+            self.client.table("user_files")
+            .update(update_data)
+            .eq("id", str(file_id))
+            .execute()
+        )
+        return len(response.data) > 0
+
+    # Agent Interaction operations
+    async def create_agent_interaction(self, interaction_data: AgentInteractionCreate) -> AgentInteraction:
+        """Create a new agent interaction"""
+        response = (
+            self.client.table("agent_interactions")
+            .insert({
+                "conversation_id": str(interaction_data.conversation_id),
+                "agent_name": interaction_data.agent_name,
+                "input_text": interaction_data.input_text,
+                "output_text": interaction_data.output_text,
+                "tools_used": interaction_data.tools_used,
+                "execution_time_ms": interaction_data.execution_time_ms,
+            })
+            .execute()
+        )
+
+        if response.data:
+            return AgentInteraction(**response.data[0])
+        else:
+            raise Exception("Failed to create agent interaction")
+
+    async def get_conversation_interactions(self, conversation_id: UUID) -> list[AgentInteraction]:
+        """Get all agent interactions for a conversation"""
+        response = (
+            self.client.table("agent_interactions")
+            .select("*")
+            .eq("conversation_id", str(conversation_id))
+            .order("created_at", desc=False)
+            .execute()
+        )
+
+        return [AgentInteraction(**item) for item in response.data]
+
+    # User Project operations
+    async def get_user_projects(self, user_id: UUID) -> list[UserProject]:
+        """Get all projects for a user"""
+        response = (
+            self.client.table("user_projects")
+            .select("*")
+            .eq("user_id", str(user_id))
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        return [UserProject(**item) for item in response.data]
+
+    async def create_user_project(self, project_data: dict) -> UserProject:
+        """Create a new user project"""
+        # Convert UUID to string if needed
+        if 'user_id' in project_data:
+            project_data['user_id'] = str(project_data['user_id'])
+
+        response = (
+            self.client.table("user_projects")
+            .insert(project_data)
+            .execute()
+        )
+
+        if response.data:
+            return UserProject(**response.data[0])
+        else:
+            raise Exception("Failed to create user project")
+
+    async def update_user_project(self, project_id: UUID, update_data: dict) -> bool:
+        """Update a user project"""
+        response = (
+            self.client.table("user_projects")
+            .update(update_data)
+            .eq("id", str(project_id))
+            .execute()
+        )
+        return len(response.data) > 0
 
 
 # Global database service instance

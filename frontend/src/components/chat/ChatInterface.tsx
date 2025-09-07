@@ -12,6 +12,9 @@ import MessageDisplay from './MessageDisplay';
 import MessageInput from './MessageInput';
 
 export const ChatInterface: React.FC = () => {
+  // Temporary user ID for Phase 2 (before authentication)
+  const TEMP_USER_ID = '00000000-0000-0000-0000-000000000000';
+
   const [chatState, setChatState] = useState<ChatState>({
     conversations: [],
     currentConversation: null,
@@ -124,7 +127,7 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
-  const sendMessage = async (content: string, messageType: MessageType = MessageType.TEXT) => {
+  const sendMessage = async (content: string, messageType: MessageType = MessageType.TEXT, fileId?: string) => {
     if (!chatState.currentConversation) {
       // Create a new conversation if none is selected
       await createNewConversation();
@@ -294,6 +297,8 @@ export const ChatInterface: React.FC = () => {
             <MessageInput
               onSendMessage={sendMessage}
               disabled={isSendingMessage}
+              conversationId={currentConversation.id}
+              userId={TEMP_USER_ID}
             />
           </>
         )}

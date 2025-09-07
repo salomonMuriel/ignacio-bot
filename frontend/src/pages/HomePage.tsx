@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import ignacioVideoOptimized from '../assets/ignacio_video_optimized.mp4';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -51,7 +50,7 @@ const HomePage: React.FC = () => {
                     muted
                     playsInline
                   >
-                    <source src={ignacioVideoOptimized} type="video/mp4" />
+                    <source src="/assets/ignacio_video_optimized.mp4" type="video/mp4" />
                   </video>
                 </div>
                 <div className="absolute -top-1 -right-1 w-6 h-6 bg-accent-500 rounded-full border-2 border-white animate-pulse"></div>

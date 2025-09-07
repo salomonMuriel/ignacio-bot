@@ -91,32 +91,35 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 **Goal**: Enable file uploads and document management
 
 ### 3.1 Backend File Handling
-- [ ] Configure Supabase Storage integration
-- [ ] Implement file upload service
-- [ ] Create file metadata management
-- [ ] Build file download/serving logic
-- [ ] Add file type validation and security
+- [x] Configure Supabase Storage integration
+- [x] Implement file upload service (10MB limit, audio/docs/images only)
+- [x] Create file metadata management
+- [x] Build file download/serving logic with user permission checks
+- [x] Add comprehensive file type validation and security
 
 ### 3.2 Frontend File Management
-- [ ] Build file upload components
-- [ ] Create drag-and-drop file interface
-- [ ] Implement file preview functionality
-- [ ] Add file management in chat interface
-- [ ] Build file listing for user files
+- [x] Build file upload components with drag-and-drop interface
+- [x] Create drag-and-drop file interface
+- [x] Implement file preview functionality
+- [x] Add file management in chat interface (attachment button)
+- [x] Build file listing for user files (FileManager component)
 
 ### 3.3 File API Endpoints
-- [ ] `POST /files/upload` - Upload file
-- [ ] `GET /files/{file_id}` - Get file metadata
-- [ ] `GET /files/{file_id}/download` - Download file
-- [ ] `POST /conversations/{conversation_id}/files` - Upload to conversation
+- [x] `POST /files/upload` - Upload file
+- [x] `GET /files/{file_id}` - Get file metadata
+- [x] `GET /files/{file_id}/download` - Download file
+- [x] `POST /conversations/{conversation_id}/files` - Upload to conversation
+- [x] `GET /files/user/{user_id}` - Get user's files
+- [x] `DELETE /files/{file_id}` - Delete file
+- [x] `GET /files/{file_id}/url` - Get signed URL
 
-### 3.4 AI Document Integration
-- [ ] Implement document content extraction
-- [ ] Build document search and retrieval
-- [ ] Integrate documents into AI context
-- [ ] Create document-aware responses
+### 3.4 AI Document Integration **⚠️ REMAINING TASKS**
+- [ ] **MISSING**: Implement document content extraction (PDF, DOC, DOCX text extraction)
+- [ ] **MISSING**: Build document search and retrieval for AI context
+- [ ] **MISSING**: Integrate documents into AI context for smart responses
+- [ ] **MISSING**: Create document-aware AI responses
 
-**Success Criteria**: Users can upload, manage, and reference files in conversations; AI can access document content
+**Success Criteria**: ✅ **MOSTLY COMPLETE** - Users can upload, manage, and reference files in conversations. ⚠️ **MISSING**: AI cannot yet access document content for intelligent responses.
 
 ## Phase 4: Authentication System
 **Duration**: 2-3 days

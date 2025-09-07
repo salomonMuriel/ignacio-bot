@@ -7,7 +7,12 @@
       "Bash(uv python install:*)",
       "Bash(uv run pytest:*)",
       "Bash(uv run:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "WebFetch(domain:openai.github.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//Users/salomonmuriel/git/openai-agents-python/examples/**)",
+      "Bash(uv sync:*)"
     ],
     "deny": [],
     "ask": []
