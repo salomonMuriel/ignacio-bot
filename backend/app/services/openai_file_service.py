@@ -11,7 +11,6 @@ from uuid import UUID
 
 from openai import OpenAI
 from openai.types import FileObject
-from openai.types.beta import VectorStore
 
 from app.core.config import settings
 from app.models.database import UserFile

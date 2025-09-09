@@ -15,15 +15,24 @@ from httpx import AsyncClient
 from app.core.database import supabase
 from app.main import app
 from app.models.database import (
+    AgentInteraction,
+    AgentInteractionCreate,
     Conversation,
     ConversationCreate,
+    ConversationResult,
+    FileIntegrationResult,
     Message,
     MessageCreate,
     MessageType,
+    ProjectStage,
+    ProjectType,
+    SyncStatus,
     User,
     UserCreate,
+    UserFile,
+    UserProject,
+    UserProjectCreate,
 )
-from app.services.ai_service import AIResponse
 from app.services.database import db_service
 
 
@@ -101,6 +110,10 @@ def test_conversation_data(test_user: User) -> ConversationCreate:
     return ConversationCreate(
         user_id=test_user.id,
         title="Test Conversation",
+        openai_session_id=f"session_{uuid.uuid4()}",
+        agent_state={"current_agent": "ignacio"},
+        project_context={"stage": "ideation"},
+        language_preference="es"
     )
 
 
@@ -138,31 +151,122 @@ async def test_message(
     # Messages will be cleaned up when conversations are deleted
 
 
-# Mock fixtures for external services
 @pytest.fixture
-def mock_openai_response() -> AIResponse:
-    """Mock AI response"""
-    return AIResponse(
-        content="This is a test AI response",
-        response_type="general",
-        confidence=0.95,
-        requires_followup=False,
-        followup_suggestion=None,
+async def test_user_project_data(test_user: User) -> UserProjectCreate:
+    """Test user project data"""
+    return UserProjectCreate(
+        user_id=test_user.id,
+        project_name="Test Startup",
+        project_type=ProjectType.STARTUP,
+        description="A test startup project for Action Lab",
+        current_stage=ProjectStage.IDEATION,
+        target_audience="Tech entrepreneurs",
+        problem_statement="Solving efficiency problems",
+        solution_approach="AI-powered automation",
+        business_model="SaaS subscription",
+        context_data={"industry": "fintech", "location": "Mexico"}
     )
 
 
 @pytest.fixture
-def mock_ai_service(mock_openai_response: AIResponse) -> AsyncMock:
-    """Mock AI service for testing"""
+async def test_user_project(
+    test_user: User, test_user_project_data: UserProjectCreate
+) -> UserProject:
+    """Create a test user project in database"""
+    project = await db_service.create_user_project(test_user_project_data.dict())
+    yield project
+    # Projects will be cleaned up when users are deleted due to CASCADE
+
+
+@pytest.fixture
+async def test_agent_interaction_data(
+    test_conversation: Conversation
+) -> AgentInteractionCreate:
+    """Test agent interaction data"""
+    return AgentInteractionCreate(
+        conversation_id=test_conversation.id,
+        agent_name="ignacio",
+        input_text="Tell me about marketing strategies",
+        output_text="Here are some effective marketing strategies...",
+        tools_used=["web_search", "file_search"],
+        execution_time_ms=2500
+    )
+
+
+@pytest.fixture
+async def test_agent_interaction(
+    test_conversation: Conversation, test_agent_interaction_data: AgentInteractionCreate
+) -> AgentInteraction:
+    """Create a test agent interaction in database"""
+    interaction = await db_service.create_agent_interaction(test_agent_interaction_data)
+    yield interaction
+    # Interactions will be cleaned up when conversations are deleted due to CASCADE
+
+
+@pytest.fixture
+async def test_user_file_data(test_user: User) -> dict:
+    """Test user file data"""
+    return {
+        "user_id": test_user.id,
+        "file_name": "test_document.pdf",
+        "file_path": f"users/{test_user.id}/test_document.pdf",
+        "file_type": "application/pdf",
+        "file_size": 1024576,
+        "openai_file_id": "file-test123",
+        "openai_vector_store_id": "vs-test123",
+        "openai_sync_status": SyncStatus.SYNCED,
+        "content_preview": "This is a test document with business information...",
+        "metadata": {"pages": 5, "language": "en"},
+        "vector_store_id": "vs-test123"
+    }
+
+
+@pytest.fixture
+async def test_user_file(
+    test_user: User, test_user_file_data: dict
+) -> UserFile:
+    """Create a test user file in database"""
+    file = await db_service.create_user_file(test_user_file_data)
+    yield file
+    # Files will be cleaned up when users are deleted due to CASCADE
+
+
+# Mock fixtures for external services
+@pytest.fixture
+def mock_agent_response() -> ConversationResult:
+    """Mock Agent SDK conversation result"""
+    return ConversationResult(
+        conversation_id=uuid.uuid4(),
+        response_text="This is a test AI response from Agent SDK",
+        agent_used="ignacio",
+        tools_called=["file_search", "web_search"],
+        confidence_score=0.95,
+        suggested_actions=["Review uploaded documents"],
+        requires_followup=False,
+        execution_time_ms=1500
+    )
+
+
+@pytest.fixture
+def mock_ignacio_service(mock_agent_response: ConversationResult) -> AsyncMock:
+    """Mock IgnacioAgentService for testing"""
     mock_service = AsyncMock()
-    mock_service.generate_response.return_value = mock_openai_response
-    mock_service.process_message_and_respond.return_value = AsyncMock(
-        id=uuid.uuid4(),
-        content=mock_openai_response.content,
-        message_type=MessageType.TEXT,
-        is_from_user=False,
-        created_at=datetime.utcnow(),
-        file_path=None,
+    mock_service.start_conversation.return_value = mock_agent_response
+    mock_service.continue_conversation.return_value = mock_agent_response
+    mock_service.upload_file_to_context.return_value = FileIntegrationResult(
+        success=True,
+        openai_file_id="file-123",
+        vector_store_updated=True,
+        content_preview="Test file content..."
+    )
+    mock_service.get_conversation_summary.return_value = AsyncMock(
+        conversation_id=uuid.uuid4(),
+        total_messages=5,
+        agent_interactions=3,
+        tools_used=["file_search", "web_search"],
+        key_topics=["marketing", "strategy"],
+        project_context={},
+        last_activity=datetime.utcnow()
     )
     return mock_service
 

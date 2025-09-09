@@ -1,424 +1,609 @@
 """
-Tests for AI service
+Tests for IgnacioAgentService using OpenAI Agent SDK
 """
 
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
-from app.services.ai_service import AIResponse, AIService, ConversationContext
-from tests.utils.mocks import MockAIService
+from app.models.database import (
+    ConversationResult,
+    FileIntegrationResult,
+    ProjectStage,
+    ProjectType,
+    SyncStatus,
+)
+from app.services.ai_service import IgnacioAgentService, ProjectContext, VectorStoreManager
+from tests.utils.mocks import (
+    MockIgnacioAgentService,
+    MockOpenAIAgentClient,
+    MockRunner,
+    MockVectorStoreManager,
+)
 
 
-class TestAIResponse:
-    """Test AIResponse model validation"""
+class TestProjectContext:
+    """Test ProjectContext model"""
 
-    def test_ai_response_creation_valid(self):
-        """Test creating valid AIResponse"""
-        response = AIResponse(
-            content="Test response",
-            response_type="marketing",
-            confidence=0.85,
-            requires_followup=True,
-            followup_suggestion="Would you like to know more about target audience research?",
+    def test_project_context_creation(self):
+        """Test creating project context"""
+        user_id = uuid4()
+        context = ProjectContext(
+            user_id=user_id,
+            project_name="Test Startup",
+            project_type=ProjectType.STARTUP,
+            current_stage=ProjectStage.IDEATION,
+            problem_statement="Solving efficiency problems",
+            target_audience="Tech entrepreneurs",
+            uploaded_files=["business_plan.pdf", "market_research.docx"],
+            language_preference="es"
         )
 
-        assert response.content == "Test response"
-        assert response.response_type == "marketing"
-        assert response.confidence == 0.85
-        assert response.requires_followup is True
-        assert "target audience" in response.followup_suggestion
+        assert context.user_id == user_id
+        assert context.project_name == "Test Startup"
+        assert context.project_type == ProjectType.STARTUP
+        assert context.current_stage == ProjectStage.IDEATION
+        assert "efficiency" in context.problem_statement
+        assert context.language_preference == "es"
+        assert len(context.uploaded_files) == 2
 
-    def test_ai_response_defaults(self):
-        """Test AIResponse with default values"""
-        response = AIResponse(content="Simple response")
-
-        assert response.content == "Simple response"
-        assert response.response_type == "general"
-        assert response.confidence == 1.0
-        assert response.requires_followup is False
-        assert response.followup_suggestion is None
-
-    def test_ai_response_confidence_validation(self):
-        """Test confidence value validation"""
-        # Valid confidence values
-        AIResponse(content="Test", confidence=0.0)
-        AIResponse(content="Test", confidence=1.0)
-        AIResponse(content="Test", confidence=0.5)
-
-        # Invalid confidence values should be handled by Pydantic
-        with pytest.raises(ValueError):
-            AIResponse(content="Test", confidence=1.5)
-
-        with pytest.raises(ValueError):
-            AIResponse(content="Test", confidence=-0.1)
-
-
-class TestConversationContext:
-    """Test ConversationContext model"""
-
-    def test_conversation_context_creation(self, test_user, test_conversation):
-        """Test creating conversation context"""
-        context = ConversationContext(
-            user_id=test_user.id,
-            conversation_id=test_conversation.id,
-            user_name=test_user.name,
-            conversation_history=[],
-            user_project_info="E-commerce startup in fintech space",
+    def test_project_context_to_dict(self):
+        """Test converting project context to dictionary"""
+        user_id = uuid4()
+        context = ProjectContext(
+            user_id=user_id,
+            project_name="Tech Startup",
+            project_type=ProjectType.STARTUP,
+            current_stage=ProjectStage.RESEARCH,
+            problem_statement="Solving data analytics problems",
+            target_audience="Data scientists",
+            uploaded_files=["data.csv"],
+            language_preference="en"
         )
 
-        assert context.user_id == test_user.id
-        assert context.conversation_id == test_conversation.id
-        assert context.user_name == test_user.name
-        assert len(context.conversation_history) == 0
-        assert "fintech" in context.user_project_info
+        context_dict = context.to_dict()
 
-    def test_conversation_context_with_history(
-        self, test_user, test_conversation, test_message
-    ):
-        """Test conversation context with message history"""
-        context = ConversationContext(
-            user_id=test_user.id,
-            conversation_id=test_conversation.id,
-            conversation_history=[test_message],
-        )
-
-        assert len(context.conversation_history) == 1
-        assert context.conversation_history[0].id == test_message.id
+        assert context_dict["user_id"] == str(user_id)
+        assert context_dict["project_name"] == "Tech Startup"
+        assert context_dict["project_type"] == ProjectType.STARTUP
+        assert context_dict["current_stage"] == ProjectStage.RESEARCH
+        assert context_dict["language_preference"] == "en"
+        assert "data.csv" in context_dict["uploaded_files"]
 
 
-class TestAIService:
-    """Test AI service functionality"""
+class TestVectorStoreManager:
+    """Test VectorStoreManager functionality"""
 
     @pytest.fixture
-    def mock_openai_model(self):
-        """Mock OpenAI model"""
-        with patch("app.services.ai_service.OpenAIModel") as mock_model_class:
-            mock_model = MagicMock()
-            mock_model_class.return_value = mock_model
-            yield mock_model
+    def mock_openai_client(self):
+        """Mock OpenAI client for vector operations"""
+        return MockOpenAIAgentClient()
 
     @pytest.fixture
-    def mock_agent(self):
-        """Mock PydanticAI agent"""
-        with patch("app.services.ai_service.Agent") as mock_agent_class:
-            mock_agent = AsyncMock()
-            mock_result = MagicMock()
-            mock_result.data = AIResponse(
-                content="Mocked AI response", response_type="general", confidence=0.95
-            )
-            mock_agent.run.return_value = mock_result
-            mock_agent_class.return_value = mock_agent
-            yield mock_agent
-
-    def test_ai_service_initialization(self, mock_openai_model, mock_agent):
-        """Test AI service initialization"""
-        service = AIService()
-
-        assert service.model is not None
-        assert service.agent is not None
-
-    def test_system_prompt_content(self):
-        """Test that system prompt contains required elements"""
-        service = AIService()
-        system_prompt = service._get_system_prompt()
-
-        assert "Ignacio" in system_prompt
-        assert "Action Lab" in system_prompt
-        assert "projects" in system_prompt
-        assert "marketing" in system_prompt
-        assert "technical" in system_prompt
-        assert "financial" in system_prompt
+    def vector_manager(self, mock_openai_client):
+        """Vector store manager with mocked OpenAI client"""
+        with patch("app.services.ai_service.OpenAI") as mock_openai_class:
+            mock_openai_class.return_value = mock_openai_client
+            manager = VectorStoreManager()
+            manager.openai_client = mock_openai_client
+            yield manager
 
     @pytest.mark.asyncio
-    async def test_generate_response_success(
-        self, mock_openai_model, mock_agent, test_user, test_conversation
-    ):
-        """Test successful AI response generation"""
-        service = AIService()
-        context = ConversationContext(
-            user_id=test_user.id,
-            conversation_id=test_conversation.id,
-            user_name=test_user.name,
-        )
-
-        response = await service.generate_response("Hello Ignacio!", context)
-
-        assert isinstance(response, AIResponse)
-        assert response.content == "Mocked AI response"
-        assert response.response_type == "general"
-        assert response.confidence == 0.95
-
-    @pytest.mark.asyncio
-    async def test_generate_response_error_handling(
-        self, mock_openai_model, test_user, test_conversation
-    ):
-        """Test AI service error handling"""
-        with patch("app.services.ai_service.Agent") as mock_agent_class:
-            mock_agent = AsyncMock()
-            mock_agent.run.side_effect = Exception("API Error")
-            mock_agent_class.return_value = mock_agent
-
-            service = AIService()
-            context = ConversationContext(
-                user_id=test_user.id, conversation_id=test_conversation.id
-            )
-
-            response = await service.generate_response("Test message", context)
-
-            assert isinstance(response, AIResponse)
-            assert "trouble processing" in response.content
-            assert response.response_type == "error"
-            assert response.confidence == 0.0
-            assert response.requires_followup is True
-
-    def test_prepare_context_message_empty(self, test_user, test_conversation):
-        """Test context message preparation with minimal data"""
-        service = AIService()
-        context = ConversationContext(
-            user_id=test_user.id, conversation_id=test_conversation.id
-        )
-
-        context_msg = service._prepare_context_message(context)
-
-        assert "No previous context available" in context_msg
-
-    def test_prepare_context_message_full(
-        self, test_user, test_conversation, test_message
-    ):
-        """Test context message preparation with full data"""
-        service = AIService()
-        context = ConversationContext(
-            user_id=test_user.id,
-            conversation_id=test_conversation.id,
-            user_name="John Doe",
-            user_project_info="SaaS platform for small businesses",
-            conversation_history=[test_message],
-        )
-
-        context_msg = service._prepare_context_message(context)
-
-        assert "John Doe" in context_msg
-        assert "SaaS platform" in context_msg
-        assert "Recent conversation context" in context_msg
-        assert test_message.content in context_msg
-
-    def test_prepare_context_message_long_history(self, test_user, test_conversation):
-        """Test context message with long conversation history (>10 messages)"""
-        service = AIService()
-
-        # Create 15 mock messages
-        messages = []
-        for i in range(15):
-            mock_message = MagicMock()
-            mock_message.content = f"Message {i}"
-            mock_message.is_from_user = i % 2 == 0
-            messages.append(mock_message)
-
-        context = ConversationContext(
-            user_id=test_user.id,
-            conversation_id=test_conversation.id,
-            conversation_history=messages,
-        )
-
-        context_msg = service._prepare_context_message(context)
-
-        # Should only include last 10 messages
-        assert "Message 14" in context_msg  # Latest message
-        assert "Message 5" in context_msg  # 10th from last
-        assert "Message 4" not in context_msg  # 11th from last (excluded)
-
-    @pytest.mark.asyncio
-    async def test_get_conversation_context(self, test_user, test_conversation):
-        """Test building conversation context from database"""
+    async def test_ensure_user_vector_store_new(self, vector_manager, test_user):
+        """Test creating new vector store for user"""
         with patch("app.services.ai_service.db_service") as mock_db:
-            mock_db.get_user_by_id.return_value = test_user
-            mock_db.get_conversation_messages.return_value = []
+            mock_db.get_user_files.return_value = []
 
-            service = AIService()
-            context = await service.get_conversation_context(
-                test_user.id, test_conversation.id
-            )
+            vector_store_id = await vector_manager.ensure_user_vector_store(test_user.id)
+
+            assert vector_store_id == "vs-test123"
+            assert test_user.id in vector_manager._user_vector_stores
+
+    @pytest.mark.asyncio
+    async def test_ensure_user_vector_store_existing(self, vector_manager, test_user, test_user_file):
+        """Test using existing vector store for user"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            test_user_file.vector_store_id = "vs-existing123"
+            mock_db.get_user_files.return_value = [test_user_file]
+
+            vector_store_id = await vector_manager.ensure_user_vector_store(test_user.id)
+
+            assert vector_store_id == "vs-existing123"
+
+    @pytest.mark.asyncio
+    async def test_sync_file_to_vector_store_success(self, vector_manager, test_user, test_user_file):
+        """Test successful file sync to vector store"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_user_files.return_value = []
+            mock_db.update_user_file.return_value = test_user_file
+
+            success = await vector_manager.sync_file_to_vector_store(test_user.id, test_user_file)
+
+            assert success is True
+            assert mock_db.update_user_file.call_count >= 2  # SYNCING + SYNCED updates
+
+    @pytest.mark.asyncio
+    async def test_sync_file_to_vector_store_failure(self, vector_manager, test_user, test_user_file):
+        """Test file sync failure handling"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_user_files.return_value = []
+            mock_db.update_user_file.return_value = test_user_file
+
+            # Simulate OpenAI API failure
+            vector_manager.openai_client.files.create.side_effect = Exception("OpenAI API Error")
+
+            success = await vector_manager.sync_file_to_vector_store(test_user.id, test_user_file)
+
+            assert success is False
+
+    @pytest.mark.asyncio
+    async def test_cleanup_expired_files(self, vector_manager, test_user, test_user_file):
+        """Test cleaning up expired files"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            test_user_file.openai_sync_status = SyncStatus.EXPIRED
+            mock_db.get_user_files.return_value = [test_user_file]
+            mock_db.update_user_file.return_value = test_user_file
+
+            expired_count = await vector_manager.cleanup_expired_files(test_user.id)
+
+            assert expired_count == 1
+
+
+class TestIgnacioAgentService:
+    """Test IgnacioAgentService functionality"""
+
+    @pytest.fixture
+    def mock_vector_manager(self):
+        """Mock VectorStoreManager"""
+        return MockVectorStoreManager()
+
+    @pytest.fixture
+    def mock_runner(self):
+        """Mock Agent SDK Runner"""
+        with patch("app.services.ai_service.Runner") as mock_runner_class:
+            mock_runner_class.run = MockRunner.run
+            yield mock_runner_class
+
+    @pytest.fixture
+    def agent_service(self, mock_vector_manager, mock_runner):
+        """IgnacioAgentService with mocked dependencies"""
+        with patch("app.services.ai_service.VectorStoreManager") as mock_vm_class:
+            mock_vm_class.return_value = mock_vector_manager
+            service = IgnacioAgentService()
+            service.vector_manager = mock_vector_manager
+            yield service
+
+    def test_agent_service_initialization(self, agent_service):
+        """Test IgnacioAgentService initialization"""
+        assert agent_service.vector_manager is not None
+        assert isinstance(agent_service._sessions, dict)
+        assert isinstance(agent_service._agents, dict)
+
+        # Verify all expected agents are created
+        expected_agents = [
+            "ignacio", "design_thinking", "marketing", "sales",
+            "agile_pm", "finance", "tech", "leadership", "translator"
+        ]
+        for agent_name in expected_agents:
+            assert agent_name in agent_service._agents
+
+    def test_agent_instructions_content(self, agent_service):
+        """Test that agent instructions contain required elements"""
+        ignacio_instructions = agent_service._agents["ignacio"].instructions
+
+        assert "Ignacio" in ignacio_instructions
+        assert "Action Lab" in ignacio_instructions
+        assert "projects" in ignacio_instructions
+        assert "file search" in ignacio_instructions
+        assert "web search" in ignacio_instructions
+
+        # Check specialist agent instructions
+        marketing_instructions = agent_service._agents["marketing"].instructions
+        assert "marketing" in marketing_instructions.lower()
+        assert "market research" in marketing_instructions.lower()
+
+        tech_instructions = agent_service._agents["tech"].instructions
+        assert "technology" in tech_instructions.lower()
+        assert "architecture" in tech_instructions.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_project_context(self, agent_service, test_user, test_user_project, test_user_file):
+        """Test building project context from database"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_user_projects.return_value = [test_user_project]
+            test_user_file.openai_sync_status = SyncStatus.SYNCED
+            mock_db.get_user_files.return_value = [test_user_file]
+
+            context = await agent_service._get_project_context(test_user.id)
 
             assert context.user_id == test_user.id
-            assert context.conversation_id == test_conversation.id
-            assert context.user_name == test_user.name
-            assert len(context.conversation_history) == 0
+            assert context.project_name == test_user_project.project_name
+            assert context.project_type == ProjectType.STARTUP
+            assert context.current_stage == ProjectStage.IDEATION
+            assert len(context.uploaded_files) == 1
+            assert test_user_file.file_name in context.uploaded_files
 
-            # Verify database calls
-            mock_db.get_user_by_id.assert_called_once_with(test_user.id)
-            mock_db.get_conversation_messages.assert_called_once_with(
-                test_conversation.id
-            )
+    def test_determine_specialist_agent(self, agent_service, test_user):
+        """Test agent routing based on message content"""
+        context = ProjectContext(user_id=test_user.id)
 
-    @pytest.mark.asyncio
-    async def test_get_conversation_context_no_user(self, test_conversation):
-        """Test building conversation context when user not found"""
-        with patch("app.services.ai_service.db_service") as mock_db:
-            mock_db.get_user_by_id.return_value = None
-            mock_db.get_conversation_messages.return_value = []
+        # Test marketing keywords
+        marketing_message = "I need help with marketing my startup and customer acquisition"
+        agent = agent_service._determine_specialist_agent(marketing_message, context)
+        assert agent == "marketing"
 
-            service = AIService()
-            context = await service.get_conversation_context(
-                uuid4(), test_conversation.id
-            )
+        # Test technical keywords
+        tech_message = "What technology stack should I use for my web application?"
+        agent = agent_service._determine_specialist_agent(tech_message, context)
+        assert agent == "tech"
 
-            assert context.user_name is None
+        # Test sales keywords
+        sales_message = "How can I improve my sales conversion rate?"
+        agent = agent_service._determine_specialist_agent(sales_message, context)
+        assert agent == "sales"
 
-    @pytest.mark.asyncio
-    async def test_process_message_and_respond_success(
-        self, mock_openai_model, mock_agent, test_user, test_conversation
-    ):
-        """Test complete message processing flow"""
-        with patch("app.services.ai_service.db_service") as mock_db:
-            # Mock user message creation
-            mock_user_msg = MagicMock()
-            mock_user_msg.id = uuid4()
-            mock_user_msg.content = "Test user message"
-            mock_user_msg.is_from_user = True
-            mock_db.create_message.return_value = mock_user_msg
+        # Test design thinking keywords
+        design_message = "I need to understand my users better and do research"
+        agent = agent_service._determine_specialist_agent(design_message, context)
+        assert agent == "design_thinking"
 
-            # Mock user and conversation data
-            mock_db.get_user_by_id.return_value = test_user
-            mock_db.get_conversation_messages.return_value = []
+        # Test finance keywords
+        finance_message = "I need help with my business model and funding strategy"
+        agent = agent_service._determine_specialist_agent(finance_message, context)
+        assert agent == "finance"
 
-            # Mock AI message creation
-            mock_ai_msg = MagicMock()
-            mock_ai_msg.id = uuid4()
-            mock_ai_msg.content = "Mocked AI response"
-            mock_ai_msg.is_from_user = False
+        # Test leadership keywords
+        leadership_message = "How can I build a better team culture?"
+        agent = agent_service._determine_specialist_agent(leadership_message, context)
+        assert agent == "leadership"
 
-            # Set up return values for multiple create_message calls
-            mock_db.create_message.side_effect = [mock_user_msg, mock_ai_msg]
+        # Test agile keywords
+        agile_message = "I need help with project planning and scrum methodology"
+        agent = agent_service._determine_specialist_agent(agile_message, context)
+        assert agent == "agile_pm"
 
-            service = AIService()
-            result = await service.process_message_and_respond(
-                "Test user message", test_user.id, test_conversation.id
-            )
-
-            assert result == mock_ai_msg
-            assert mock_db.create_message.call_count == 2  # User message + AI response
+        # Test default case
+        general_message = "Hello, how are you?"
+        agent = agent_service._determine_specialist_agent(general_message, context)
+        assert agent == "ignacio"
 
     @pytest.mark.asyncio
-    async def test_process_message_and_respond_with_context(
-        self, mock_openai_model, mock_agent, test_user, test_conversation, test_message
-    ):
-        """Test message processing with existing conversation context"""
+    async def test_start_conversation(self, agent_service, test_user, test_conversation):
+        """Test starting a new conversation"""
         with patch("app.services.ai_service.db_service") as mock_db:
-            # Mock database responses
-            mock_db.get_user_by_id.return_value = test_user
+            mock_db.create_conversation.return_value = test_conversation
+            mock_db.get_conversation.return_value = test_conversation
+            mock_db.get_user_projects.return_value = []
+            mock_db.get_user_files.return_value = []
+            mock_db.create_message.return_value = MagicMock()
+            mock_db.create_agent_interaction.return_value = MagicMock()
+
+            # Mock session and agent response
+            with patch("app.services.ai_service.OpenAIConversationsSession") as mock_session_class:
+                mock_session = MagicMock()
+                mock_session_class.return_value = mock_session
+
+                result = await agent_service.start_conversation(
+                    test_user.id, "Hello Ignacio, I need help with my startup"
+                )
+
+                assert isinstance(result, ConversationResult)
+                assert result.conversation_id == test_conversation.id
+                assert result.agent_used in agent_service._agents.keys()
+                assert result.execution_time_ms > 0
+
+    @pytest.mark.asyncio
+    async def test_continue_conversation(self, agent_service, test_user, test_conversation):
+        """Test continuing an existing conversation"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_conversation.return_value = test_conversation
+            mock_db.get_user_projects.return_value = []
+            mock_db.get_user_files.return_value = []
+            mock_db.create_message.return_value = MagicMock()
+            mock_db.create_agent_interaction.return_value = MagicMock()
+
+            # Mock session
+            with patch("app.services.ai_service.OpenAIConversationsSession") as mock_session_class:
+                mock_session = MagicMock()
+                mock_session_class.return_value = mock_session
+                agent_service._sessions[test_conversation.id] = mock_session
+
+                result = await agent_service.continue_conversation(
+                    test_conversation.id, "Tell me more about marketing strategies"
+                )
+
+                assert isinstance(result, ConversationResult)
+                assert result.conversation_id == test_conversation.id
+                assert result.response_text is not None
+                assert result.execution_time_ms > 0
+
+    @pytest.mark.asyncio
+    async def test_continue_conversation_with_translation(self, agent_service, test_user, test_conversation):
+        """Test conversation with Spanish translation"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            test_conversation.language_preference = "es"
+            mock_db.get_conversation.return_value = test_conversation
+            mock_db.get_user_projects.return_value = []
+            mock_db.get_user_files.return_value = []
+            mock_db.create_message.return_value = MagicMock()
+            mock_db.create_agent_interaction.return_value = MagicMock()
+
+            with patch("app.services.ai_service.OpenAIConversationsSession") as mock_session_class:
+                mock_session = MagicMock()
+                mock_session_class.return_value = mock_session
+
+                result = await agent_service.continue_conversation(
+                    test_conversation.id, "Necesito ayuda con marketing"
+                )
+
+                assert isinstance(result, ConversationResult)
+                assert result.response_text is not None
+
+    @pytest.mark.asyncio
+    async def test_continue_conversation_error_handling(self, agent_service, test_conversation):
+        """Test conversation error handling"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_conversation.return_value = None  # Conversation not found
+
+            with pytest.raises(ValueError, match="not found"):
+                await agent_service.continue_conversation(
+                    test_conversation.id, "Test message"
+                )
+
+    @pytest.mark.asyncio
+    async def test_upload_file_to_context_success(self, agent_service, test_user, test_user_file):
+        """Test successful file upload to context"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_user_files.return_value = [test_user_file]
+
+            agent_service.vector_manager.sync_file_to_vector_store.return_value = True
+            test_user_file.openai_file_id = "file-123"
+            test_user_file.content_preview = "Test content preview"
+
+            result = await agent_service.upload_file_to_context(
+                test_user.id, test_user_file.file_path
+            )
+
+            assert isinstance(result, FileIntegrationResult)
+            assert result.success is True
+            assert result.openai_file_id == "file-123"
+            assert result.vector_store_updated is True
+
+    @pytest.mark.asyncio
+    async def test_upload_file_to_context_file_not_found(self, agent_service, test_user):
+        """Test file upload when file not found"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_user_files.return_value = []
+
+            result = await agent_service.upload_file_to_context(
+                test_user.id, "nonexistent/path.pdf"
+            )
+
+            assert isinstance(result, FileIntegrationResult)
+            assert result.success is False
+            assert "not found" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_upload_file_to_context_sync_failure(self, agent_service, test_user, test_user_file):
+        """Test file upload when vector store sync fails"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_user_files.return_value = [test_user_file]
+
+            agent_service.vector_manager.sync_file_to_vector_store.return_value = False
+
+            result = await agent_service.upload_file_to_context(
+                test_user.id, test_user_file.file_path
+            )
+
+            assert isinstance(result, FileIntegrationResult)
+            assert result.success is False
+            assert "Failed to sync" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_get_conversation_summary(self, agent_service, test_user, test_conversation, test_message, test_agent_interaction):
+        """Test getting conversation summary"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_conversation.return_value = test_conversation
             mock_db.get_conversation_messages.return_value = [test_message]
+            mock_db.get_conversation_interactions.return_value = [test_agent_interaction]
 
-            mock_user_msg = MagicMock()
-            mock_ai_msg = MagicMock()
-            mock_db.create_message.side_effect = [mock_user_msg, mock_ai_msg]
+            summary = await agent_service.get_conversation_summary(test_conversation.id)
 
-            service = AIService()
-            await service.process_message_and_respond(
-                "Follow-up question", test_user.id, test_conversation.id
-            )
-
-            # Verify that agent.run was called with context that includes previous message
-            mock_agent.run.assert_called_once()
-            call_args = mock_agent.run.call_args[0]
-            assert "Follow-up question" in call_args[0]
-
-
-class TestAIServiceIntegration:
-    """Integration tests for AI service with different scenarios"""
+            assert summary.conversation_id == test_conversation.id
+            assert summary.total_messages == 1
+            assert summary.agent_interactions == 1
+            assert len(summary.tools_used) > 0
 
     @pytest.mark.asyncio
-    async def test_marketing_question_scenario(
-        self, mock_openai_model, test_user, test_conversation
-    ):
-        """Test AI service with marketing-focused question"""
-        with patch("app.services.ai_service.Agent") as mock_agent_class:
-            mock_agent = AsyncMock()
-            mock_result = MagicMock()
-            mock_result.data = AIResponse(
-                content="For startup marketing, focus on defining your target audience first...",
-                response_type="marketing",
-                confidence=0.92,
-                requires_followup=True,
-                followup_suggestion="What type of business are you building?",
-            )
-            mock_agent.run.return_value = mock_result
-            mock_agent_class.return_value = mock_agent
+    async def test_update_project_context(self, agent_service, test_user, test_user_project):
+        """Test updating project context"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_db.get_user_projects.return_value = [test_user_project]
+            mock_db.update_user_project.return_value = test_user_project
+            mock_db.get_user_conversations.return_value = []
 
-            service = AIService()
-            context = ConversationContext(
-                user_id=test_user.id,
+            project_data = {
+                "project_name": "Updated Startup",
+                "current_stage": ProjectStage.DEVELOPMENT,
+                "description": "Updated description"
+            }
+
+            await agent_service.update_project_context(test_user.id, project_data)
+
+            mock_db.update_user_project.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_log_interaction(self, agent_service, test_conversation):
+        """Test logging agent interactions"""
+        with patch("app.services.ai_service.db_service") as mock_db:
+            mock_interaction = MagicMock()
+            mock_db.create_agent_interaction.return_value = mock_interaction
+
+            await agent_service._log_interaction(
                 conversation_id=test_conversation.id,
-                user_project_info="E-commerce startup",
+                agent_name="ignacio",
+                input_text="Test input",
+                output_text="Test output",
+                tools_used=["web_search"],
+                execution_time_ms=1200
             )
 
-            response = await service.generate_response(
-                "I need help with marketing my startup. What should I focus on first?",
-                context,
-            )
+            mock_db.create_agent_interaction.assert_called_once()
+            call_args = mock_db.create_agent_interaction.call_args[0][0]
+            assert call_args.conversation_id == test_conversation.id
+            assert call_args.agent_name == "ignacio"
+            assert call_args.execution_time_ms == 1200
 
-            assert "target audience" in response.content
-            assert response.response_type == "marketing"
-            assert response.requires_followup is True
+
+class TestIgnacioAgentServiceIntegration:
+    """Integration tests for IgnacioAgentService with different scenarios"""
+
+    @pytest.fixture
+    def mock_agent_service(self):
+        """Mock IgnacioAgentService for integration testing"""
+        return MockIgnacioAgentService()
 
     @pytest.mark.asyncio
-    async def test_technical_question_scenario(
-        self, mock_openai_model, test_user, test_conversation
-    ):
-        """Test AI service with technical question"""
-        with patch("app.services.ai_service.Agent") as mock_agent_class:
-            mock_agent = AsyncMock()
-            mock_result = MagicMock()
-            mock_result.data = AIResponse(
-                content="For web application technology stack, consider these factors...",
-                response_type="technical",
-                confidence=0.88,
-            )
-            mock_agent.run.return_value = mock_result
-            mock_agent_class.return_value = mock_agent
+    async def test_marketing_question_workflow(self, mock_agent_service, test_user, test_conversation):
+        """Test complete workflow for marketing questions"""
+        marketing_result = mock_agent_service.set_conversation_result(
+            response_text="For startup marketing, focus on defining your target audience first. Consider these key strategies:\n\n1. Content marketing through blogs and social media\n2. SEO optimization for organic reach\n3. Email marketing campaigns\n4. Partnership and networking opportunities\n\nWould you like me to elaborate on any of these strategies?",
+            agent_name="marketing",
+            tools_called=["web_search", "file_search"],
+            confidence_score=0.92
+        )
 
-            service = AIService()
-            context = ConversationContext(
-                user_id=test_user.id, conversation_id=test_conversation.id
-            )
+        result = await mock_agent_service.start_conversation(
+            test_user.id,
+            "I need help with marketing my startup. What should I focus on first?"
+        )
 
-            response = await service.generate_response(
-                "What technology stack should I use for my web application?", context
-            )
-
-            assert "technology stack" in response.content
-            assert response.response_type == "technical"
-
-
-class TestMockAIService:
-    """Test the mock AI service for other tests"""
-
-    def test_mock_ai_service_creation(self):
-        """Test creating mock AI service"""
-        mock_service = MockAIService()
-
-        assert mock_service.generate_response is not None
-        assert mock_service.process_message_and_respond is not None
-
-    def test_mock_ai_service_set_response(self):
-        """Test setting mock response"""
-        mock_service = MockAIService()
-
-        response = mock_service.set_response("Test response", "marketing")
-
-        assert response.content == "Test response"
-        assert response.response_type == "marketing"
-        assert response.confidence == 0.95
+        assert result.agent_used == "marketing"
+        assert "target audience" in result.response_text
+        assert "web_search" in result.tools_called
+        assert result.confidence_score >= 0.9
 
     @pytest.mark.asyncio
-    async def test_mock_ai_service_generate_response(self):
-        """Test mock generate_response method"""
-        mock_service = MockAIService()
-        mock_service.set_response("Mock response")
+    async def test_technical_question_workflow(self, mock_agent_service, test_user, test_conversation):
+        """Test complete workflow for technical questions"""
+        tech_result = mock_agent_service.set_conversation_result(
+            response_text="For web application technology stack, consider these factors:\n\n1. **Frontend**: React/Vue.js for user interfaces\n2. **Backend**: Node.js/Python for server logic\n3. **Database**: PostgreSQL for structured data\n4. **Cloud**: AWS/Google Cloud for scalable hosting\n\nKey considerations:\n- Team expertise and learning curve\n- Scalability requirements\n- Budget constraints\n- Time to market",
+            agent_name="tech",
+            tools_called=["web_search", "file_search"],
+            confidence_score=0.88
+        )
+
+        result = await mock_agent_service.continue_conversation(
+            test_conversation.id,
+            "What technology stack should I use for my web application?"
+        )
+
+        assert result.agent_used == "tech"
+        assert "technology stack" in result.response_text
+        assert result.confidence_score >= 0.85
+
+    @pytest.mark.asyncio
+    async def test_file_integration_workflow(self, mock_agent_service, test_user):
+        """Test file integration workflow"""
+        file_result = mock_agent_service.set_file_integration_result(
+            success=True,
+            openai_file_id="file-business-plan-123",
+            content_preview="Business Plan - Executive Summary: Our startup focuses on AI-powered solutions for small businesses..."
+        )
+
+        result = await mock_agent_service.upload_file_to_context(
+            test_user.id,
+            f"users/{test_user.id}/business_plan.pdf"
+        )
+
+        assert result.success is True
+        assert result.openai_file_id.startswith("file-")
+        assert result.vector_store_updated is True
+        assert "Business Plan" in result.content_preview
+
+    @pytest.mark.asyncio
+    async def test_multi_agent_conversation_flow(self, mock_agent_service, test_user, test_conversation):
+        """Test conversation flow through multiple agents"""
+        # Start with general question (Ignacio)
+        ignacio_result = mock_agent_service.set_conversation_result(
+            response_text="I can help you with your startup! It sounds like you have questions about multiple areas. Let me address each one.",
+            agent_name="ignacio",
+            tools_called=["file_search"],
+            confidence_score=0.9
+        )
+
+        general_result = await mock_agent_service.start_conversation(
+            test_user.id,
+            "I'm building a startup and need help with marketing, technology, and funding."
+        )
+
+        # Follow up with specific marketing question
+        marketing_result = mock_agent_service.set_conversation_result(
+            response_text="For marketing, let's start with market research and customer persona development...",
+            agent_name="marketing",
+            tools_called=["web_search", "file_search"],
+            confidence_score=0.93
+        )
+
+        marketing_followup = await mock_agent_service.continue_conversation(
+            test_conversation.id,
+            "Tell me more about the marketing strategies you mentioned."
+        )
+
+        assert general_result.agent_used == "ignacio"
+        assert marketing_followup.agent_used == "marketing"
+        assert len(marketing_followup.tools_called) >= 1
+
+
+class TestMockIgnacioAgentService:
+    """Test the mock IgnacioAgentService for other tests"""
+
+    def test_mock_service_creation(self):
+        """Test creating mock IgnacioAgentService"""
+        mock_service = MockIgnacioAgentService()
+
+        assert mock_service.start_conversation is not None
+        assert mock_service.continue_conversation is not None
+        assert mock_service.upload_file_to_context is not None
+        assert len(mock_service._agents) == 9  # 8 specialists + 1 translator
+
+    def test_mock_service_set_conversation_result(self):
+        """Test setting mock conversation result"""
+        mock_service = MockIgnacioAgentService()
+
+        result = mock_service.set_conversation_result(
+            "Test response", "marketing", ["web_search"], 0.95
+        )
+
+        assert result.response_text == "Test response"
+        assert result.agent_used == "marketing"
+        assert result.tools_called == ["web_search"]
+        assert result.confidence_score == 0.95
+
+    def test_mock_service_set_file_integration_result(self):
+        """Test setting mock file integration result"""
+        mock_service = MockIgnacioAgentService()
+
+        result = mock_service.set_file_integration_result(
+            success=True,
+            openai_file_id="file-test456",
+            content_preview="Mock file content"
+        )
+
+        assert result.success is True
+        assert result.openai_file_id == "file-test456"
+        assert result.content_preview == "Mock file content"
+
+    @pytest.mark.asyncio
+    async def test_mock_service_conversation_methods(self):
+        """Test mock service conversation methods"""
+        mock_service = MockIgnacioAgentService()
+        mock_service.set_conversation_result("Mock response")
 
         context = MagicMock()
-        response = await mock_service.generate_response("Test input", context)
+        result = await mock_service.start_conversation(uuid4(), "Test input")
 
-        assert response.content == "Mock response"
-        mock_service.generate_response.assert_called_once_with("Test input", context)
+        assert result.response_text == "Mock response"
+        mock_service.start_conversation.assert_called_once()

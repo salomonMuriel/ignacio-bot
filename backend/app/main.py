@@ -1,9 +1,23 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+# Load environment variables from .env.local
+import os
+from pathlib import Path
+env_path = Path(__file__).parent.parent.parent / '.env.local'
+load_dotenv(env_path)
+
+# Ensure OpenAI API key is set in environment for Agent SDK
+if 'OPENAI_API_KEY' not in os.environ and hasattr(os.environ, 'get'):
+    from app.core.config import Settings
+    temp_settings = Settings()
+    if temp_settings.openai_api_key:
+        os.environ['OPENAI_API_KEY'] = temp_settings.openai_api_key
+
 from app.core.config import settings
-from app.routers import admin, chat, files, health
+from app.routers import admin, chat, files, health, project
 
 # Create FastAPI application
 app = FastAPI(
@@ -37,6 +51,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(chat.router)
 app.include_router(files.router, prefix="/files", tags=["files"])
+app.include_router(project.router)
 app.include_router(admin.router)
 
 

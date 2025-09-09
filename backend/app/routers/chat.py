@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from app.models.database import ConversationCreate, ConversationUpdate, MessageType, ConversationResult
-from app.services.ai_service import ignacio_service
+from app.services.ai_service import get_ignacio_service
 from app.services.database import db_service
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -63,6 +63,7 @@ class AgentMessageResponse(BaseModel):
     tools_called: list[str] = []
     confidence_score: float = 0.0
     execution_time_ms: int = 0
+    conversation_id: UUID | None = None
 
 
 # Temporary user ID for Phase 2 (no authentication yet)
@@ -99,55 +100,41 @@ async def get_conversations():
         )
 
 
-@router.post("/conversations", response_model=ConversationResponse)
-async def create_conversation(request: ConversationCreateRequest):
-    """Create a new conversation"""
-    try:
-        conv_data = ConversationCreate(
-            user_id=TEMP_USER_ID,
-            title=request.title or "New Conversation",
-            language_preference="es",
-            agent_state={},
-            project_context={}
-        )
-
-        conversation = await db_service.create_conversation(conv_data)
-
-        return ConversationResponse(
-            id=conversation.id,
-            title=conversation.title,
-            created_at=conversation.created_at.isoformat(),
-            updated_at=conversation.updated_at.isoformat(),
-            message_count=0,
-            language_preference=conversation.language_preference,
-            project_context=conversation.project_context,
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create conversation: {str(e)}",
-        )
-
-
 @router.post("/conversations/start", response_model=AgentMessageResponse)
 async def start_conversation(request: ConversationStartRequest):
     """Start a new conversation with an initial message using Agent SDK"""
     try:
         # Start conversation with Agent SDK (this creates conversation and processes initial message)
-        agent_result = await ignacio_service.start_conversation(
+        agent_result = await get_ignacio_service().start_conversation(
             user_id=TEMP_USER_ID,
             initial_message=request.initial_message
         )
 
+        # Debug: Check what type agent_result is
+        print(f"DEBUG: agent_result type: {type(agent_result)}")
+        print(f"DEBUG: agent_result content: {agent_result}")
+
+        # Handle the case where agent_result might be a dict due to an error
+        conversation_id = None
+        if hasattr(agent_result, 'conversation_id'):
+            conversation_id = agent_result.conversation_id
+        elif isinstance(agent_result, dict) and 'conversation_id' in agent_result:
+            conversation_id = agent_result['conversation_id']
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Invalid agent result format: {type(agent_result)}"
+            )
+
         # Update conversation title if provided
         if request.title:
             await db_service.update_conversation(
-                agent_result.conversation_id,
+                conversation_id,
                 {"title": request.title}
             )
 
         # Get the AI response message
-        messages = await db_service.get_conversation_messages(agent_result.conversation_id)
+        messages = await db_service.get_conversation_messages(conversation_id)
         ai_message = None
         for msg in reversed(messages):
             if not msg.is_from_user:
@@ -175,6 +162,7 @@ async def start_conversation(request: ConversationStartRequest):
             tools_called=agent_result.tools_called,
             confidence_score=agent_result.confidence_score,
             execution_time_ms=agent_result.execution_time_ms,
+            conversation_id=agent_result.conversation_id,
         )
     except Exception as e:
         raise HTTPException(
@@ -347,7 +335,7 @@ async def send_message(conversation_id: UUID, request: MessageCreateRequest):
             )
 
         # Process message with Agent SDK
-        agent_result = await ignacio_service.continue_conversation(
+        agent_result = await get_ignacio_service().continue_conversation(
             conversation_id=conversation_id,
             message=request.content
         )
@@ -381,6 +369,7 @@ async def send_message(conversation_id: UUID, request: MessageCreateRequest):
             tools_called=agent_result.tools_called,
             confidence_score=agent_result.confidence_score,
             execution_time_ms=agent_result.execution_time_ms,
+            conversation_id=agent_result.conversation_id,
         )
     except HTTPException:
         raise
@@ -408,7 +397,7 @@ async def integrate_file_to_context(file_id: UUID):
             )
 
         # Integrate file into AI context
-        result = await ignacio_service.upload_file_to_context(TEMP_USER_ID, file.file_path)
+        result = await get_ignacio_service().upload_file_to_context(TEMP_USER_ID, file.file_path)
 
         return {
             "success": result.success,
@@ -430,7 +419,7 @@ async def integrate_file_to_context(file_id: UUID):
 async def get_conversation_summary(conversation_id: UUID):
     """Get a summary of the conversation for context management"""
     try:
-        summary = await ignacio_service.get_conversation_summary(conversation_id)
+        summary = await get_ignacio_service().get_conversation_summary(conversation_id)
 
         return {
             "conversation_id": summary.conversation_id,
@@ -474,7 +463,7 @@ async def get_conversation_interactions(conversation_id: UUID):
 async def update_project_context(project_data: dict):
     """Update user's project context for better AI responses"""
     try:
-        await ignacio_service.update_project_context(TEMP_USER_ID, project_data)
+        await get_ignacio_service().update_project_context(TEMP_USER_ID, project_data)
 
         return {"success": True, "message": "Project context updated successfully"}
     except Exception as e:

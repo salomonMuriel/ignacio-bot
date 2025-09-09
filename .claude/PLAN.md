@@ -21,7 +21,7 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
   - [x] `app/services/` - Business logic services
   - [x] `app/core/` - Core configuration and utilities
 - [x] Set up uv requirements management
-  - [x] Add PydanticAI dependency
+  - [x] Add OpenAI Agent SDK dependency
   - [x] Add OpenAI client dependency
   - [x] Add Pydantic v2 for response models
 - [x] Configure FastAPI with basic CORS and middleware
@@ -75,14 +75,14 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 - [x] `GET /conversations/{conversation_id}/messages` - Get messages
 - [x] `POST /conversations/{conversation_id}/messages` - Send message
 
-### 2.4 PydanticAI Integration
-- [x] Set up PydanticAI with OpenAI models
-- [x] Create Pydantic response models for different query types
-- [x] Implement basic AI agents using PydanticAI framework
-- [x] Build structured prompt templates with PydanticAI
-- [x] Create conversation context management with type safety
-- [x] Implement error handling and validation for AI responses
-- [x] Build response generation service with structured outputs
+### 2.4 OpenAI Agent SDK Integration
+- [x] Set up OpenAI Agent SDK with specialized agents
+- [x] Create structured agent response models for different domains
+- [x] Implement multi-agent architecture using OpenAI Agent SDK
+- [x] Build dynamic agent routing and selection system
+- [x] Create conversation context management with persistent sessions
+- [x] Implement error handling and validation for agent responses
+- [x] Build response generation service with agent orchestration
 
 **Success Criteria**: Users can create conversations, send messages, receive AI responses through web interface
 
@@ -215,20 +215,20 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 **Duration**: 3-4 days
 **Goal**: Implement specialized AI responses and advanced features
 
-### 7.1 Advanced PydanticAI Context Management
-- [ ] Build user project context with structured Pydantic models
-- [ ] Implement specialized AI agents for different domains
-- [ ] Create dynamic prompt generation using PydanticAI templates
-- [ ] Add conversation memory enhancement with type-safe state
-- [ ] Implement context injection for file content through PydanticAI
+### 7.1 Advanced OpenAI Agent SDK Context Management
+- [ ] Build user project context with structured agent models
+- [ ] Implement specialized AI agents for different expertise domains
+- [ ] Create dynamic agent selection and routing system
+- [ ] Add conversation memory enhancement with persistent agent state
+- [ ] Implement context injection for file content through Agent SDK
 
-### 7.2 Specialized AI Agents with PydanticAI
-- [ ] Marketing expert agent with MarketingResponse model
-- [ ] Technical expert agent with TechnicalResponse model
-- [ ] Project management advisor agent with PMResponse model
-- [ ] Financial advisor agent with FinancialResponse model
+### 7.2 Specialized AI Agents with OpenAI Agent SDK
+- [ ] Marketing expert agent with structured marketing tools
+- [ ] Technical expert agent with development-focused capabilities
+- [ ] Project management advisor agent with PM-specific tools
+- [ ] Financial advisor agent with business analysis tools
 - [ ] Project development expert agent for Action Lab program-specific questions
-- [ ] Implement agent routing based on question classification
+- [ ] Implement intelligent agent routing based on query classification
 
 ### 7.3 Advanced File Integration
 - [ ] Implement document analysis and summarization
@@ -346,14 +346,14 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 - Supabase account and project setup
 - WhatsApp Business API access
 - OpenAI API access with GPT-4 access
-- PydanticAI framework (latest version)
+- OpenAI Agent SDK (latest version)
 - Python 3.11+ environment
 - Domain name and hosting environment
 - SSL certificates
 
 ## Risk Mitigation
 - **WhatsApp API delays**: Set up sandbox environment early for testing
-- **AI integration issues**: Build with fallback responses and PydanticAI error handling
+- **AI integration issues**: Build with fallback responses and Agent SDK error handling
 - **File upload limits**: Implement proper error handling and user feedback
 - **Authentication security**: Implement rate limiting and proper token management
 

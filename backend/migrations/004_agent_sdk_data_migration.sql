@@ -32,15 +32,15 @@ SELECT DISTINCT
     'startup',
     'ideation',
     'Project created during system migration to Agent SDK',
-    '{
-        "migrated": true,
-        "migration_date": "' || NOW()::text || '",
-        "original_conversations": ' || (
-            SELECT COUNT(*)::text
+    jsonb_build_object(
+        'migrated', true,
+        'migration_date', NOW()::text,
+        'original_conversations', (
+            SELECT COUNT(*)
             FROM conversations c2
             WHERE c2.user_id = c.user_id
-        ) || '
-    }'
+        )
+    )
 FROM conversations c
 LEFT JOIN user_projects up ON up.user_id = c.user_id
 WHERE up.id IS NULL;
@@ -53,10 +53,10 @@ SELECT
     'internal',
     'mature',
     'Administrative project for system management',
-    '{
-        "admin_project": true,
-        "created_at": "' || NOW()::text || '"
-    }'
+    jsonb_build_object(
+        'admin_project', true,
+        'created_at', NOW()::text
+    )
 FROM users u
 LEFT JOIN user_projects up ON up.user_id = u.id
 WHERE u.is_admin = true AND up.id IS NULL;
@@ -64,7 +64,7 @@ WHERE u.is_admin = true AND up.id IS NULL;
 -- Update project context in conversations based on user projects
 UPDATE conversations
 SET project_context = (
-    SELECT json_build_object(
+    SELECT jsonb_build_object(
         'project_id', up.id,
         'project_name', up.project_name,
         'project_type', up.project_type,
@@ -98,10 +98,10 @@ WHERE m.content IS NOT NULL
   );
 
 -- Create indexes for better performance on new data
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_project_context
+CREATE INDEX IF NOT EXISTS idx_conversations_project_context
 ON conversations USING GIN (project_context) WHERE project_context != '{}';
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_files_metadata
+CREATE INDEX IF NOT EXISTS idx_user_files_metadata
 ON user_files USING GIN (metadata) WHERE metadata != '{}';
 
 -- Update table statistics for query optimization

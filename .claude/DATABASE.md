@@ -63,7 +63,7 @@
 None currently required.
 
 ## Migration Notes
-- All migrations applied manually via Supabase SQL Editor
+- All migrations applied manually via Supabase SQL Editor. Ask user to apply them.
 - Each migration includes proper error handling (IF NOT EXISTS, ON CONFLICT)
 - Foreign key constraints properly maintained
 - Indexes created for performance-critical queries

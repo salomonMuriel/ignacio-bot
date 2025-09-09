@@ -60,26 +60,9 @@ The backend uses `uv` as the package manager for Python dependencies.
 ### Testing
 - `uv run pytest tests/` to run the test suite
 - `uv run pytest tests/ --cov=app` to run with coverage
+- `uv run python test_agent.py` to run end-to-end Agent SDK integration tests
 - 96 comprehensive tests covering database, AI service, and API endpoints
-- Pre-commit hooks automatically run tests on backend file changes
-
-
-## Code Quality & Testing
-
-### Pre-commit Hooks (Automated Quality Control)
-- **Test Suite**: Automatically runs backend tests when Python files change
-- **Code Formatting**: Black, isort, and Ruff for consistent Python formatting
-- **Type Checking**: MyPy ensures proper typing
-- **Security**: detect-secrets prevents committing sensitive data
-- **File Standards**: Trailing whitespace, end-of-file, YAML/JSON validation
-
-### Test Suite Coverage
-- **96 comprehensive tests** across all backend functionality
-- Database service tests (30+ tests) - All CRUD operations
-- AI service tests (18+ tests) - Response generation and context management
-- Chat API tests (48+ tests) - All endpoints with error scenarios
-- Health API tests (16+ tests) - System monitoring endpoints
-- **Configuration**: pytest with asyncio, coverage reporting, and proper fixtures
+- Complete Agent SDK integration testing with database persistence verification
 
 ## Code Styling
 
@@ -89,31 +72,38 @@ Code formatting is automatically enforced via pre-commit hooks:
 - Manual linting is no longer required - pre-commit handles everything automatically
 - All components, classes, models, and functions are properly typed in both Python and TypeScript
 
-## Current Development Status (2025-09-07)
+## Current Development Status (2025-01-07)
 
-### Completed ✅
-- **Phase 1**: Complete database foundation with Supabase
-- **Phase 2**: Basic chat functionality (frontend + backend)
-- **File Upload System**: Working with Supabase Storage integration
-- **OpenAI Integration**: File service and database schema for AI document processing
-- **Database Migrations**: Applied through migration 004 (including temporary user creation)
+### ✅ **Agent SDK Implementation - COMPLETED**
 
-### Current Issues 🔧
-- **AI Response API**: OpenAI "responses" API doesn't exist - currently using simplified chat completions
-- **File Search Integration**: Document context integration needs proper implementation
-- **Web Search Tools**: Not yet implemented in chat completions
+**Major Milestone Achieved**: Complete migration to OpenAI Agent SDK with multi-agent architecture
 
-### Immediate Next Steps
-1. **AI System Migration**: Replace current implementation with OpenAI's Agent SDK for cleaner tool integration
-2. **Document Search**: Implement proper file search using Assistants API or vector search
-3. **Web Search Integration**: Add web search capabilities to AI responses
+#### **Core Agent Architecture**
+- **8 Specialized Agents**: Ignacio (Entry), Marketing, Sales, Technology, Finance, Leadership, Agile/PM, Design Thinking, Translation
+- **Dynamic Agent Routing**: Automatic selection based on user query intent
+- **Tool Integration**: File search, web search, conversation management
+- **Multi-language Support**: Spanish/English with translation agent
 
-### Technical Notes
-- **OpenAI Agent SDK Migration**: The current AI service implementation has issues with the OpenAI API structure. We will migrate to OpenAI's Agent SDK which provides straightforward integration for:
-  - File search with uploaded documents
-  - Web search capabilities
-  - Tool calling and function execution
-  - Conversation state management
-- **Temporary User**: Created user ID `00000000-0000-0000-0000-000000000000` for Phase 2 testing
-- **File Uploads**: Working correctly, files sync to Supabase Storage and database
-- **Backend/Frontend**: Both running successfully (ports 8000/3000)
+#### **Enhanced Database Schema**
+- **agent_interactions**: Comprehensive tracking of agent usage and tool calls
+- **user_projects**: Project context management for Action Lab participants
+- **Enhanced conversations**: OpenAI session tracking, agent state, project context
+- **Enhanced user_files**: Vector store integration, content preview, metadata
+
+#### **API Endpoints**
+- **Agent-powered Chat**: `/conversations/start`, `/conversations/{id}/messages`
+- **File Integration**: `/files/{id}/integrate` for document context
+- **Project Management**: `/project/context` for user project updates
+- **Analytics**: `/conversations/{id}/summary`, `/conversations/{id}/interactions`
+
+#### **Vector Store Management**
+- **User-specific Vector Stores**: Isolated file contexts per user
+- **Automatic Sync**: File uploads automatically integrated into search context
+- **Content Preview**: First 500 chars stored for quick reference
+
+### **Technical Architecture**
+- **Backend**: FastAPI + OpenAI Agent SDK + Supabase
+- **Agent Framework**: Multi-agent with specialized expertise domains
+- **File Processing**: Vector stores + content search + metadata extraction
+- **Session Management**: OpenAI conversation sessions with persistent context
+- **Project Context**: Dynamic user project tracking and context injection

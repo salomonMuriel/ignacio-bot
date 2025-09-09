@@ -8,11 +8,13 @@ import {
   Conversation,
   ConversationWithMessages,
   ConversationCreateRequest,
+  ConversationStartRequest,
   ConversationResponse,
   ConversationDetailResponse,
   Message,
   MessageCreateRequest,
   MessageResponse,
+  AgentMessageResponse,
 } from '../types';
 
 export class ChatService {
@@ -118,20 +120,97 @@ export class ChatService {
   }
 
   /**
-   * Send a message in a conversation and get AI response
+   * Send a message in a conversation and get AI response (Agent SDK)
    */
   async sendMessage(
     conversationId: string,
     data: MessageCreateRequest
-  ): Promise<Message> {
+  ): Promise<AgentMessageResponse> {
     try {
-      const response = await apiClient.post<MessageResponse>(
+      const response = await apiClient.post<AgentMessageResponse>(
         `${this.basePath}/conversations/${conversationId}/messages`,
         data
       );
       return response.data;
     } catch (error) {
       console.error(`Failed to send message to conversation ${conversationId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start a new conversation with initial message (Agent SDK)
+   */
+  async startConversation(data: ConversationStartRequest): Promise<AgentMessageResponse> {
+    try {
+      const response = await apiClient.post<AgentMessageResponse>(
+        `${this.basePath}/conversations/start`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Integrate file into AI context
+   */
+  async integrateFile(fileId: string): Promise<any> {
+    try {
+      const response = await apiClient.post(
+        `${this.basePath}/files/${fileId}/integrate`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to integrate file ${fileId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get conversation summary (Agent SDK)
+   */
+  async getConversationSummary(conversationId: string): Promise<any> {
+    try {
+      const response = await apiClient.get(
+        `${this.basePath}/conversations/${conversationId}/summary`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to get conversation summary ${conversationId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get conversation agent interactions
+   */
+  async getConversationInteractions(conversationId: string): Promise<any[]> {
+    try {
+      const response = await apiClient.get(
+        `${this.basePath}/conversations/${conversationId}/interactions`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to get conversation interactions ${conversationId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update project context
+   */
+  async updateProjectContext(projectData: any): Promise<any> {
+    try {
+      const response = await apiClient.post(
+        `${this.basePath}/project/context`,
+        projectData
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update project context:', error);
       throw error;
     }
   }

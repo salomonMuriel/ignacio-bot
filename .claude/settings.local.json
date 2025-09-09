@@ -12,7 +12,12 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Read(//Users/salomonmuriel/git/openai-agents-python/examples/**)",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(find:*)",
+      "Read(//Users/salomonmuriel/git/openai-agents-python/**)",
+      "Bash(mcp__supabase_run_sql:*)",
+      "Bash(env)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

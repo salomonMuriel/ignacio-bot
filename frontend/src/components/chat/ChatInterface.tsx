@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, MessageType, ChatState } from '../../types';
+import { Message, MessageType, ChatState, AgentMessageResponse } from '../../types';
 import { chatService } from '../../services/chatService';
 import ConversationList from './ConversationList';
 import MessageDisplay from './MessageDisplay';
@@ -129,8 +129,8 @@ export const ChatInterface: React.FC = () => {
 
   const sendMessage = async (content: string, messageType: MessageType = MessageType.TEXT, fileId?: string) => {
     if (!chatState.currentConversation) {
-      // Create a new conversation if none is selected
-      await createNewConversation();
+      // Start a new conversation with initial message (Agent SDK)
+      await startNewConversationWithMessage(content, messageType);
       return;
     }
 
@@ -154,8 +154,8 @@ export const ChatInterface: React.FC = () => {
     }));
 
     try {
-      // Send message to backend and get AI response
-      const aiResponse = await chatService.sendMessage(chatState.currentConversation.id, {
+      // Send message to backend and get AI response (Agent SDK)
+      const agentResponse = await chatService.sendMessage(chatState.currentConversation.id, {
         content,
         message_type: messageType,
       });
@@ -171,7 +171,7 @@ export const ChatInterface: React.FC = () => {
               ...tempUserMessage,
               id: `user-${Date.now()}`, // Real user message ID will be set by backend
             },
-            aiResponse
+            agentResponse.message
           ]
         } : null
       }));
@@ -197,6 +197,60 @@ export const ChatInterface: React.FC = () => {
           messages: prev.currentConversation.messages.filter(m => !m.id.startsWith('temp-'))
         } : null,
         error: 'Error al enviar el mensaje'
+      }));
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const startNewConversationWithMessage = async (content: string, messageType: MessageType = MessageType.TEXT) => {
+    setIsSendingMessage(true);
+
+    try {
+      // Start conversation with initial message (Agent SDK)
+      const agentResponse = await chatService.startConversation({
+        initial_message: content,
+        title: content.length > 50 ? content.substring(0, 50) + '...' : content,
+      });
+
+      // Create user message
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        content,
+        message_type: messageType,
+        is_from_user: true,
+        created_at: new Date().toISOString(),
+      };
+
+      // Create AI response message
+      const aiMessage: Message = agentResponse.message;
+
+      // Create conversation object from response
+      const conversationId = agentResponse.conversation_id || `new-${Date.now()}`;
+      const newConversation = {
+        id: conversationId,
+        title: content.length > 50 ? content.substring(0, 50) + '...' : content,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        message_count: 2,
+        messages: [userMessage, aiMessage],
+      };
+
+      // Add to conversations list and set as current
+      setChatState(prev => ({
+        ...prev,
+        conversations: [newConversation, ...prev.conversations],
+        currentConversation: newConversation,
+      }));
+
+      // Reload conversations to get accurate data
+      loadConversations();
+
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      setChatState(prev => ({
+        ...prev,
+        error: 'Error al iniciar la conversación'
       }));
     } finally {
       setIsSendingMessage(false);

@@ -31,6 +31,8 @@ export interface Message {
   is_from_user: boolean;
   created_at: string;
   file_path?: string | null;
+  agent_used?: string | null;
+  execution_time_ms?: number | null;
 }
 
 export interface Conversation {
@@ -39,6 +41,8 @@ export interface Conversation {
   created_at: string;
   updated_at: string;
   message_count: number;
+  language_preference?: string;
+  project_context?: any;
 }
 
 export interface ConversationWithMessages extends Conversation {
@@ -47,6 +51,11 @@ export interface ConversationWithMessages extends Conversation {
 
 // API Request types
 export interface ConversationCreateRequest {
+  title?: string;
+}
+
+export interface ConversationStartRequest {
+  initial_message: string;
   title?: string;
 }
 
@@ -61,6 +70,16 @@ export interface ConversationResponse extends Conversation {}
 export interface ConversationDetailResponse extends ConversationWithMessages {}
 
 export interface MessageResponse extends Message {}
+
+// Agent SDK Response types
+export interface AgentMessageResponse {
+  message: MessageResponse;
+  agent_used: string;
+  tools_called: string[];
+  confidence_score: number;
+  execution_time_ms: number;
+  conversation_id?: string | null;
+}
 
 // File-related types
 export interface UserFile {
