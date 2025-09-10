@@ -6,18 +6,21 @@ Includes project context integration for personalized conversations.
 """
 
 import asyncio
+import base64
 import time
 from typing import Dict, List, Optional
 from uuid import UUID
 
 from agents import Agent, Runner
-from app.models.database import ConversationResult, MessageCreate, MessageType
+from openai import OpenAI
+from app.models.database import ConversationResult, MessageCreate, MessageType, UserFile
 from app.services.database import db_service
 from app.services.project_context_service import (
     project_context_service, 
     UserProjectContext, 
     create_project_aware_instructions
 )
+from app.services.storage import storage_service
 
 
 class IgnacioAgentService:
@@ -25,6 +28,7 @@ class IgnacioAgentService:
 
     def __init__(self):
         self._setup_agents()
+        self.openai_client = OpenAI()
 
     def _setup_agents(self):
         """Create the main agent and sub-agents with project context awareness"""
@@ -69,6 +73,50 @@ class IgnacioAgentService:
             ] + context_tools
         )
 
+    async def _process_file_for_agent(self, user_file: UserFile) -> dict:
+        """Process a file for Agent SDK input"""
+        try:
+            # Download file content from storage
+            file_content = await storage_service.get_file_content(user_file.file_path)
+            
+            # Determine file type and create appropriate input
+            if user_file.file_type.startswith('image/'):
+                # Handle images with base64 encoding
+                base64_image = base64.b64encode(file_content).decode('utf-8')
+                mime_type = user_file.file_type
+                return {
+                    "type": "input_image",
+                    "image_url": f"data:{mime_type};base64,{base64_image}"
+                }
+            
+            elif user_file.file_type in ['application/pdf', 'text/plain', 'application/msword', 
+                                       'application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+                # Handle documents with base64 encoding
+                base64_file = base64.b64encode(file_content).decode('utf-8')
+                return {
+                    "type": "input_file",
+                    "filename": user_file.file_name,
+                    "file_data": f"data:{user_file.file_type};base64,{base64_file}"
+                }
+            
+            else:
+                # For other file types, upload to OpenAI and use file_id
+                file_obj = self.openai_client.files.create(
+                    file=(user_file.file_name, file_content),
+                    purpose="user_data"
+                )
+                return {
+                    "type": "input_file", 
+                    "file_id": file_obj.id
+                }
+                
+        except Exception as e:
+            # If file processing fails, return a text description
+            return {
+                "type": "input_text",
+                "text": f"[File attachment: {user_file.file_name} - Unable to process: {str(e)}]"
+            }
+
     async def start_conversation(self, user_id: UUID, initial_message: str, project_id: UUID | None = None) -> ConversationResult:
         """Start a new conversation with Ignacio"""
         start_time = time.time()
@@ -89,7 +137,7 @@ class IgnacioAgentService:
         result = await self.continue_conversation(conversation.id, initial_message)
         return result
 
-    async def continue_conversation(self, conversation_id: UUID, message: str) -> ConversationResult:
+    async def continue_conversation(self, conversation_id: UUID, message: str, file_attachments: List[UserFile] = None) -> ConversationResult:
         """Continue an existing conversation with project context"""
         start_time = time.time()
 
@@ -124,10 +172,33 @@ class IgnacioAgentService:
                 # Load user's general project context (for backwards compatibility)
                 project_context = await project_context_service.get_user_context(conversation.user_id)
 
-            # Run the main agent with context
+            # Prepare message content for Agent SDK
+            message_content = []
+            
+            # Add file attachments if provided
+            if file_attachments:
+                for file_attachment in file_attachments:
+                    file_input = await self._process_file_for_agent(file_attachment)
+                    message_content.append(file_input)
+            
+            # Add text message
+            message_content.append({
+                "type": "input_text",
+                "text": message
+            })
+            
+            # Create messages in Agent SDK format
+            agent_messages = [
+                {
+                    "role": "user",
+                    "content": message_content
+                }
+            ]
+            
+            # Run the main agent with context and file attachments
             result = await Runner.run(
-                self.ignacio_agent, 
-                message, 
+                self.ignacio_agent,
+                agent_messages,
                 context=project_context
             )
 
