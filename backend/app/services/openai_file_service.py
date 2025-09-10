@@ -45,14 +45,14 @@ class OpenAIFileService:
             logger.error(f"Failed to upload file to OpenAI: {str(e)}")
             raise
 
-    async def create_or_get_vector_store(self, user_id: UUID) -> str:
-        """Create or get existing vector store for a user"""
+    async def create_or_get_vector_store(self, conversation_id: UUID) -> str:
+        """Create or get existing vector store for a conversation"""
         try:
-            # Check if user already has a vector store
-            user_files = await db_service.get_user_files(user_id)
+            # Check if conversation already has a vector store
+            conversation_files = await db_service.get_conversation_files(conversation_id)
             existing_store_id = None
 
-            for file in user_files:
+            for file in conversation_files:
                 if file.openai_vector_store_id:
                     existing_store_id = file.openai_vector_store_id
                     break
@@ -60,15 +60,15 @@ class OpenAIFileService:
             if existing_store_id:
                 # Verify the vector store still exists
                 try:
-                    vector_store = self.client.beta.vector_stores.retrieve(existing_store_id)
+                    vector_store = self.client.vector_stores.retrieve(existing_store_id)
                     logger.info(f"Using existing vector store: {vector_store.id}")
                     return vector_store.id
                 except Exception:
                     logger.warning(f"Vector store {existing_store_id} not found, creating new one")
 
             # Create new vector store
-            vector_store = self.client.beta.vector_stores.create(
-                name=f"user_{user_id}_documents",
+            vector_store = self.client.vector_stores.create(
+                name=f"conversation_{conversation_id}_documents",
                 expires_after={
                     "anchor": "last_active_at",
                     "days": 365  # Keep vector store for 1 year
@@ -85,7 +85,7 @@ class OpenAIFileService:
     async def add_file_to_vector_store(self, file_id: str, vector_store_id: str) -> bool:
         """Add a file to a vector store"""
         try:
-            result = self.client.beta.vector_stores.files.create(
+            result = self.client.vector_stores.files.create(
                 vector_store_id=vector_store_id,
                 file_id=file_id
             )
@@ -107,8 +107,8 @@ class OpenAIFileService:
             logger.warning(f"File {file_id} check failed: {str(e)}")
             return False
 
-    async def sync_user_files(self, user_id: UUID) -> dict:
-        """Sync user files to OpenAI - upload new files and re-upload expired ones"""
+    async def sync_conversation_files(self, conversation_id: UUID) -> dict:
+        """Sync conversation files to OpenAI - upload new files and re-upload expired ones"""
         result = {
             "uploaded": 0,
             "re_uploaded": 0,
@@ -117,12 +117,12 @@ class OpenAIFileService:
         }
 
         try:
-            user_files = await db_service.get_user_files(user_id)
+            conversation_files = await db_service.get_conversation_files(conversation_id)
 
             # Get or create vector store
-            vector_store_id = await self.create_or_get_vector_store(user_id)
+            vector_store_id = await self.create_or_get_vector_store(conversation_id)
 
-            for file in user_files:
+            for file in conversation_files:
                 try:
                     # Skip non-document files
                     if not self._is_document_file(file.file_type):
@@ -193,26 +193,26 @@ class OpenAIFileService:
                     )
                     result["failed"] += 1
 
-            logger.info(f"Sync completed for user {user_id}: {result}")
+            logger.info(f"Sync completed for conversation {conversation_id}: {result}")
             return result
 
         except Exception as e:
-            logger.error(f"Failed to sync user files: {str(e)}")
+            logger.error(f"Failed to sync conversation files: {str(e)}")
             raise
 
-    async def get_user_vector_store_id(self, user_id: UUID) -> Optional[str]:
-        """Get user's vector store ID"""
+    async def get_conversation_vector_store_id(self, conversation_id: UUID) -> Optional[str]:
+        """Get conversation's vector store ID"""
         try:
-            user_files = await db_service.get_user_files(user_id)
+            conversation_files = await db_service.get_conversation_files(conversation_id)
 
-            for file in user_files:
+            for file in conversation_files:
                 if file.openai_vector_store_id and file.openai_sync_status == "synced":
                     return file.openai_vector_store_id
 
             return None
 
         except Exception as e:
-            logger.error(f"Failed to get user vector store ID: {str(e)}")
+            logger.error(f"Failed to get conversation vector store ID: {str(e)}")
             return None
 
     def _get_mime_type(self, filename: str) -> str:
