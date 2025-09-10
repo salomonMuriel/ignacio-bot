@@ -21,6 +21,7 @@ class MessageType(str, Enum):
 
 class ProjectType(str, Enum):
     STARTUP = "startup"
+    COMPANY = "company"
     NGO = "ngo"
     FOUNDATION = "foundation"
     SPINOFF = "spinoff"
@@ -163,6 +164,7 @@ class UserFileBase(BaseModel):
     file_path: str
     file_type: str
     file_size: int
+    conversation_id: UUID | None = None
     openai_file_id: str | None = None
     openai_vector_store_id: str | None = None
     openai_uploaded_at: datetime | None = None
@@ -206,7 +208,7 @@ class AgentInteractionCreate(AgentInteractionBase):
 
 
 # User Project models
-class UserProjectBase(BaseModel):
+class ProjectBase(BaseModel):
     project_name: str
     project_type: ProjectType | None = None
     description: str | None = None
@@ -218,7 +220,7 @@ class UserProjectBase(BaseModel):
     context_data: Dict[str, Any] = {}
 
 
-class UserProject(UserProjectBase):
+class Project(ProjectBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -227,11 +229,11 @@ class UserProject(UserProjectBase):
     updated_at: datetime
 
 
-class UserProjectCreate(UserProjectBase):
+class ProjectCreate(ProjectBase):
     user_id: UUID
 
 
-class UserProjectUpdate(BaseModel):
+class ProjectUpdate(BaseModel):
     project_name: str | None = None
     project_type: ProjectType | None = None
     description: str | None = None
@@ -257,14 +259,14 @@ class UserWithConversations(User):
 
 
 class UserWithProjects(User):
-    projects: list[UserProject] = []
+    projects: list[Project] = []
 
 
 class MessageWithFiles(Message):
     files: list[UserFile] = []
 
 
-class UserProjectWithFiles(UserProject):
+class UserProjectWithFiles(Project):
     files: list[UserFile] = []
 
 
