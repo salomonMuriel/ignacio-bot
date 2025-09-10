@@ -9,7 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel
 from agents import Agent, function_tool, RunContextWrapper
 
-from app.models.database import UserProject, ProjectType, ProjectStage
+from app.models.database import Project, ProjectType, ProjectStage
 from app.services.database import db_service
 
 
@@ -251,8 +251,7 @@ class ProjectContextService:
     def get_context_tools() -> List:
         """Get all project context tools for agents"""
         return [
-            update_project_context,
-            get_project_summary
+            update_project_context
         ]
     
     @staticmethod

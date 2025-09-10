@@ -73,58 +73,74 @@ class IgnacioAgentService:
             ] + context_tools
         )
 
-    async def _process_file_for_agent(self, user_file: UserFile) -> dict:
-        """Process a file for Agent SDK input"""
+    async def generate_conversation_title(self, initial_message: str) -> str:
+        """Generate a conversation title using OpenAI's gpt-4o-mini model"""
         try:
-            # Download file content from storage
-            file_content = await storage_service.get_file_content(user_file.file_path)
+            response = await asyncio.to_thread(
+                self.openai_client.chat.completions.create,
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "system",
+                    "content": "Generate a short, descriptive title (max 6 words) for a conversation based on the user's first message. Focus on the main topic or question."
+                }, {
+                    "role": "user", 
+                    "content": initial_message
+                }],
+                max_tokens=20,
+                temperature=0.3
+            )
             
-            # Determine file type and create appropriate input
-            if user_file.file_type.startswith('image/'):
+            title = response.choices[0].message.content.strip()
+            # Remove quotes if present and ensure reasonable length
+            title = title.strip('"\'').strip()
+            return title[:60] if len(title) > 60 else title
+            
+        except Exception as e:
+            # Fallback to truncated initial message if title generation fails
+            return initial_message[:50] + "..." if len(initial_message) > 50 else initial_message
+
+    def _process_file_for_agent(self, file_content: bytes, file_name: str, file_type: str) -> dict:
+        """Process a file for Agent SDK input (only supports images and PDFs)"""
+        try:
+            if file_type.startswith('image/'):
                 # Handle images with base64 encoding
                 base64_image = base64.b64encode(file_content).decode('utf-8')
-                mime_type = user_file.file_type
                 return {
                     "type": "input_image",
-                    "image_url": f"data:{mime_type};base64,{base64_image}"
+                    "image_url": f"data:{file_type};base64,{base64_image}"
                 }
             
-            elif user_file.file_type in ['application/pdf', 'text/plain', 'application/msword', 
-                                       'application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
-                # Handle documents with base64 encoding
+            elif file_type == 'application/pdf':
+                # Handle PDFs with base64 encoding
                 base64_file = base64.b64encode(file_content).decode('utf-8')
                 return {
                     "type": "input_file",
-                    "filename": user_file.file_name,
-                    "file_data": f"data:{user_file.file_type};base64,{base64_file}"
+                    "filename": file_name,
+                    "file_data": f"data:{file_type};base64,{base64_file}"
                 }
             
             else:
-                # For other file types, upload to OpenAI and use file_id
-                file_obj = self.openai_client.files.create(
-                    file=(user_file.file_name, file_content),
-                    purpose="user_data"
-                )
-                return {
-                    "type": "input_file", 
-                    "file_id": file_obj.id
-                }
+                # This should not happen due to validation in upload endpoints
+                raise ValueError(f"Unsupported file type: {file_type}")
                 
         except Exception as e:
             # If file processing fails, return a text description
             return {
                 "type": "input_text",
-                "text": f"[File attachment: {user_file.file_name} - Unable to process: {str(e)}]"
+                "text": f"[File attachment: {file_name} - Unable to process: {str(e)}]"
             }
 
     async def start_conversation(self, user_id: UUID, initial_message: str, project_id: UUID | None = None) -> ConversationResult:
         """Start a new conversation with Ignacio"""
         start_time = time.time()
 
+        # Generate conversation title using AI
+        generated_title = await self.generate_conversation_title(initial_message)
+
         # Create conversation in database
         conversation_data = {
             "user_id": user_id,
-            "title": initial_message[:50] + "..." if len(initial_message) > 50 else initial_message,
+            "title": generated_title,
             "language_preference": "es"
         }
         
@@ -137,7 +153,7 @@ class IgnacioAgentService:
         result = await self.continue_conversation(conversation.id, initial_message)
         return result
 
-    async def continue_conversation(self, conversation_id: UUID, message: str, file_attachments: List[UserFile] = None) -> ConversationResult:
+    async def continue_conversation(self, conversation_id: UUID, message: str, file_attachments: List[UserFile] = None, file_contents: List[tuple[bytes, str, str]] = None) -> ConversationResult:
         """Continue an existing conversation with project context"""
         start_time = time.time()
 
@@ -176,9 +192,16 @@ class IgnacioAgentService:
             message_content = []
             
             # Add file attachments if provided
-            if file_attachments:
+            if file_contents:
+                # Process files directly from content (more efficient)
+                for file_content, file_name, file_type in file_contents:
+                    file_input = self._process_file_for_agent(file_content, file_name, file_type)
+                    message_content.append(file_input)
+            elif file_attachments:
+                # Legacy support: download from storage (less efficient)
                 for file_attachment in file_attachments:
-                    file_input = await self._process_file_for_agent(file_attachment)
+                    file_content = await storage_service.get_file_content(file_attachment.file_path)
+                    file_input = self._process_file_for_agent(file_content, file_attachment.file_name, file_attachment.file_type)
                     message_content.append(file_input)
             
             # Add text message
@@ -204,14 +227,13 @@ class IgnacioAgentService:
 
             execution_time = int((time.time() - start_time) * 1000)
 
-            # Create and store user message with attachments
+            # Create and store user message (attachments temporarily disabled until database migration)
             user_message = MessageCreate(
                 conversation_id=conversation_id,
                 user_id=conversation.user_id,
                 content=message,
                 message_type=MessageType.TEXT,
-                is_from_user=True,
-                attachments=[f.id for f in file_attachments] if file_attachments else []
+                is_from_user=True
             )
             await db_service.create_message(user_message)
 

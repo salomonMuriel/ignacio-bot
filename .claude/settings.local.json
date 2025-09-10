@@ -18,7 +18,8 @@
       "Bash(mcp__supabase_run_sql:*)",
       "Bash(env)",
       "Bash(curl:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(source:*)"
     ],
     "deny": [],
     "ask": []

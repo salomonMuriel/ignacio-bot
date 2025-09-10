@@ -30,8 +30,8 @@ from app.models.database import (
     User,
     UserCreate,
     UserFile,
-    UserProject,
-    UserProjectCreate,
+    Project,
+    ProjectCreate,
 )
 from app.services.database import db_service
 
@@ -152,9 +152,9 @@ async def test_message(
 
 
 @pytest.fixture
-async def test_user_project_data(test_user: User) -> UserProjectCreate:
+async def test_user_project_data(test_user: User) -> ProjectCreate:
     """Test user project data"""
-    return UserProjectCreate(
+    return ProjectCreate(
         user_id=test_user.id,
         project_name="Test Startup",
         project_type=ProjectType.STARTUP,
@@ -170,8 +170,8 @@ async def test_user_project_data(test_user: User) -> UserProjectCreate:
 
 @pytest.fixture
 async def test_user_project(
-    test_user: User, test_user_project_data: UserProjectCreate
-) -> UserProject:
+    test_user: User, test_user_project_data: ProjectCreate
+) -> Project:
     """Create a test user project in database"""
     project = await db_service.create_user_project(test_user_project_data.dict())
     yield project

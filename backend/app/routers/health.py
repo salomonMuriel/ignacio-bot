@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 
@@ -13,7 +13,7 @@ async def health_check():
     """Basic health check endpoint"""
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "environment": settings.app_env,
         "version": "1.0.0",
     }
@@ -24,12 +24,12 @@ async def database_health():
     """Check database connectivity"""
     try:
         # Simple query to test Supabase connection
-        result = supabase.rpc("version").execute()
+        result = supabase.from_('users').select('id').limit(1).execute()
 
         return {
             "status": "healthy",
             "database": "connected",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         raise HTTPException(
@@ -38,6 +38,6 @@ async def database_health():
                 "status": "unhealthy",
                 "database": "disconnected",
                 "error": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )

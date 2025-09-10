@@ -17,7 +17,7 @@ if 'OPENAI_API_KEY' not in os.environ and hasattr(os.environ, 'get'):
         os.environ['OPENAI_API_KEY'] = temp_settings.openai_api_key
 
 from app.core.config import settings
-from app.routers import admin, chat, files, health, project
+from app.routers import chat, files, health, project
 
 # Create FastAPI application
 app = FastAPI(
@@ -52,7 +52,6 @@ app.include_router(health.router)
 app.include_router(chat.router)
 app.include_router(files.router, prefix="/files", tags=["files"])
 app.include_router(project.router)
-app.include_router(admin.router)
 
 
 @app.get("/")

@@ -8,7 +8,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 
-from app.services.openai_file_service import openai_file_service
 
 logger = logging.getLogger(__name__)
 

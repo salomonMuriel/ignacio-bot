@@ -23,13 +23,6 @@ class ConversationCreateRequest(BaseModel):
     project_id: UUID | None = None
 
 
-class ConversationStartRequest(BaseModel):
-    """Request to start a conversation with initial message"""
-    initial_message: str
-    title: str | None = None
-    project_id: UUID | None = None
-
-
 class MessageCreateRequest(BaseModel):
     content: str
     message_type: MessageType = MessageType.TEXT
@@ -106,75 +99,6 @@ async def get_conversations():
         )
 
 
-@router.post("/conversations/start", response_model=AgentMessageResponse)
-async def start_conversation(request: ConversationStartRequest):
-    """Start a new conversation with an initial message using Agent SDK"""
-    try:
-        # Start conversation with Agent SDK (this creates conversation and processes initial message)
-        agent_result = await get_ignacio_service().start_conversation(
-            user_id=TEMP_USER_ID,
-            initial_message=request.initial_message,
-            project_id=request.project_id
-        )
-
-        # Handle the case where agent_result might be a dict due to an error
-        conversation_id = None
-        if hasattr(agent_result, 'conversation_id'):
-            conversation_id = agent_result.conversation_id
-        elif isinstance(agent_result, dict) and 'conversation_id' in agent_result:
-            conversation_id = agent_result['conversation_id']
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Invalid agent result format: {type(agent_result)}"
-            )
-
-        # Update conversation title and project_id if provided
-        update_data = {}
-        if request.title:
-            update_data["title"] = request.title
-        if request.project_id:
-            update_data["project_id"] = str(request.project_id)
-            
-        if update_data:
-            await db_service.update_conversation(conversation_id, update_data)
-
-        # Get the AI response message
-        messages = await db_service.get_conversation_messages(conversation_id)
-        ai_message = None
-        for msg in reversed(messages):
-            if not msg.is_from_user:
-                ai_message = msg
-                break
-
-        if not ai_message:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve AI response message"
-            )
-
-        return AgentMessageResponse(
-            message=MessageResponse(
-                id=ai_message.id,
-                content=ai_message.content,
-                message_type=ai_message.message_type,
-                is_from_user=ai_message.is_from_user,
-                created_at=ai_message.created_at.isoformat(),
-                file_path=ai_message.file_path,
-                agent_used=agent_result.agent_used,
-                execution_time_ms=agent_result.execution_time_ms,
-            ),
-            agent_used=agent_result.agent_used,
-            tools_called=agent_result.tools_called,
-            confidence_score=agent_result.confidence_score,
-            execution_time_ms=agent_result.execution_time_ms,
-            conversation_id=agent_result.conversation_id,
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to start conversation: {str(e)}",
-        )
 
 
 @router.get(
@@ -329,153 +253,8 @@ async def get_messages(conversation_id: UUID, limit: int = 50, offset: int = 0):
         )
 
 
-@router.post(
-    "/conversations/{conversation_id}/messages", response_model=AgentMessageResponse
-)
-async def send_message(conversation_id: UUID, request: MessageCreateRequest):
-    """Send a message in a conversation and get AI response with Agent SDK"""
-    try:
-        # Check if conversation exists
-        conversation = await db_service.get_conversation_by_id(conversation_id)
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
-            )
-
-        # Process message with Agent SDK
-        agent_result = await get_ignacio_service().continue_conversation(
-            conversation_id=conversation_id,
-            message=request.content
-        )
-
-        # Get the last message from the conversation (the AI response)
-        messages = await db_service.get_conversation_messages(conversation_id)
-        ai_message = None
-        for msg in reversed(messages):
-            if not msg.is_from_user:
-                ai_message = msg
-                break
-
-        if not ai_message:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve AI response message"
-            )
-
-        return AgentMessageResponse(
-            message=MessageResponse(
-                id=ai_message.id,
-                content=ai_message.content,
-                message_type=ai_message.message_type,
-                is_from_user=ai_message.is_from_user,
-                created_at=ai_message.created_at.isoformat(),
-                file_path=ai_message.file_path,
-                agent_used=agent_result.agent_used,
-                execution_time_ms=agent_result.execution_time_ms,
-            ),
-            agent_used=agent_result.agent_used,
-            tools_called=agent_result.tools_called,
-            confidence_score=agent_result.confidence_score,
-            execution_time_ms=agent_result.execution_time_ms,
-            conversation_id=agent_result.conversation_id,
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send message: {str(e)}",
-        )
 
 
-@router.post(
-    "/conversations/{conversation_id}/messages/with-files", 
-    response_model=AgentMessageResponse
-)
-async def send_message_with_files(
-    conversation_id: UUID,
-    content: str = Form(...),
-    files: List[UploadFile] = File(None)
-):
-    """Send a message with optional file attachments and get AI response with Agent SDK"""
-    try:
-        # Check if conversation exists
-        conversation = await db_service.get_conversation_by_id(conversation_id)
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
-            )
-
-        # Upload files if provided
-        uploaded_files = []
-        file_attachments = []
-        
-        if files:
-            for file in files:
-                if file.filename:  # Skip empty file uploads
-                    # Read file content
-                    file_content = await file.read()
-                    
-                    # Upload file to storage with conversation association
-                    uploaded_file = await storage_service.upload_file(
-                        user_id=TEMP_USER_ID,
-                        file_content=file_content,
-                        file_name=file.filename,
-                        content_type=file.content_type,
-                        conversation_id=conversation_id,
-                    )
-                    
-                    if uploaded_file:
-                        uploaded_files.append(uploaded_file)
-                        file_attachments.append(uploaded_file)
-
-        # Process message with Agent SDK and file attachments
-        agent_result = await get_ignacio_service().continue_conversation(
-            conversation_id=conversation_id,
-            message=content,
-            file_attachments=file_attachments
-        )
-
-        # File attachments are handled by the AI service
-
-        # Get the last message from the conversation (the AI response)
-        messages = await db_service.get_conversation_messages(conversation_id)
-        ai_message = None
-        for msg in reversed(messages):
-            if not msg.is_from_user:
-                ai_message = msg
-                break
-
-        if not ai_message:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve AI response message"
-            )
-
-        return AgentMessageResponse(
-            message=MessageResponse(
-                id=ai_message.id,
-                content=ai_message.content,
-                message_type=ai_message.message_type,
-                is_from_user=ai_message.is_from_user,
-                created_at=ai_message.created_at.isoformat(),
-                file_path=ai_message.file_path,
-                agent_used=agent_result.agent_used,
-                execution_time_ms=agent_result.execution_time_ms,
-            ),
-            agent_used=agent_result.agent_used,
-            tools_called=agent_result.tools_called,
-            confidence_score=agent_result.confidence_score,
-            execution_time_ms=agent_result.execution_time_ms,
-            conversation_id=agent_result.conversation_id,
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send message with files: {str(e)}",
-        )
 
 
 # Agent SDK specific endpoints
@@ -562,6 +341,165 @@ async def associate_conversation_with_project(conversation_id: UUID, request: di
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to associate conversation with project: {str(e)}"
+        )
+
+
+@router.post("/messages", response_model=AgentMessageResponse)
+async def send_message_unified(
+    content: str = Form(...),
+    conversation_id: str = Form(None),
+    project_id: str = Form(None),
+    file: UploadFile = File(None)
+):
+    """Unified endpoint for sending messages - handles both new conversations and continuing existing ones
+    
+    - If conversation_id is provided: continues existing conversation
+    - If conversation_id is not provided: creates new conversation with auto-generated title
+    - Supports optional file attachment (single image or PDF)
+    - For new conversations, project_id can be specified for project context
+    """
+    try:
+        # Parse UUIDs if provided
+        parsed_conversation_id = None
+        parsed_project_id = None
+        
+        if conversation_id:
+            try:
+                parsed_conversation_id = UUID(conversation_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid conversation_id format")
+        
+        if project_id:
+            try:
+                parsed_project_id = UUID(project_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid project_id format")
+
+        # Handle file upload if provided
+        uploaded_file = None
+        file_content_data = None
+        
+        if file and file.filename:
+            # Validate file type - only accept PDFs and images
+            if not file.content_type:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"File type not detected for {file.filename}"
+                )
+            
+            if not (file.content_type.startswith('image/') or file.content_type == 'application/pdf'):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted."
+                )
+            
+            # Read file content
+            file_content = await file.read()
+            file_content_data = [(file_content, file.filename, file.content_type)]
+
+        # Determine if this is a new conversation or continuing existing one
+        if parsed_conversation_id:
+            # Continue existing conversation
+            conversation = await db_service.get_conversation_by_id(parsed_conversation_id)
+            if not conversation:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, 
+                    detail="Conversation not found"
+                )
+            
+            # Upload file if provided and associate with conversation
+            if file_content_data:
+                uploaded_file = await storage_service.upload_file(
+                    user_id=TEMP_USER_ID,
+                    file_content=file_content_data[0][0],
+                    file_name=file_content_data[0][1],
+                    content_type=file_content_data[0][2],
+                    conversation_id=parsed_conversation_id,
+                )
+            
+            # Process message with Agent SDK
+            agent_result = await get_ignacio_service().continue_conversation(
+                conversation_id=parsed_conversation_id,
+                message=content,
+                file_contents=file_content_data if file_content_data else None
+            )
+            
+        else:
+            # Start new conversation
+            # Upload file if provided (conversation_id will be set after creation)
+            if file_content_data:
+                uploaded_file = await storage_service.upload_file(
+                    user_id=TEMP_USER_ID,
+                    file_content=file_content_data[0][0],
+                    file_name=file_content_data[0][1],
+                    content_type=file_content_data[0][2],
+                    conversation_id=None,  # Will be updated after conversation creation
+                )
+            
+            # Start conversation with Agent SDK
+            agent_result = await get_ignacio_service().start_conversation(
+                user_id=TEMP_USER_ID,
+                initial_message=content,
+                project_id=parsed_project_id
+            )
+            
+            # Update uploaded file with conversation_id if file was uploaded
+            if uploaded_file and hasattr(agent_result, 'conversation_id'):
+                # Update the file record with the conversation_id
+                await db_service.update_user_file(
+                    uploaded_file.id, 
+                    {"conversation_id": str(agent_result.conversation_id)}
+                )
+
+        # Handle the case where agent_result might be a dict due to an error
+        conversation_id_result = None
+        if hasattr(agent_result, 'conversation_id'):
+            conversation_id_result = agent_result.conversation_id
+        elif isinstance(agent_result, dict) and 'conversation_id' in agent_result:
+            conversation_id_result = agent_result['conversation_id']
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Invalid agent result format: {type(agent_result)}"
+            )
+
+        # Get the AI response message
+        messages = await db_service.get_conversation_messages(conversation_id_result)
+        ai_message = None
+        for msg in reversed(messages):
+            if not msg.is_from_user:
+                ai_message = msg
+                break
+
+        if not ai_message:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve AI response message"
+            )
+
+        return AgentMessageResponse(
+            message=MessageResponse(
+                id=ai_message.id,
+                content=ai_message.content,
+                message_type=ai_message.message_type,
+                is_from_user=ai_message.is_from_user,
+                created_at=ai_message.created_at.isoformat(),
+                file_path=ai_message.file_path,
+                agent_used=agent_result.agent_used,
+                execution_time_ms=agent_result.execution_time_ms,
+            ),
+            agent_used=agent_result.agent_used,
+            tools_called=agent_result.tools_called,
+            confidence_score=agent_result.confidence_score,
+            execution_time_ms=agent_result.execution_time_ms,
+            conversation_id=agent_result.conversation_id,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send message: {str(e)}",
         )
 
 

@@ -11,7 +11,6 @@ from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Uploa
 from fastapi.responses import Response, StreamingResponse
 
 from app.models.database import UserFile
-from app.services.openai_file_service import openai_file_service
 from app.services.storage import storage_service
 
 logger = logging.getLogger(__name__)
@@ -51,7 +50,12 @@ async def upload_file(
     user_id: str = Form(...),
     file: UploadFile = File(...),
 ):
-    """Upload a file to user's storage"""
+    """Upload a file to user's storage
+    
+    Supported file types:
+    - Images: All image formats (image/*)
+    - PDFs: application/pdf
+    """
     try:
         user_uuid = UUID(user_id)
     except ValueError:
@@ -59,6 +63,19 @@ async def upload_file(
 
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
+
+    # Validate file type - only accept PDFs and images
+    if not file.content_type:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"File type not detected for {file.filename}"
+        )
+    
+    if not (file.content_type.startswith('image/') or file.content_type == 'application/pdf'):
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted."
+        )
 
     # Read file content
     try:
@@ -223,7 +240,12 @@ async def upload_file_to_conversation(
     user_id: str = Form(...),
     file: UploadFile = File(...),
 ):
-    """Upload a file and associate it with a conversation"""
+    """Upload a file and associate it with a conversation
+    
+    Supported file types:
+    - Images: All image formats (image/*)
+    - PDFs: application/pdf
+    """
     try:
         conv_uuid = UUID(conversation_id)
         user_uuid = UUID(user_id)
@@ -232,6 +254,19 @@ async def upload_file_to_conversation(
 
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
+
+    # Validate file type - only accept PDFs and images
+    if not file.content_type:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"File type not detected for {file.filename}"
+        )
+    
+    if not (file.content_type.startswith('image/') or file.content_type == 'application/pdf'):
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted."
+        )
 
     # Read file content
     try:

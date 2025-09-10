@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 
 from app.models.database import (
-    UserProject, UserProjectCreate, UserProjectUpdate, 
+    Project, ProjectCreate, ProjectUpdate, 
     ProjectType, ProjectStage
 )
 from app.services.database import db_service
@@ -32,8 +32,8 @@ async def get_project_stages():
     return [{"value": ps.value, "label": ps.value.replace("_", " ").title()} for ps in ProjectStage]
 
 
-@router.get("/projects/{user_id}")
-async def get_user_projects(user_id: UUID) -> List[UserProject]:
+@router.get("/by_user/{user_id}")
+async def get_user_projects(user_id: UUID) -> List[Project]:
     """Get all projects for a user (database level)"""
     try:
         projects = await db_service.get_user_projects(user_id)
@@ -42,8 +42,8 @@ async def get_user_projects(user_id: UUID) -> List[UserProject]:
         raise HTTPException(status_code=500, detail=f"Failed to get user projects: {str(e)}")
 
 
-@router.post("/projects")
-async def create_user_project(project_data: UserProjectCreate) -> UserProject:
+@router.post("/")
+async def create_project(project_data: ProjectCreate) -> Project:
     """Create a new project for a user (database level)"""
     try:
         # Validate project_type and current_stage if provided
@@ -82,8 +82,8 @@ async def create_user_project(project_data: UserProjectCreate) -> UserProject:
         raise HTTPException(status_code=500, detail=f"Failed to create project: {str(e)}")
 
 
-@router.get("/projects/{project_id}")
-async def get_user_project(project_id: UUID) -> UserProject:
+@router.get("/{project_id}")
+async def get_project_by_id(project_id: UUID) -> Project:
     """Get a specific project by ID"""
     try:
         project = await db_service.get_user_project_by_id(project_id)
@@ -94,8 +94,8 @@ async def get_user_project(project_id: UUID) -> UserProject:
         raise HTTPException(status_code=500, detail=f"Failed to get project: {str(e)}")
 
 
-@router.put("/projects/{project_id}")
-async def update_user_project(project_id: UUID, project_data: UserProjectUpdate) -> UserProject:
+@router.put("/{project_id}")
+async def update_project(project_id: UUID, project_data: ProjectUpdate) -> Project:
     """Update a specific project"""
     try:
         # Check if project exists
@@ -136,7 +136,7 @@ async def update_user_project(project_id: UUID, project_data: UserProjectUpdate)
         raise HTTPException(status_code=500, detail=f"Failed to update project: {str(e)}")
 
 
-@router.delete("/projects/{project_id}")
+@router.delete("/{project_id}")
 async def delete_user_project(project_id: UUID):
     """Delete a specific project"""
     try:
@@ -157,7 +157,7 @@ async def delete_user_project(project_id: UUID):
         raise HTTPException(status_code=500, detail=f"Failed to delete project: {str(e)}")
 
 
-@router.get("/projects/{project_id}/conversations")
+@router.get("/conversations/{project_id}")
 async def get_project_conversations(project_id: UUID):
     """Get all conversations for a specific project"""
     try:
@@ -190,7 +190,7 @@ async def get_project_conversations(project_id: UUID):
         raise HTTPException(status_code=500, detail=f"Failed to get project conversations: {str(e)}")
 
 
-@router.get("/projects/{project_id}/context")
+@router.get("/{project_id}/context")
 async def get_project_context(project_id: UUID):
     """Get project context for AI conversations"""
     try:
@@ -216,7 +216,7 @@ async def get_project_context(project_id: UUID):
         raise HTTPException(status_code=500, detail=f"Failed to get project context: {str(e)}")
 
 
-@router.put("/projects/{project_id}/context")
+@router.put("/{project_id}/context")
 async def update_project_context(project_id: UUID, context_data: dict):
     """Update project context"""
     try:
@@ -237,30 +237,4 @@ async def update_project_context(project_id: UUID, context_data: dict):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update project context: {str(e)}")
-
-
-@router.get("/template")
-async def get_project_template():
-    """Get a project template for new users"""
-    return {
-        "project_name": "",
-        "project_type": None,
-        "description": "",
-        "current_stage": "ideation",
-        "target_audience": "",
-        "problem_statement": "",
-        "solution_approach": "",
-        "business_model": "",
-        "key_challenges": [],
-        "goals": [],
-        "guidance": {
-            "project_name": "What's the name of your project or venture?",
-            "description": "Briefly describe what your project is about",
-            "problem_statement": "What problem are you solving?",
-            "target_audience": "Who are you building this for?",
-            "solution_approach": "How are you planning to solve the problem?",
-            "business_model": "How will your project generate value/revenue?",
-            "key_challenges": "What are the main challenges you're facing?",
-            "goals": "What are your main objectives for this project?"
-        }
-    }
+    
