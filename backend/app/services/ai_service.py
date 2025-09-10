@@ -204,13 +204,14 @@ class IgnacioAgentService:
 
             execution_time = int((time.time() - start_time) * 1000)
 
-            # Create and store user message
+            # Create and store user message with attachments
             user_message = MessageCreate(
                 conversation_id=conversation_id,
                 user_id=conversation.user_id,
                 content=message,
                 message_type=MessageType.TEXT,
-                is_from_user=True
+                is_from_user=True,
+                attachments=[f.id for f in file_attachments] if file_attachments else []
             )
             await db_service.create_message(user_message)
 

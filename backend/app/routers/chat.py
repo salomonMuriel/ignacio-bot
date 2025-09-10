@@ -4,13 +4,15 @@ Handles conversations and messages for Phase 2 (without authentication)
 """
 
 from uuid import UUID
+from typing import List
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, File, Form, UploadFile
 from pydantic import BaseModel
 
-from app.models.database import ConversationCreate, ConversationUpdate, MessageType, ConversationResult
+from app.models.database import ConversationCreate, ConversationUpdate, MessageType, ConversationResult, MessageCreate, UserFile
 from app.services.ai_service import get_ignacio_service
 from app.services.database import db_service
+from app.services.storage import storage_service
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -77,7 +79,7 @@ TEMP_USER_ID = UUID("a456f25a-6269-4de3-87df-48b0a3389d01")
 
 @router.get("/conversations", response_model=list[ConversationResponse])
 async def get_conversations():
-    """Get all conversations for the temporary user"""
+    """Get all conversations for a given user"""
     try:
         conversations = await db_service.get_user_conversations(TEMP_USER_ID)
 
@@ -114,10 +116,6 @@ async def start_conversation(request: ConversationStartRequest):
             initial_message=request.initial_message,
             project_id=request.project_id
         )
-
-        # Debug: Check what type agent_result is
-        print(f"DEBUG: agent_result type: {type(agent_result)}")
-        print(f"DEBUG: agent_result content: {agent_result}")
 
         # Handle the case where agent_result might be a dict due to an error
         conversation_id = None
@@ -387,6 +385,96 @@ async def send_message(conversation_id: UUID, request: MessageCreateRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to send message: {str(e)}",
+        )
+
+
+@router.post(
+    "/conversations/{conversation_id}/messages/with-files", 
+    response_model=AgentMessageResponse
+)
+async def send_message_with_files(
+    conversation_id: UUID,
+    content: str = Form(...),
+    files: List[UploadFile] = File(None)
+):
+    """Send a message with optional file attachments and get AI response with Agent SDK"""
+    try:
+        # Check if conversation exists
+        conversation = await db_service.get_conversation_by_id(conversation_id)
+        if not conversation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
+
+        # Upload files if provided
+        uploaded_files = []
+        file_attachments = []
+        
+        if files:
+            for file in files:
+                if file.filename:  # Skip empty file uploads
+                    # Read file content
+                    file_content = await file.read()
+                    
+                    # Upload file to storage with conversation association
+                    uploaded_file = await storage_service.upload_file(
+                        user_id=TEMP_USER_ID,
+                        file_content=file_content,
+                        file_name=file.filename,
+                        content_type=file.content_type,
+                        conversation_id=conversation_id,
+                    )
+                    
+                    if uploaded_file:
+                        uploaded_files.append(uploaded_file)
+                        file_attachments.append(uploaded_file)
+
+        # Process message with Agent SDK and file attachments
+        agent_result = await get_ignacio_service().continue_conversation(
+            conversation_id=conversation_id,
+            message=content,
+            file_attachments=file_attachments
+        )
+
+        # File attachments are handled by the AI service
+
+        # Get the last message from the conversation (the AI response)
+        messages = await db_service.get_conversation_messages(conversation_id)
+        ai_message = None
+        for msg in reversed(messages):
+            if not msg.is_from_user:
+                ai_message = msg
+                break
+
+        if not ai_message:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve AI response message"
+            )
+
+        return AgentMessageResponse(
+            message=MessageResponse(
+                id=ai_message.id,
+                content=ai_message.content,
+                message_type=ai_message.message_type,
+                is_from_user=ai_message.is_from_user,
+                created_at=ai_message.created_at.isoformat(),
+                file_path=ai_message.file_path,
+                agent_used=agent_result.agent_used,
+                execution_time_ms=agent_result.execution_time_ms,
+            ),
+            agent_used=agent_result.agent_used,
+            tools_called=agent_result.tools_called,
+            confidence_score=agent_result.confidence_score,
+            execution_time_ms=agent_result.execution_time_ms,
+            conversation_id=agent_result.conversation_id,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send message with files: {str(e)}",
         )
 
 
