@@ -21,9 +21,7 @@ from app.models.database import (
     UserCreate,
     UserFile,
     UserFileCreate,
-    UserProject,
-    UserProjectCreate,
-    UserProjectUpdate,
+    Project,
     UserSession,
     UserSessionCreate,
     UserUpdate,
@@ -339,17 +337,21 @@ class DatabaseService:
     # File operations
     async def create_user_file(self, file_data: UserFileCreate) -> UserFile:
         """Create a new user file record"""
+        insert_data = {
+            "user_id": str(file_data.user_id),
+            "file_name": file_data.file_name,
+            "file_path": file_data.file_path,
+            "file_type": file_data.file_type,
+            "file_size": file_data.file_size,
+        }
+        
+        # Add conversation_id if provided
+        if file_data.conversation_id:
+            insert_data["conversation_id"] = str(file_data.conversation_id)
+            
         response = (
             self.client.table("user_files")
-            .insert(
-                {
-                    "user_id": str(file_data.user_id),
-                    "file_name": file_data.file_name,
-                    "file_path": file_data.file_path,
-                    "file_type": file_data.file_type,
-                    "file_size": file_data.file_size,
-                }
-            )
+            .insert(insert_data)
             .execute()
         )
 
@@ -363,6 +365,18 @@ class DatabaseService:
             self.client.table("user_files")
             .select("*")
             .eq("user_id", str(user_id))
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        return [UserFile(**row) for row in response.data]
+
+    async def get_conversation_files(self, conversation_id: UUID) -> list[UserFile]:
+        """Get all files for a conversation"""
+        response = (
+            self.client.table("user_files")
+            .select("*")
+            .eq("conversation_id", str(conversation_id))
             .order("created_at", desc=True)
             .execute()
         )
@@ -471,7 +485,7 @@ class DatabaseService:
         return [AgentInteraction(**item) for item in response.data]
 
     # User Project operations
-    async def get_user_projects(self, user_id: UUID) -> list[UserProject]:
+    async def get_user_projects(self, user_id: UUID) -> list[Project]:
         """Get all projects for a user"""
         response = (
             self.client.table("user_projects")
@@ -481,9 +495,9 @@ class DatabaseService:
             .execute()
         )
 
-        return [UserProject(**item) for item in response.data]
+        return [Project(**item) for item in response.data]
 
-    async def create_user_project(self, project_data: dict) -> UserProject:
+    async def create_user_project(self, project_data: dict) -> Project:
         """Create a new user project"""
         # Convert UUID to string if needed
         if 'user_id' in project_data:
@@ -496,11 +510,11 @@ class DatabaseService:
         )
 
         if response.data:
-            return UserProject(**response.data[0])
+            return Project(**response.data[0])
         else:
             raise Exception("Failed to create user project")
 
-    async def update_user_project(self, project_id: UUID, update_data: dict) -> UserProject | None:
+    async def update_project(self, project_id: UUID, update_data: dict) -> Project | None:
         """Update a user project"""
         response = (
             self.client.table("user_projects")
@@ -509,10 +523,10 @@ class DatabaseService:
             .execute()
         )
         if response.data:
-            return UserProject(**response.data[0])
+            return Project(**response.data[0])
         return None
 
-    async def get_user_project_by_id(self, project_id: UUID) -> UserProject | None:
+    async def get_project_by_id(self, project_id: UUID) -> Project | None:
         """Get a specific user project by ID"""
         response = (
             self.client.table("user_projects")
@@ -521,10 +535,10 @@ class DatabaseService:
             .execute()
         )
         if response.data:
-            return UserProject(**response.data[0])
+            return Project(**response.data[0])
         return None
 
-    async def delete_user_project(self, project_id: UUID) -> bool:
+    async def delete_project(self, project_id: UUID) -> bool:
         """Delete a user project"""
         response = (
             self.client.table("user_projects")

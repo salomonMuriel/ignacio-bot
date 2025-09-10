@@ -84,6 +84,7 @@ class StorageService:
         file_content: bytes,
         file_name: str,
         content_type: str | None = None,
+        conversation_id: UUID | None = None,
     ) -> UserFile | None:
         """Upload a file to Supabase Storage and create a database record"""
 
@@ -105,7 +106,13 @@ class StorageService:
         unique_filename = (
             f"{uuid.uuid4()}.{file_extension}" if file_extension else str(uuid.uuid4())
         )
-        file_path = f"users/{user_id}/files/{unique_filename}"
+        
+        # Use conversation-based path structure if conversation_id is provided
+        if conversation_id:
+            file_path = f"users/{user_id}/conversations/{conversation_id}/{unique_filename}"
+        else:
+            # Fallback to user-based path for backwards compatibility
+            file_path = f"users/{user_id}/files/{unique_filename}"
 
         # Use fallback content type if still None
         if not content_type:
@@ -131,6 +138,7 @@ class StorageService:
                 file_path=file_path,
                 file_type=content_type,
                 file_size=len(file_content),
+                conversation_id=conversation_id,
             )
 
             return await db_service.create_user_file(file_record)
