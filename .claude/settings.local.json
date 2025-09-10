@@ -17,7 +17,8 @@
       "Read(//Users/salomonmuriel/git/openai-agents-python/**)",
       "Bash(mcp__supabase_run_sql:*)",
       "Bash(env)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm start)"
     ],
     "deny": [],
     "ask": []

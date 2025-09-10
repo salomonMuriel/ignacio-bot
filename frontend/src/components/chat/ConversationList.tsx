@@ -13,6 +13,7 @@ interface ConversationListProps {
   onNewConversation: () => void;
   onDeleteConversation: (conversationId: string) => void;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 export const ConversationList: React.FC<ConversationListProps> = ({
@@ -22,6 +23,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   onNewConversation,
   onDeleteConversation,
   isLoading = false,
+  disabled = false,
 }) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -49,7 +51,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
         <h2 className="text-lg font-bold text-white">Conversaciones</h2>
         <button
           onClick={onNewConversation}
-          disabled={isLoading}
+          disabled={isLoading || disabled}
           className="inline-flex items-center p-2 text-sm font-medium text-ignia-dark-gray bg-primary-500 border border-transparent rounded-md shadow-sm hover:bg-primary-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all transform hover:scale-105"
         >
           <svg
@@ -71,7 +73,25 @@ export const ConversationList: React.FC<ConversationListProps> = ({
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto">
-        {isLoading ? (
+        {disabled ? (
+          <div className="p-8 text-center text-white/60">
+            <svg
+              className="w-12 h-12 mx-auto mb-4 text-white/40"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h3M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 8h1m4 0h1"
+              />
+            </svg>
+            <p>Selecciona un proyecto activo</p>
+            <p className="text-sm">para ver sus conversaciones</p>
+          </div>
+        ) : isLoading ? (
           <div className="flex items-center justify-center p-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
           </div>

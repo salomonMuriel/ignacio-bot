@@ -38,6 +38,7 @@ export interface Message {
 export interface Conversation {
   id: string;
   title: string | null;
+  project_id: string | null;
   created_at: string;
   updated_at: string;
   message_count: number;
@@ -52,11 +53,13 @@ export interface ConversationWithMessages extends Conversation {
 // API Request types
 export interface ConversationCreateRequest {
   title?: string;
+  project_id?: string;
 }
 
 export interface ConversationStartRequest {
   initial_message: string;
   title?: string;
+  project_id?: string;
 }
 
 export interface MessageCreateRequest {
@@ -79,6 +82,46 @@ export interface AgentMessageResponse {
   confidence_score: number;
   execution_time_ms: number;
   conversation_id?: string | null;
+}
+
+// Project-related types
+export type ProjectType = 'startup' | 'ngo' | 'foundation' | 'spinoff' | 'internal' | 'other';
+export type ProjectStage = 'ideation' | 'research' | 'validation' | 'development' | 'testing' | 'launch' | 'growth' | 'mature';
+
+export interface Project {
+  id: string;
+  user_id: string;
+  name: string;
+  type: ProjectType;
+  stage: ProjectStage;
+  description: string | null;
+  context: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectCreateRequest {
+  name: string;
+  type: ProjectType;
+  stage: ProjectStage;
+  description?: string;
+  context?: any;
+}
+
+export interface ProjectUpdateRequest {
+  name?: string;
+  type?: ProjectType;
+  stage?: ProjectStage;
+  description?: string;
+  context?: any;
+}
+
+export interface ProjectTemplate {
+  name: string;
+  type: ProjectType;
+  stage: ProjectStage;
+  description: string;
+  context: any;
 }
 
 // File-related types
@@ -105,6 +148,23 @@ export interface FileValidation {
 
 // Frontend-specific types
 export interface ChatState {
+  conversations: Conversation[];
+  currentConversation: ConversationWithMessages | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface ProjectState {
+  projects: Project[];
+  activeProject: Project | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface AppState {
+  user: User | null;
+  projects: Project[];
+  activeProject: Project | null;
   conversations: Conversation[];
   currentConversation: ConversationWithMessages | null;
   isLoading: boolean;
