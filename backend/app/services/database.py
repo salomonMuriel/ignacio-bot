@@ -15,6 +15,7 @@ from app.models.database import (
     ConversationUpdate,
     Message,
     MessageCreate,
+    MessageWithAttachments,
     OTPCode,
     OTPCodeCreate,
     User,
@@ -209,19 +210,23 @@ class DatabaseService:
     # Message operations
     async def create_message(self, msg_data: MessageCreate) -> Message:
         """Create a new message"""
+        insert_data = {
+            "conversation_id": str(msg_data.conversation_id),
+            "user_id": str(msg_data.user_id),
+            "content": msg_data.content,
+            "message_type": msg_data.message_type.value,
+            "file_path": msg_data.file_path,
+            "is_from_user": msg_data.is_from_user,
+            "whatsapp_message_id": msg_data.whatsapp_message_id,
+        }
+        
+        # Add attachments if provided
+        if hasattr(msg_data, 'attachments') and msg_data.attachments:
+            insert_data["attachments"] = [str(file_id) for file_id in msg_data.attachments]
+        
         response = (
             self.client.table("messages")
-            .insert(
-                {
-                    "conversation_id": str(msg_data.conversation_id),
-                    "user_id": str(msg_data.user_id),
-                    "content": msg_data.content,
-                    "message_type": msg_data.message_type.value,
-                    "file_path": msg_data.file_path,
-                    "is_from_user": msg_data.is_from_user,
-                    "whatsapp_message_id": msg_data.whatsapp_message_id,
-                }
-            )
+            .insert(insert_data)
             .execute()
         )
 
@@ -243,6 +248,35 @@ class DatabaseService:
         )
 
         return [Message(**row) for row in response.data]
+
+    async def get_message_with_attachments(self, message_id: UUID) -> MessageWithAttachments | None:
+        """Get a message with its attached files"""
+        # Get the message
+        message_response = (
+            self.client.table("messages")
+            .select("*")
+            .eq("id", str(message_id))
+            .execute()
+        )
+        
+        if not message_response.data:
+            return None
+            
+        message_data = message_response.data[0]
+        
+        # Get attached files if any
+        attachment_files = []
+        if message_data.get('attachments'):
+            for file_id in message_data['attachments']:
+                file_record = await self.get_file_by_id(UUID(file_id))
+                if file_record:
+                    attachment_files.append(file_record)
+        
+        message = Message(**message_data)
+        return MessageWithAttachments(
+            **message.model_dump(),
+            attachment_files=attachment_files
+        )
 
     # OTP operations
     async def create_otp(self, otp_data: OTPCodeCreate) -> OTPCode:

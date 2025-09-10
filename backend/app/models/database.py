@@ -108,6 +108,7 @@ class MessageBase(BaseModel):
     file_path: str | None = None
     is_from_user: bool
     whatsapp_message_id: str | None = None
+    attachments: List[UUID] = []  # List of file IDs attached to this message
 
 
 class Message(MessageBase):
@@ -264,6 +265,9 @@ class UserWithProjects(User):
 
 class MessageWithFiles(Message):
     files: list[UserFile] = []
+
+class MessageWithAttachments(Message):
+    attachment_files: list[UserFile] = []  # Files attached to this message
 
 
 class UserProjectWithFiles(Project):
