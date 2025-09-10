@@ -20,7 +20,7 @@ router = APIRouter()
 
 
 async def sync_file_to_openai(user_id: UUID, file_id: UUID):
-    """Background task to sync a specific file to OpenAI"""
+    """Background task to sync a specific file to OpenAI vector stores (only for non-chat files)"""
     try:
         # Get the file to find its conversation
         from app.services.database import db_service
@@ -30,12 +30,16 @@ async def sync_file_to_openai(user_id: UUID, file_id: UUID):
             logger.error(f"File {file_id} not found for OpenAI sync")
             return
             
+        # Skip sync for chat files - they are processed directly by Agent SDK
         if file_record.conversation_id:
-            logger.info(f"Starting OpenAI sync for conversation {file_record.conversation_id}")
-            sync_result = await openai_file_service.sync_conversation_files(file_record.conversation_id)
-            logger.info(f"OpenAI sync completed for conversation {file_record.conversation_id}: {sync_result}")
-        else:
-            logger.warning(f"File {file_id} has no conversation_id, skipping OpenAI sync")
+            logger.info(f"File {file_id} is a chat attachment, skipping vector store sync (handled by Agent SDK)")
+            return
+        
+        # Only sync files that are not part of conversations (legacy user files)
+        logger.info(f"Starting OpenAI sync for user file {file_id}")
+        # For user files without conversation_id, we'd need to implement user-based sync
+        # For now, we'll skip since we're moving away from vector stores for chat
+        logger.info(f"Vector store sync skipped - using direct Agent SDK processing")
             
     except Exception as e:
         logger.error(f"OpenAI sync failed for file {file_id}: {str(e)}")

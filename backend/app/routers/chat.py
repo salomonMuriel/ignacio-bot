@@ -480,37 +480,8 @@ async def send_message_with_files(
 
 # Agent SDK specific endpoints
 
-@router.post("/files/{file_id}/integrate")
-async def integrate_file_to_context(file_id: UUID):
-    """Integrate an uploaded file into AI context for search"""
-    try:
-        # Get file from database
-        user_files = await db_service.get_user_files(TEMP_USER_ID)
-        file = next((f for f in user_files if f.id == file_id), None)
-
-        if not file:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found"
-            )
-
-        # Integrate file into AI context
-        result = await get_ignacio_service().upload_file_to_context(TEMP_USER_ID, file.file_path)
-
-        return {
-            "success": result.success,
-            "openai_file_id": result.openai_file_id,
-            "vector_store_updated": result.vector_store_updated,
-            "content_preview": result.content_preview,
-            "error_message": result.error_message
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to integrate file: {str(e)}"
-        )
+# Note: File integration is now handled automatically via direct Agent SDK processing
+# when files are attached to chat messages. No separate integration step needed.
 
 
 @router.get("/conversations/{conversation_id}/summary")
