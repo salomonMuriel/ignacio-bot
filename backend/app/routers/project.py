@@ -86,7 +86,7 @@ async def create_project(project_data: ProjectCreate) -> Project:
 async def get_project_by_id(project_id: UUID) -> Project:
     """Get a specific project by ID"""
     try:
-        project = await db_service.get_user_project_by_id(project_id)
+        project = await db_service.get_project_by_id(project_id)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
         return project
@@ -99,7 +99,7 @@ async def update_project(project_id: UUID, project_data: ProjectUpdate) -> Proje
     """Update a specific project"""
     try:
         # Check if project exists
-        existing_project = await db_service.get_user_project_by_id(project_id)
+        existing_project = await db_service.get_project_by_id(project_id)
         if not existing_project:
             raise HTTPException(status_code=404, detail="Project not found")
 
@@ -125,7 +125,7 @@ async def update_project(project_id: UUID, project_data: ProjectUpdate) -> Proje
             update_data["context_data"] = project_data.context_data
 
         # Update project
-        updated_project = await db_service.update_user_project(project_id, update_data)
+        updated_project = await db_service.update_project(project_id, update_data)
         if not updated_project:
             raise HTTPException(status_code=500, detail="Failed to update project")
 
@@ -141,12 +141,12 @@ async def delete_user_project(project_id: UUID):
     """Delete a specific project"""
     try:
         # Check if project exists
-        existing_project = await db_service.get_user_project_by_id(project_id)
+        existing_project = await db_service.get_project_by_id(project_id)
         if not existing_project:
             raise HTTPException(status_code=404, detail="Project not found")
 
         # Delete project
-        success = await db_service.delete_user_project(project_id)
+        success = await db_service.delete_project(project_id)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to delete project")
 
@@ -162,7 +162,7 @@ async def get_project_conversations(project_id: UUID):
     """Get all conversations for a specific project"""
     try:
         # Check if project exists
-        existing_project = await db_service.get_user_project_by_id(project_id)
+        existing_project = await db_service.get_project_by_id(project_id)
         if not existing_project:
             raise HTTPException(status_code=404, detail="Project not found")
 
@@ -194,7 +194,7 @@ async def get_project_conversations(project_id: UUID):
 async def get_project_context(project_id: UUID):
     """Get project context for AI conversations"""
     try:
-        project = await db_service.get_user_project_by_id(project_id)
+        project = await db_service.get_project_by_id(project_id)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
         
@@ -221,13 +221,13 @@ async def update_project_context(project_id: UUID, context_data: dict):
     """Update project context"""
     try:
         # Check if project exists
-        existing_project = await db_service.get_user_project_by_id(project_id)
+        existing_project = await db_service.get_project_by_id(project_id)
         if not existing_project:
             raise HTTPException(status_code=404, detail="Project not found")
 
         # Update project context
         update_data = {"context_data": context_data}
-        updated_project = await db_service.update_user_project(project_id, update_data)
+        updated_project = await db_service.update_project(project_id, update_data)
         
         if not updated_project:
             raise HTTPException(status_code=500, detail="Failed to update project context")

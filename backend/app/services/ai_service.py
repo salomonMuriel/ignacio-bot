@@ -166,11 +166,11 @@ class IgnacioAgentService:
             # Load project context based on conversation's project association
             if conversation.project_id:
                 # Load specific project context
-                project = await db_service.get_user_project_by_id(conversation.project_id)
+                project = await db_service.get_project_by_id(conversation.project_id)
                 if project:
                     # Create project context from the specific project
                     project_context = UserProjectContext(
-                        user_id=conversation.user_id,
+                        user_id=str(conversation.user_id),
                         project_name=project.project_name,
                         project_type=project.project_type,
                         description=project.description,

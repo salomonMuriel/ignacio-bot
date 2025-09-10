@@ -9,7 +9,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, status, File, Form, UploadFile
 from pydantic import BaseModel
 
-from app.models.database import ConversationCreate, ConversationUpdate, MessageType, ConversationResult, MessageCreate, UserFile
+from app.models.database import ConversationUpdate, MessageType
 from app.services.ai_service import get_ignacio_service
 from app.services.database import db_service
 from app.services.storage import storage_service
@@ -321,7 +321,7 @@ async def associate_conversation_with_project(conversation_id: UUID, request: di
             raise HTTPException(status_code=404, detail="Conversation not found")
         
         # Check if project exists
-        project = await db_service.get_user_project_by_id(UUID(project_id))
+        project = await db_service.get_project_by_id(UUID(project_id))
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
         
