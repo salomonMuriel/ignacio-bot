@@ -20,11 +20,23 @@ router = APIRouter()
 
 
 async def sync_file_to_openai(user_id: UUID, file_id: UUID):
-    """Background task to sync a single file to OpenAI"""
+    """Background task to sync a specific file to OpenAI"""
     try:
-        logger.info(f"Starting OpenAI sync for file {file_id}")
-        sync_result = await openai_file_service.sync_user_files(user_id)
-        logger.info(f"OpenAI sync completed for user {user_id}: {sync_result}")
+        # Get the file to find its conversation
+        from app.services.database import db_service
+        file_record = await db_service.get_file_by_id(file_id)
+        
+        if not file_record:
+            logger.error(f"File {file_id} not found for OpenAI sync")
+            return
+            
+        if file_record.conversation_id:
+            logger.info(f"Starting OpenAI sync for conversation {file_record.conversation_id}")
+            sync_result = await openai_file_service.sync_conversation_files(file_record.conversation_id)
+            logger.info(f"OpenAI sync completed for conversation {file_record.conversation_id}: {sync_result}")
+        else:
+            logger.warning(f"File {file_id} has no conversation_id, skipping OpenAI sync")
+            
     except Exception as e:
         logger.error(f"OpenAI sync failed for file {file_id}: {str(e)}")
 
@@ -183,6 +195,23 @@ async def get_user_files(user_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to get user files: {str(e)}")
 
 
+@router.get("/conversation/{conversation_id}", response_model=list[UserFile])
+async def get_conversation_files(conversation_id: str):
+    """Get all files for a conversation"""
+    try:
+        conv_uuid = UUID(conversation_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conversation ID format")
+
+    try:
+        from app.services.database import db_service
+        files = await db_service.get_conversation_files(conv_uuid)
+        return files
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get conversation files: {str(e)}")
+
+
 @router.post("/conversations/{conversation_id}/files", response_model=UserFile)
 async def upload_file_to_conversation(
     conversation_id: str,
@@ -207,12 +236,13 @@ async def upload_file_to_conversation(
         raise HTTPException(status_code=400, detail="Failed to read file content")
 
     try:
-        # Upload file using storage service
+        # Upload file using storage service with conversation_id
         uploaded_file = await storage_service.upload_file(
             user_id=user_uuid,
             file_content=file_content,
             file_name=file.filename,
             content_type=file.content_type,
+            conversation_id=conv_uuid,
         )
 
         if not uploaded_file:
@@ -220,9 +250,6 @@ async def upload_file_to_conversation(
 
         # Schedule background task to sync file to OpenAI
         background_tasks.add_task(sync_file_to_openai, user_uuid, uploaded_file.id)
-
-        # TODO: Associate file with conversation (requires message creation or file-conversation relationship)
-        # For now, just return the uploaded file
 
         return uploaded_file
 
