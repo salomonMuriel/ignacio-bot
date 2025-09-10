@@ -18,12 +18,14 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 # Request/Response models for Agent SDK
 class ConversationCreateRequest(BaseModel):
     title: str | None = None
+    project_id: UUID | None = None
 
 
 class ConversationStartRequest(BaseModel):
     """Request to start a conversation with initial message"""
     initial_message: str
     title: str | None = None
+    project_id: UUID | None = None
 
 
 class MessageCreateRequest(BaseModel):
@@ -45,6 +47,7 @@ class MessageResponse(BaseModel):
 class ConversationResponse(BaseModel):
     id: UUID
     title: str | None
+    project_id: UUID | None = None
     created_at: str
     updated_at: str
     message_count: int = 0
@@ -86,6 +89,7 @@ async def get_conversations():
                 ConversationResponse(
                     id=conv.id,
                     title=conv.title,
+                    project_id=conv.project_id,
                     created_at=conv.created_at.isoformat(),
                     updated_at=conv.updated_at.isoformat(),
                     message_count=len(messages),
@@ -107,7 +111,8 @@ async def start_conversation(request: ConversationStartRequest):
         # Start conversation with Agent SDK (this creates conversation and processes initial message)
         agent_result = await get_ignacio_service().start_conversation(
             user_id=TEMP_USER_ID,
-            initial_message=request.initial_message
+            initial_message=request.initial_message,
+            project_id=request.project_id
         )
 
         # Debug: Check what type agent_result is
@@ -126,12 +131,15 @@ async def start_conversation(request: ConversationStartRequest):
                 detail=f"Invalid agent result format: {type(agent_result)}"
             )
 
-        # Update conversation title if provided
+        # Update conversation title and project_id if provided
+        update_data = {}
         if request.title:
-            await db_service.update_conversation(
-                conversation_id,
-                {"title": request.title}
-            )
+            update_data["title"] = request.title
+        if request.project_id:
+            update_data["project_id"] = str(request.project_id)
+            
+        if update_data:
+            await db_service.update_conversation(conversation_id, update_data)
 
         # Get the AI response message
         messages = await db_service.get_conversation_messages(conversation_id)
@@ -202,6 +210,7 @@ async def get_conversation(conversation_id: UUID):
         return ConversationDetailResponse(
             id=conversation.id,
             title=conversation.title,
+            project_id=conversation.project_id,
             created_at=conversation.created_at.isoformat(),
             updated_at=conversation.updated_at.isoformat(),
             message_count=len(messages),
@@ -230,7 +239,7 @@ async def update_conversation(
             )
 
         # Update conversation
-        update_data = ConversationUpdate(title=request.title)
+        update_data = ConversationUpdate(title=request.title, project_id=request.project_id)
         updated_conv = await db_service.update_conversation(
             conversation_id, update_data
         )
@@ -247,6 +256,7 @@ async def update_conversation(
         return ConversationResponse(
             id=updated_conv.id,
             title=updated_conv.title,
+            project_id=updated_conv.project_id,
             created_at=updated_conv.created_at.isoformat(),
             updated_at=updated_conv.updated_at.isoformat(),
             message_count=len(messages),
@@ -459,15 +469,40 @@ async def get_conversation_interactions(conversation_id: UUID):
         )
 
 
-@router.post("/project/context")
-async def update_project_context(project_data: dict):
-    """Update user's project context for better AI responses"""
+@router.put("/conversations/{conversation_id}/project")
+async def associate_conversation_with_project(conversation_id: UUID, request: dict):
+    """Associate a conversation with a specific project"""
     try:
-        await get_ignacio_service().update_project_context(TEMP_USER_ID, project_data)
-
-        return {"success": True, "message": "Project context updated successfully"}
+        project_id = request.get("project_id")
+        if not project_id:
+            raise HTTPException(status_code=400, detail="project_id is required")
+        
+        # Check if conversation exists
+        conversation = await db_service.get_conversation_by_id(conversation_id)
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        # Check if project exists
+        project = await db_service.get_user_project_by_id(UUID(project_id))
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        # Update conversation with project association
+        updated_conv = await db_service.update_conversation(
+            conversation_id, 
+            {"project_id": project_id}
+        )
+        
+        if not updated_conv:
+            raise HTTPException(status_code=500, detail="Failed to associate conversation with project")
+        
+        return {"message": "Conversation successfully associated with project"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update project context: {str(e)}"
+            detail=f"Failed to associate conversation with project: {str(e)}"
         )
+
+

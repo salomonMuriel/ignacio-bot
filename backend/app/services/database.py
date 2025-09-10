@@ -128,6 +128,7 @@ class DatabaseService:
             insert_data = {
                 "user_id": str(conv_data["user_id"]),
                 "title": conv_data.get("title", "New Conversation"),
+                "project_id": str(conv_data["project_id"]) if conv_data.get("project_id") else None,
                 "language_preference": conv_data.get("language_preference", "es"),
                 "agent_state": conv_data.get("agent_state", {}),
                 "project_context": conv_data.get("project_context", {}),
@@ -137,6 +138,7 @@ class DatabaseService:
             insert_data = {
                 "user_id": str(conv_data.user_id),
                 "title": conv_data.title,
+                "project_id": str(conv_data.project_id) if conv_data.project_id else None,
                 "language_preference": getattr(conv_data, 'language_preference', "es"),
                 "agent_state": getattr(conv_data, 'agent_state', {}),
                 "project_context": getattr(conv_data, 'project_context', {}),
@@ -189,6 +191,8 @@ class DatabaseService:
             update_dict = {}
             if conv_data.title is not None:
                 update_dict["title"] = conv_data.title
+            if conv_data.project_id is not None:
+                update_dict["project_id"] = str(conv_data.project_id)
 
         if not update_dict:
             return await self.get_conversation_by_id(conv_id)
@@ -496,7 +500,7 @@ class DatabaseService:
         else:
             raise Exception("Failed to create user project")
 
-    async def update_user_project(self, project_id: UUID, update_data: dict) -> bool:
+    async def update_user_project(self, project_id: UUID, update_data: dict) -> UserProject | None:
         """Update a user project"""
         response = (
             self.client.table("user_projects")
@@ -504,7 +508,42 @@ class DatabaseService:
             .eq("id", str(project_id))
             .execute()
         )
+        if response.data:
+            return UserProject(**response.data[0])
+        return None
+
+    async def get_user_project_by_id(self, project_id: UUID) -> UserProject | None:
+        """Get a specific user project by ID"""
+        response = (
+            self.client.table("user_projects")
+            .select("*")
+            .eq("id", str(project_id))
+            .execute()
+        )
+        if response.data:
+            return UserProject(**response.data[0])
+        return None
+
+    async def delete_user_project(self, project_id: UUID) -> bool:
+        """Delete a user project"""
+        response = (
+            self.client.table("user_projects")
+            .delete()
+            .eq("id", str(project_id))
+            .execute()
+        )
         return len(response.data) > 0
+
+    async def get_project_conversations(self, project_id: UUID) -> list[Conversation]:
+        """Get all conversations for a specific project"""
+        response = (
+            self.client.table("conversations")
+            .select("*")
+            .eq("project_id", str(project_id))
+            .order("updated_at", desc=True)
+            .execute()
+        )
+        return [Conversation(**item) for item in response.data]
 
 
 # Global database service instance

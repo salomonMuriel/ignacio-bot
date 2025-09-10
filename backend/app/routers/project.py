@@ -17,76 +17,7 @@ from app.services.project_context_service import project_context_service
 router = APIRouter(prefix="/project", tags=["project"])
 
 
-@router.get("/context/{user_id}")
-async def get_user_project_context(user_id: UUID):
-    """Get user's project context for AI conversations"""
-    try:
-        context = await project_context_service.get_user_context(user_id)
-        return {
-            "user_id": context.user_id,
-            "project_name": context.project_name,
-            "project_type": context.project_type.value if context.project_type else None,
-            "description": context.description,
-            "current_stage": context.current_stage.value if context.current_stage else None,
-            "target_audience": context.target_audience,
-            "problem_statement": context.problem_statement,
-            "solution_approach": context.solution_approach,
-            "business_model": context.business_model,
-            "key_challenges": context.key_challenges,
-            "recent_activities": context.recent_activities,
-            "goals": context.goals,
-            "context_data": context.context_data
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get project context: {str(e)}")
 
-
-@router.put("/context/{user_id}")
-async def update_user_project_context(user_id: UUID, project_data: dict):
-    """Update user's project context"""
-    try:
-        # Get current context
-        context = await project_context_service.get_user_context(user_id)
-        
-        # Update fields
-        if "project_name" in project_data:
-            context.project_name = project_data["project_name"]
-        if "project_type" in project_data:
-            try:
-                context.project_type = ProjectType(project_data["project_type"])
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid project type: {project_data['project_type']}")
-        if "description" in project_data:
-            context.description = project_data["description"]
-        if "current_stage" in project_data:
-            try:
-                context.current_stage = ProjectStage(project_data["current_stage"])
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid project stage: {project_data['current_stage']}")
-        if "target_audience" in project_data:
-            context.target_audience = project_data["target_audience"]
-        if "problem_statement" in project_data:
-            context.problem_statement = project_data["problem_statement"]
-        if "solution_approach" in project_data:
-            context.solution_approach = project_data["solution_approach"]
-        if "business_model" in project_data:
-            context.business_model = project_data["business_model"]
-        if "key_challenges" in project_data:
-            context.key_challenges = project_data["key_challenges"]
-        if "goals" in project_data:
-            context.goals = project_data["goals"]
-        
-        # Save to database
-        success = await context.save_to_database()
-        if not success:
-            raise HTTPException(status_code=500, detail="Failed to save project context")
-        
-        return {"message": "Project context updated successfully"}
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update project context: {str(e)}")
 
 
 @router.get("/types")
@@ -149,6 +80,163 @@ async def create_user_project(project_data: UserProjectCreate) -> UserProject:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create project: {str(e)}")
+
+
+@router.get("/projects/{project_id}")
+async def get_user_project(project_id: UUID) -> UserProject:
+    """Get a specific project by ID"""
+    try:
+        project = await db_service.get_user_project_by_id(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return project
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get project: {str(e)}")
+
+
+@router.put("/projects/{project_id}")
+async def update_user_project(project_id: UUID, project_data: UserProjectUpdate) -> UserProject:
+    """Update a specific project"""
+    try:
+        # Check if project exists
+        existing_project = await db_service.get_user_project_by_id(project_id)
+        if not existing_project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Prepare update data
+        update_data = {}
+        if project_data.project_name is not None:
+            update_data["project_name"] = project_data.project_name
+        if project_data.project_type is not None:
+            update_data["project_type"] = project_data.project_type.value
+        if project_data.description is not None:
+            update_data["description"] = project_data.description
+        if project_data.current_stage is not None:
+            update_data["current_stage"] = project_data.current_stage.value
+        if project_data.target_audience is not None:
+            update_data["target_audience"] = project_data.target_audience
+        if project_data.problem_statement is not None:
+            update_data["problem_statement"] = project_data.problem_statement
+        if project_data.solution_approach is not None:
+            update_data["solution_approach"] = project_data.solution_approach
+        if project_data.business_model is not None:
+            update_data["business_model"] = project_data.business_model
+        if project_data.context_data is not None:
+            update_data["context_data"] = project_data.context_data
+
+        # Update project
+        updated_project = await db_service.update_user_project(project_id, update_data)
+        if not updated_project:
+            raise HTTPException(status_code=500, detail="Failed to update project")
+
+        return updated_project
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update project: {str(e)}")
+
+
+@router.delete("/projects/{project_id}")
+async def delete_user_project(project_id: UUID):
+    """Delete a specific project"""
+    try:
+        # Check if project exists
+        existing_project = await db_service.get_user_project_by_id(project_id)
+        if not existing_project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Delete project
+        success = await db_service.delete_user_project(project_id)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to delete project")
+
+        return {"message": "Project deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete project: {str(e)}")
+
+
+@router.get("/projects/{project_id}/conversations")
+async def get_project_conversations(project_id: UUID):
+    """Get all conversations for a specific project"""
+    try:
+        # Check if project exists
+        existing_project = await db_service.get_user_project_by_id(project_id)
+        if not existing_project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Get conversations for the project
+        conversations = await db_service.get_project_conversations(project_id)
+        
+        # Get message count for each conversation
+        result = []
+        for conv in conversations:
+            messages = await db_service.get_conversation_messages(conv.id)
+            result.append({
+                "id": conv.id,
+                "title": conv.title,
+                "created_at": conv.created_at.isoformat(),
+                "updated_at": conv.updated_at.isoformat(),
+                "message_count": len(messages),
+                "language_preference": conv.language_preference,
+                "project_context": conv.project_context
+            })
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get project conversations: {str(e)}")
+
+
+@router.get("/projects/{project_id}/context")
+async def get_project_context(project_id: UUID):
+    """Get project context for AI conversations"""
+    try:
+        project = await db_service.get_user_project_by_id(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        return {
+            "project_id": project.id,
+            "project_name": project.project_name,
+            "project_type": project.project_type.value if project.project_type else None,
+            "description": project.description,
+            "current_stage": project.current_stage.value if project.current_stage else None,
+            "target_audience": project.target_audience,
+            "problem_statement": project.problem_statement,
+            "solution_approach": project.solution_approach,
+            "business_model": project.business_model,
+            "context_data": project.context_data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get project context: {str(e)}")
+
+
+@router.put("/projects/{project_id}/context")
+async def update_project_context(project_id: UUID, context_data: dict):
+    """Update project context"""
+    try:
+        # Check if project exists
+        existing_project = await db_service.get_user_project_by_id(project_id)
+        if not existing_project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Update project context
+        update_data = {"context_data": context_data}
+        updated_project = await db_service.update_user_project(project_id, update_data)
+        
+        if not updated_project:
+            raise HTTPException(status_code=500, detail="Failed to update project context")
+
+        return {"message": "Project context updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update project context: {str(e)}")
 
 
 @router.get("/template")

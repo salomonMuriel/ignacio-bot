@@ -69,16 +69,21 @@ class IgnacioAgentService:
             ] + context_tools
         )
 
-    async def start_conversation(self, user_id: UUID, initial_message: str) -> ConversationResult:
+    async def start_conversation(self, user_id: UUID, initial_message: str, project_id: UUID | None = None) -> ConversationResult:
         """Start a new conversation with Ignacio"""
         start_time = time.time()
 
         # Create conversation in database
-        conversation = await db_service.create_conversation({
+        conversation_data = {
             "user_id": user_id,
             "title": initial_message[:50] + "..." if len(initial_message) > 50 else initial_message,
             "language_preference": "es"
-        })
+        }
+        
+        if project_id:
+            conversation_data["project_id"] = project_id
+            
+        conversation = await db_service.create_conversation(conversation_data)
 
         # Process the message
         result = await self.continue_conversation(conversation.id, initial_message)
@@ -94,8 +99,30 @@ class IgnacioAgentService:
             if not conversation:
                 raise ValueError(f"Conversation {conversation_id} not found")
 
-            # Load user project context
-            project_context = await project_context_service.get_user_context(conversation.user_id)
+            # Load project context based on conversation's project association
+            if conversation.project_id:
+                # Load specific project context
+                project = await db_service.get_user_project_by_id(conversation.project_id)
+                if project:
+                    # Create project context from the specific project
+                    project_context = UserProjectContext(
+                        user_id=conversation.user_id,
+                        project_name=project.project_name,
+                        project_type=project.project_type,
+                        description=project.description,
+                        current_stage=project.current_stage,
+                        target_audience=project.target_audience,
+                        problem_statement=project.problem_statement,
+                        solution_approach=project.solution_approach,
+                        business_model=project.business_model,
+                        context_data=project.context_data or {}
+                    )
+                else:
+                    # Fallback to user's general context if project not found
+                    project_context = await project_context_service.get_user_context(conversation.user_id)
+            else:
+                # Load user's general project context (for backwards compatibility)
+                project_context = await project_context_service.get_user_context(conversation.user_id)
 
             # Run the main agent with context
             result = await Runner.run(

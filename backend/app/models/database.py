@@ -76,6 +76,7 @@ class UserUpdate(BaseModel):
 
 class ConversationBase(BaseModel):
     title: str | None = None
+    project_id: UUID | None = None
     openai_session_id: str | None = None
     agent_state: Dict[str, Any] = {}
     project_context: Dict[str, Any] = {}
@@ -97,6 +98,7 @@ class ConversationCreate(ConversationBase):
 
 class ConversationUpdate(BaseModel):
     title: str | None = None
+    project_id: UUID | None = None
 
 
 class MessageBase(BaseModel):
