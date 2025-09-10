@@ -17,7 +17,7 @@ from app.models.database import ConversationResult, MessageCreate, MessageType, 
 from app.services.database import db_service
 from app.services.project_context_service import (
     project_context_service, 
-    UserProjectContext, 
+    ProjectContext, 
     create_project_aware_instructions
 )
 from app.services.storage import storage_service
@@ -54,7 +54,7 @@ class IgnacioAgentService:
 
         # Main entry agent with sub-agents as tools and project context awareness
         context_tools = project_context_service.get_context_tools()
-        self.ignacio_agent = Agent[UserProjectContext](
+        self.ignacio_agent = Agent[ProjectContext](
             name="Ignacio",
             instructions=create_project_aware_instructions,
             tools=[
@@ -163,14 +163,19 @@ class IgnacioAgentService:
             if not conversation:
                 raise ValueError(f"Conversation {conversation_id} not found")
 
+            # Get user information to include name in context
+            user = await db_service.get_user_by_id(conversation.user_id)
+            user_name = user.name if user and user.name else None
+
             # Load project context based on conversation's project association
             if conversation.project_id:
                 # Load specific project context
                 project = await db_service.get_project_by_id(conversation.project_id)
                 if project:
                     # Create project context from the specific project
-                    project_context = UserProjectContext(
+                    project_context = ProjectContext(
                         user_id=str(conversation.user_id),
+                        user_name=user_name,
                         project_name=project.project_name,
                         project_type=project.project_type,
                         description=project.description,

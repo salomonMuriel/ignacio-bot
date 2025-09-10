@@ -9,13 +9,14 @@ from uuid import UUID
 from pydantic import BaseModel
 from agents import Agent, function_tool, RunContextWrapper
 
-from app.models.database import Project, ProjectType, ProjectStage
+from app.models.database import ProjectType, ProjectStage
 from app.services.database import db_service
 
 
-class UserProjectContext(BaseModel):
+class ProjectContext(BaseModel):
     """Project context model for OpenAI Agent SDK"""
     user_id: str
+    user_name: str | None = None
     project_name: str | None = None
     project_type: ProjectType | None = None
     description: str | None = None
@@ -31,13 +32,17 @@ class UserProjectContext(BaseModel):
     context_data: Dict[str, Any] = {}
 
     @classmethod
-    async def from_user_id(cls, user_id: UUID) -> "UserProjectContext":
+    async def from_user_id(cls, user_id: UUID) -> "ProjectContext":
         """Load project context from database for a user"""
+        # Get user information to include name
+        user = await db_service.get_user_by_id(user_id)
+        user_name = user.name if user and user.name else None
+        
         projects = await db_service.get_user_projects(user_id)
         
         if not projects:
             # Return empty context for users without projects
-            return cls(user_id=str(user_id))
+            return cls(user_id=str(user_id), user_name=user_name)
         
         # Use the first project (users typically have one main project)
         project = projects[0]
@@ -50,6 +55,7 @@ class UserProjectContext(BaseModel):
         
         return cls(
             user_id=str(user_id),
+            user_name=user_name,
             project_name=project.project_name,
             project_type=project.project_type,
             description=project.description,
@@ -105,8 +111,8 @@ class UserProjectContext(BaseModel):
 
 
 def create_project_aware_instructions(
-    run_context: RunContextWrapper[UserProjectContext], 
-    agent: Agent[UserProjectContext]
+    run_context: RunContextWrapper[ProjectContext], 
+    agent: Agent[ProjectContext]
 ) -> str:
     """Generate dynamic instructions based on user project context"""
     context = run_context.context
@@ -121,6 +127,7 @@ IMPORTANT: Always provide practical, actionable advice tailored to their specifi
     if context.project_name:
         project_context = f"""
 USER PROJECT CONTEXT:
+- User Name: {context.user_name or 'Not provided'}
 - Project: {context.project_name}
 - Type: {context.project_type.value if context.project_type else 'Not specified'}
 - Stage: {context.current_stage.value if context.current_stage else 'Not specified'}
@@ -148,8 +155,9 @@ PERSONALIZATION GUIDELINES:
 - Consider their target audience in recommendations
 """
     else:
-        project_context = """
+        project_context = f"""
 USER PROJECT CONTEXT:
+- User Name: {context.user_name or 'Not provided'}
 - No project information available yet
 - Help them define their project by asking about their idea, goals, and challenges
 - Guide them through the Action Lab project development process
@@ -161,7 +169,7 @@ USER PROJECT CONTEXT:
 # Project context tools for agents
 @function_tool
 async def update_project_context(
-    context: RunContextWrapper[UserProjectContext],
+    context: RunContextWrapper[ProjectContext],
     field: str,
     value: str
 ) -> str:
@@ -209,7 +217,7 @@ async def update_project_context(
 
 @function_tool
 async def get_project_summary(
-    context: RunContextWrapper[UserProjectContext]
+    context: RunContextWrapper[ProjectContext]
 ) -> str:
     """Get a summary of the user's current project"""
     ctx = context.context
@@ -243,9 +251,9 @@ class ProjectContextService:
     """Service for managing user project context in AI conversations"""
     
     @staticmethod
-    async def get_user_context(user_id: UUID) -> UserProjectContext:
+    async def get_user_context(user_id: UUID) -> ProjectContext:
         """Get user project context for AI conversations"""
-        return await UserProjectContext.from_user_id(user_id)
+        return await ProjectContext.from_user_id(user_id)
     
     @staticmethod
     def get_context_tools() -> List:
@@ -259,13 +267,13 @@ class ProjectContextService:
         agent_name: str,
         base_instructions: str,
         additional_tools: List = None
-    ) -> Agent[UserProjectContext]:
+    ) -> Agent[ProjectContext]:
         """Create an agent with project context awareness"""
         tools = ProjectContextService.get_context_tools()
         if additional_tools:
             tools.extend(additional_tools)
         
-        return Agent[UserProjectContext](
+        return Agent[ProjectContext](
             name=agent_name,
             instructions=create_project_aware_instructions,
             tools=tools
