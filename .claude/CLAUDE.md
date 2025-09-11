@@ -29,7 +29,7 @@ Administrators:
 ## Tech Stack
 
 The backend is built in Python, using FastAPI.
-The web frontend is built in plain React, using Typescript.
+The web frontend is built with Next.js 15 + React 19.1, using TypeScript and Tailwind CSS.
 The database is in Supabase. Ignacio should save its chat memory of each user in this Supabase Database.
 Any stored media (images, audio files, anything else) is saved in Supabase Storage.
 
@@ -72,7 +72,7 @@ Code formatting is automatically enforced via pre-commit hooks:
 - Manual linting is no longer required - pre-commit handles everything automatically
 - All components, classes, models, and functions are properly typed in both Python and TypeScript
 
-## Current Development Status (2025-01-09)
+## Current Development Status (2025-01-11)
 
 ### ✅ **Multi-Project Architecture - COMPLETED**
 
@@ -107,12 +107,13 @@ Code formatting is automatically enforced via pre-commit hooks:
 - **Project-Aware Agents**: All 8 agents use relevant project context
 - **Fallback Support**: Backwards compatible with non-project conversations
 
-#### **Frontend Architecture** 
-- **Multi-Project UI**: Complete React frontend with project-centric interface
-- **ProjectContext**: React Context for project state management across components
-- **Project Manager**: Interface for switching, editing, and managing multiple projects
-- **Chat Interface**: Project-aware conversations with automatic context loading
-- **Project Onboarding**: Guided creation flow for new projects
+#### **Frontend Architecture - COMPLETED**
+- **Next.js 15 + React 19.1**: Modern React framework with App Router
+- **Global State Management**: React Context (Auth, Projects, Conversations)
+- **TypeScript Integration**: Full type safety matching backend Pydantic models
+- **Tailwind CSS**: Responsive design system
+- **React 19.1 Compatibility**: Ready for use(), useOptimistic, useActionState patterns
+
 
 ### **Current Workflow**
 1. **Users create multiple projects** with distinct contexts via web interface
@@ -123,9 +124,9 @@ Code formatting is automatically enforced via pre-commit hooks:
 
 ### **Technical Architecture**
 - **Backend**: FastAPI + OpenAI Agent SDK + Supabase
-- **Frontend**: React + TypeScript + Tailwind CSS with project-centric architecture
+- **Frontend**: Next.js 15 + React 19.1 + TypeScript + Tailwind CSS with project-centric architecture
 - **Agent Framework**: Multi-agent with specialized expertise domains
 - **File Processing**: Vector stores + content search + metadata extraction
 - **Session Management**: OpenAI conversation sessions with persistent context
 - **Project Context**: Dynamic user project tracking and context injection
-- **State Management**: React Context API for project and conversation state
+- **State Management**: React Context API with Auth, Project, and Conversation contexts

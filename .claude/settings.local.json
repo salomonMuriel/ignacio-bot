@@ -19,7 +19,11 @@
       "Bash(env)",
       "Bash(curl:*)",
       "Bash(npm start)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []
