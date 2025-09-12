@@ -3,13 +3,16 @@
 import { ProjectType } from '@/types';
 
 interface ProjectLogoProps {
-  projectName: string;
+  project: { project_name: string; project_type?: ProjectType | null } | null;
+  projectName?: string;
   projectType?: ProjectType | null;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  title?: string;
 }
 
 const sizeClasses = {
+  xs: 'w-4 h-4 text-xs',
   sm: 'w-8 h-8 text-sm',
   md: 'w-12 h-12 text-lg',
   lg: 'w-16 h-16 text-xl',
@@ -43,22 +46,32 @@ function getColorGradient(projectType?: ProjectType | null): string {
   return typeColors[projectType];
 }
 
-export default function ProjectLogo({ 
+export function ProjectLogo({ 
+  project,
   projectName, 
   projectType, 
   size = 'md', 
-  className = '' 
+  className = '',
+  title
 }: ProjectLogoProps) {
-  const initials = getInitials(projectName);
-  const gradient = getColorGradient(projectType);
+  // Support both project object and individual props
+  const name = project?.project_name || projectName || '';
+  const type = project?.project_type || projectType;
+  
+  if (!name) return null;
+  
+  const initials = getInitials(name);
+  const gradient = getColorGradient(type);
   const sizeClass = sizeClasses[size];
 
   return (
     <div 
       className={`${sizeClass} bg-gradient-to-br ${gradient} rounded-lg flex items-center justify-center font-bold text-white shadow-lg ${className}`}
-      title={projectName}
+      title={title || name}
     >
       {initials}
     </div>
   );
 }
+
+export default ProjectLogo;

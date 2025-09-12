@@ -38,7 +38,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-CO" className="h-full">
-      <body className="h-full antialiased bg-gray-50 text-gray-900">
+      <body 
+        className="h-full antialiased bg-gray-50 text-gray-900"
+        suppressHydrationWarning={true}
+      >
         <GlobalProviders>
           <div id="root" className="h-full">
             {children}

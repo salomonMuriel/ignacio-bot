@@ -149,19 +149,16 @@ export const userAPI = {
 
 // Conversation endpoints
 export const conversationAPI = {
-  list: (userId: string = TEST_USER_ID): Promise<Conversation[]> =>
-    apiFetch(`/api/chat/conversations?user_id=${userId}`),
+  list: (): Promise<Conversation[]> =>
+    apiFetch(`/api/chat/conversations`),
 
   get: (conversationId: string): Promise<ConversationWithMessages> =>
     apiFetch(`/api/chat/conversations/${conversationId}`),
 
-  create: (data: Omit<ConversationCreate, 'user_id'>): Promise<Conversation> =>
+  create: (data: { title?: string; project_id?: string }): Promise<Conversation> =>
     apiFetch('/api/chat/conversations', {
       method: 'POST',
-      body: JSON.stringify({
-        ...data,
-        user_id: TEST_USER_ID,
-      }),
+      body: JSON.stringify(data),
     }),
 
   update: (conversationId: string, data: ConversationUpdate): Promise<Conversation> =>
@@ -175,17 +172,6 @@ export const conversationAPI = {
       method: 'DELETE',
     }),
 
-  // Start a new conversation with optional project
-  start: (projectId?: string, title?: string): Promise<Conversation> =>
-    apiFetch('/api/chat/conversations/start', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_id: TEST_USER_ID,
-        project_id: projectId,
-        title: title,
-      }),
-    }),
-
   // Update conversation project association
   setProject: (conversationId: string, projectId: string | null): Promise<Conversation> =>
     apiFetch(`/api/chat/conversations/${conversationId}/project`, {
@@ -197,17 +183,32 @@ export const conversationAPI = {
 // Message endpoints
 export const messageAPI = {
   // Send a message using the unified endpoint
-  send: (conversationId: string, content: string, files?: File[]): Promise<ConversationResult> => {
+  send: (conversationId: string, content: string, files?: File[]): Promise<any> => {
     const formData = new FormData();
-    formData.append('conversation_id', conversationId);
-    formData.append('user_id', TEST_USER_ID);
-    formData.append('message', content);
+    formData.append('content', content);
+    if (conversationId) {
+      formData.append('conversation_id', conversationId);
+    }
     
-    // Add files if provided
+    // Add file if provided (backend supports single file)
     if (files && files.length > 0) {
-      files.forEach((file) => {
-        formData.append(`files`, file);
-      });
+      formData.append('file', files[0]); // Use first file only
+    }
+
+    return apiFormFetch('/api/chat/messages', formData);
+  },
+
+  // Send message to start new conversation
+  sendNew: (content: string, projectId?: string, files?: File[]): Promise<any> => {
+    const formData = new FormData();
+    formData.append('content', content);
+    if (projectId) {
+      formData.append('project_id', projectId);
+    }
+    
+    // Add file if provided
+    if (files && files.length > 0) {
+      formData.append('file', files[0]);
     }
 
     return apiFormFetch('/api/chat/messages', formData);
@@ -221,7 +222,7 @@ export const messageAPI = {
 // Project endpoints
 export const projectAPI = {
   list: (userId: string = TEST_USER_ID): Promise<Project[]> =>
-    apiFetch(`/project/?user_id=${userId}`),
+    apiFetch(`/project/by_user/${userId}`),
 
   get: (projectId: string): Promise<Project> =>
     apiFetch(`/project/${projectId}`),
@@ -247,25 +248,25 @@ export const projectAPI = {
     }),
 
   // Get project types
-  getTypes: (): Promise<{ types: ProjectType[] }> =>
+  getTypes: (): Promise<Array<{ value: string; label: string }>> =>
     apiFetch('/project/types'),
 
   // Get project stages  
-  getStages: (): Promise<{ stages: ProjectStage[] }> =>
+  getStages: (): Promise<Array<{ value: string; label: string }>> =>
     apiFetch('/project/stages'),
 
   // Get conversations for a project
   getConversations: (projectId: string): Promise<Conversation[]> =>
-    apiFetch(`/project/${projectId}/conversations`),
+    apiFetch(`/project/conversations/${projectId}`),
 
   // Get/update project context
-  getContext: (projectId: string): Promise<{ context_data: Record<string, unknown> }> =>
+  getContext: (projectId: string): Promise<any> =>
     apiFetch(`/project/${projectId}/context`),
 
-  updateContext: (projectId: string, contextData: Record<string, unknown>): Promise<{ context_data: Record<string, unknown> }> =>
+  updateContext: (projectId: string, contextData: Record<string, unknown>): Promise<any> =>
     apiFetch(`/project/${projectId}/context`, {
       method: 'PUT',
-      body: JSON.stringify({ context_data: contextData }),
+      body: JSON.stringify(contextData),
     }),
 };
 
@@ -332,10 +333,7 @@ export const createPromiseWrapper = <T>(promise: Promise<T>) => {
 
 // SWR-compatible fetchers
 export const swrFetchers = {
-  conversations: (url: string) => {
-    const userId = url.split('user_id=')[1] || TEST_USER_ID;
-    return conversationAPI.list(userId);
-  },
+  conversations: () => conversationAPI.list(),
   
   conversation: (url: string) => {
     const conversationId = url.split('/conversations/')[1]?.split('?')[0];

@@ -203,6 +203,11 @@ export function useProjects() {
   return context;
 }
 
+// Alias for compatibility
+export function useProject() {
+  return useProjects();
+}
+
 // React 19.1 compatible hook for conditional context reading
 export function useOptionalProjects() {
   return useContext(ProjectContext);

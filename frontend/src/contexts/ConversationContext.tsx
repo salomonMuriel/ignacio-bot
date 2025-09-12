@@ -1,38 +1,35 @@
-"use client";
+'use client';
+
+/**
+ * ConversationContext - Simplified version for current backend
+ * Manages conversations and messages with React 19.1 compatibility
+ */
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { 
   Conversation, 
   ConversationWithMessages, 
   MessageWithAttachments,
-  ConversationCreate,
   ConversationUpdate,
   ChatMessage,
   MessageType,
 } from '@/types';
 import { api } from '@/services/api';
 import { useAuth } from './AuthContext';
-import { useProjects } from './ProjectContext';
 
 interface ConversationState {
   conversations: Conversation[];
-  activeConversation: ConversationWithMessages | null;
-  messages: ChatMessage[];
+  currentConversation: Conversation | null;
   isLoading: boolean;
   error: string | null;
-  isTyping: boolean;
 }
 
 interface ConversationContextType extends ConversationState {
-  setActiveConversation: (conversation: Conversation | null) => Promise<void>;
-  createConversation: (data: Partial<ConversationCreate>) => Promise<Conversation>;
-  updateConversation: (conversationId: string, data: ConversationUpdate) => Promise<Conversation>;
-  deleteConversation: (conversationId: string) => Promise<void>;
-  sendMessage: (content: string, files?: File[]) => Promise<void>;
+  setCurrentConversation: (conversation: Conversation | null) => void;
+  createConversation: (projectId?: string, initialMessage?: string) => Promise<Conversation>;
+  updateConversation: (conversationId: string, data: ConversationUpdate) => Promise<void>;
+  sendMessage: (conversationId: string, content: string, files?: File[]) => Promise<any>;
   refreshConversations: () => Promise<void>;
-  refreshMessages: () => Promise<void>;
-  getConversationById: (conversationId: string) => Conversation | undefined;
-  startNewConversation: (projectId?: string, title?: string) => Promise<Conversation>;
 }
 
 const ConversationContext = createContext<ConversationContextType | null>(null);
@@ -42,81 +39,65 @@ interface ConversationProviderProps {
 }
 
 export function ConversationProvider({ children }: ConversationProviderProps) {
-  const { user, isAuthenticated } = useAuth();
-  const { activeProject } = useProjects();
+  const { currentUser } = useAuth();
   
   const [state, setState] = useState<ConversationState>({
     conversations: [],
-    activeConversation: null,
-    messages: [],
+    currentConversation: null,
     isLoading: false,
     error: null,
-    isTyping: false,
   });
 
-  const setActiveConversation = useCallback(async (conversation: Conversation | null): Promise<void> => {
-    if (!conversation) {
-      setState(prev => ({ 
-        ...prev, 
-        activeConversation: null, 
-        messages: [],
-      }));
-      localStorage.removeItem('activeConversationId');
-      return;
-    }
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+  const setCurrentConversation = useCallback((conversation: Conversation | null) => {
+    setState(prev => ({ 
+      ...prev, 
+      currentConversation: conversation,
+    }));
     
-    try {
-      const conversationWithMessages = await api.conversations.get(conversation.id);
-      
-      // Convert backend messages to ChatMessage format
-      const chatMessages: ChatMessage[] = conversationWithMessages.messages.map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        is_from_user: msg.is_from_user,
-        message_type: msg.message_type,
-        created_at: msg.created_at,
-        attachments: (msg as MessageWithAttachments).attachment_files || [],
-      }));
-
-      setState(prev => ({
-        ...prev,
-        activeConversation: conversationWithMessages,
-        messages: chatMessages,
-        isLoading: false,
-        error: null,
-      }));
-
+    if (conversation) {
       localStorage.setItem('activeConversationId', conversation.id);
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to load conversation',
-      }));
+    } else {
+      localStorage.removeItem('activeConversationId');
     }
   }, []);
 
-  const createConversation = useCallback(async (data: Partial<ConversationCreate>): Promise<Conversation> => {
+  const createConversation = useCallback(async (projectId?: string, initialMessage?: string): Promise<Conversation> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const newConversation = await api.conversations.create({
-        title: data.title,
-        project_id: data.project_id || activeProject?.id,
-        language_preference: 'es',
-        ...data,
-      });
-      
-      setState(prev => ({
-        ...prev,
-        conversations: [newConversation, ...prev.conversations],
-        isLoading: false,
-        error: null,
-      }));
-      
-      return newConversation;
+      if (initialMessage) {
+        // Start conversation with initial message using the unified endpoint
+        const result = await api.messages.sendNew(initialMessage, projectId);
+        
+        // The backend returns the conversation_id, we need to fetch the conversation
+        const conversation = await api.conversations.get(result.conversation_id);
+        
+        setState(prev => ({
+          ...prev,
+          conversations: [conversation, ...prev.conversations],
+          currentConversation: conversation,
+          isLoading: false,
+          error: null,
+        }));
+        
+        return conversation;
+      } else {
+        // Create empty conversation
+        const newConversation = await api.conversations.create({
+          title: "Nueva conversación",
+          project_id: projectId,
+        });
+        
+        setState(prev => ({
+          ...prev,
+          conversations: [newConversation, ...prev.conversations],
+          currentConversation: newConversation,
+          isLoading: false,
+          error: null,
+        }));
+        
+        return newConversation;
+      }
     } catch (error) {
       setState(prev => ({
         ...prev,
@@ -125,172 +106,54 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
       }));
       throw error;
     }
-  }, [activeProject]);
+  }, []);
 
-  const startNewConversation = useCallback(async (projectId?: string, title?: string): Promise<Conversation> => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+  const updateConversation = useCallback(async (conversationId: string, data: ConversationUpdate): Promise<void> => {
     try {
-      const newConversation = await api.conversations.start(
-        projectId || activeProject?.id,
-        title
-      );
-      
-      setState(prev => ({
-        ...prev,
-        conversations: [newConversation, ...prev.conversations],
-        isLoading: false,
-        error: null,
-      }));
-      
-      return newConversation;
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to start conversation',
-      }));
-      throw error;
-    }
-  }, [activeProject]);
-
-  const updateConversation = useCallback(async (conversationId: string, data: ConversationUpdate): Promise<Conversation> => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
-    try {
-      const updatedConversation = await api.conversations.update(conversationId, data);
+      await api.conversations.update(conversationId, data);
       
       setState(prev => ({
         ...prev,
         conversations: prev.conversations.map(c => 
-          c.id === conversationId ? updatedConversation : c
+          c.id === conversationId ? { ...c, ...data } : c
         ),
-        activeConversation: prev.activeConversation?.id === conversationId 
-          ? { ...prev.activeConversation, ...updatedConversation }
-          : prev.activeConversation,
-        isLoading: false,
-        error: null,
+        currentConversation: prev.currentConversation?.id === conversationId 
+          ? { ...prev.currentConversation, ...data }
+          : prev.currentConversation,
       }));
-      
-      return updatedConversation;
     } catch (error) {
       setState(prev => ({
         ...prev,
-        isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to update conversation',
       }));
       throw error;
     }
   }, []);
 
-  const deleteConversation = useCallback(async (conversationId: string): Promise<void> => {
+  const sendMessage = useCallback(async (conversationId: string, content: string, files?: File[]): Promise<any> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      await api.conversations.delete(conversationId);
+      const result = await api.messages.send(conversationId, content, files);
       
-      setState(prev => {
-        const filteredConversations = prev.conversations.filter(c => c.id !== conversationId);
-        const shouldClearActive = prev.activeConversation?.id === conversationId;
-        
-        return {
-          ...prev,
-          conversations: filteredConversations,
-          activeConversation: shouldClearActive ? null : prev.activeConversation,
-          messages: shouldClearActive ? [] : prev.messages,
-          isLoading: false,
-          error: null,
-        };
-      });
+      setState(prev => ({ ...prev, isLoading: false, error: null }));
       
-      // Clear from localStorage if it was active
-      const activeConversationId = localStorage.getItem('activeConversationId');
-      if (activeConversationId === conversationId) {
-        localStorage.removeItem('activeConversationId');
-      }
+      return result;
     } catch (error) {
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to delete conversation',
+        error: error instanceof Error ? error.message : 'Failed to send message',
       }));
       throw error;
     }
   }, []);
 
-  const sendMessage = useCallback(async (content: string, files?: File[]): Promise<void> => {
-    if (!state.activeConversation) {
-      throw new Error('No active conversation');
-    }
-
-    // Add optimistic message
-    const optimisticMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
-      content,
-      is_from_user: true,
-      message_type: MessageType.TEXT,
-      created_at: new Date().toISOString(),
-      loading: true,
-    };
-
-    setState(prev => ({
-      ...prev,
-      messages: [...prev.messages, optimisticMessage],
-      isTyping: true,
-      error: null,
-    }));
-
-    try {
-      const result = await api.messages.send(state.activeConversation.id, content, files);
-      
-      // Remove optimistic message and add actual messages
-      setState(prev => {
-        const messagesWithoutOptimistic = prev.messages.filter(m => m.id !== optimisticMessage.id);
-        
-        // Add user message
-        const userMessage: ChatMessage = {
-          id: `user-${Date.now()}`,
-          content,
-          is_from_user: true,
-          message_type: MessageType.TEXT,
-          created_at: new Date().toISOString(),
-        };
-        
-        // Add AI response
-        const aiMessage: ChatMessage = {
-          id: `ai-${Date.now()}`,
-          content: result.response_text,
-          is_from_user: false,
-          message_type: MessageType.TEXT,
-          created_at: new Date().toISOString(),
-        };
-        
-        return {
-          ...prev,
-          messages: [...messagesWithoutOptimistic, userMessage, aiMessage],
-          isTyping: false,
-          error: null,
-        };
-      });
-    } catch (error) {
-      // Remove optimistic message on error
-      setState(prev => ({
-        ...prev,
-        messages: prev.messages.filter(m => m.id !== optimisticMessage.id),
-        isTyping: false,
-        error: error instanceof Error ? error.message : 'Failed to send message',
-      }));
-      throw error;
-    }
-  }, [state.activeConversation]);
-
   const refreshConversations = useCallback(async (): Promise<void> => {
-    if (!user) return;
-    
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const conversations = await api.conversations.list(user.id);
+      const conversations = await api.conversations.list();
       setState(prev => ({
         ...prev,
         conversations,
@@ -303,7 +166,7 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
       if (activeConversationId && conversations.length > 0) {
         const savedActiveConversation = conversations.find(c => c.id === activeConversationId);
         if (savedActiveConversation) {
-          setActiveConversation(savedActiveConversation);
+          setCurrentConversation(savedActiveConversation);
         } else {
           localStorage.removeItem('activeConversationId');
         }
@@ -315,61 +178,20 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
         error: error instanceof Error ? error.message : 'Failed to fetch conversations',
       }));
     }
-  }, [user, setActiveConversation]);
+  }, [setCurrentConversation]);
 
-  const refreshMessages = useCallback(async (): Promise<void> => {
-    if (!state.activeConversation) return;
-    
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
-    try {
-      const messages = await api.messages.list(state.activeConversation.id);
-      const chatMessages: ChatMessage[] = messages.map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        is_from_user: msg.is_from_user,
-        message_type: msg.message_type,
-        created_at: msg.created_at,
-        attachments: (msg as MessageWithAttachments).attachment_files || [],
-      }));
-      
-      setState(prev => ({
-        ...prev,
-        messages: chatMessages,
-        isLoading: false,
-        error: null,
-      }));
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to refresh messages',
-      }));
-    }
-  }, [state.activeConversation]);
-
-  const getConversationById = useCallback((conversationId: string): Conversation | undefined => {
-    return state.conversations.find(c => c.id === conversationId);
-  }, [state.conversations]);
-
-  // Load conversations when user is authenticated
+  // Load conversations on mount
   useEffect(() => {
-    if (isAuthenticated && user) {
-      refreshConversations();
-    }
-  }, [isAuthenticated, user, refreshConversations]);
+    refreshConversations();
+  }, [refreshConversations]);
 
   const contextValue: ConversationContextType = {
     ...state,
-    setActiveConversation,
+    setCurrentConversation,
     createConversation,
     updateConversation,
-    deleteConversation,
     sendMessage,
     refreshConversations,
-    refreshMessages,
-    getConversationById,
-    startNewConversation,
   };
 
   return (
@@ -379,30 +201,11 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
   );
 }
 
-// React 19.1 compatible hook using use() API
-export function useConversations() {
+// React 19.1 compatible hook
+export function useConversation() {
   const context = useContext(ConversationContext);
   if (!context) {
-    throw new Error('useConversations must be used within a ConversationProvider');
+    throw new Error('useConversation must be used within a ConversationProvider');
   }
   return context;
-}
-
-// React 19.1 compatible hook for conditional context reading
-export function useOptionalConversations() {
-  return useContext(ConversationContext);
-}
-
-// Promise-based conversation state for React 19.1 use() API
-export function createConversationsPromise() {
-  return new Promise<ConversationContextType>((resolve, reject) => {
-    setTimeout(() => {
-      const context = useOptionalConversations();
-      if (context) {
-        resolve(context);
-      } else {
-        reject(new Error('Conversations context not available'));
-      }
-    }, 0);
-  });
 }
