@@ -1,158 +1,218 @@
 /**
- * React 19.1 useOptimistic hooks for instant UI updates
- * Provides optimistic updates for better user experience
+ * React 19.1 useOptimistic Implementation
+ * Provides optimistic updates for better user experience during async operations
  */
 
-import { useState, useCallback } from 'react';
-import { 
-  ChatMessage, 
-  Conversation, 
-  Project, 
-  MessageType,
-  ConversationResult 
-} from '@/types';
+import { useState, useCallback, useTransition } from 'react';
+import type { Message, Conversation, Project } from '@/types';
 
-// Optimistic message updates for chat (React 19.1 compatible structure)
-export function useOptimisticMessages(
-  messages: ChatMessage[]
-) {
-  const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>(messages);
-  
-  const addOptimisticMessage = useCallback((action: { type: 'add' | 'update' | 'remove', message: ChatMessage }) => {
-    setOptimisticMessages(currentMessages => {
-      switch (action.type) {
-        case 'add':
-          return [...currentMessages, action.message];
-        case 'update':
-          return currentMessages.map(msg => 
-            msg.id === action.message.id ? { ...msg, ...action.message } : msg
-          );
-        case 'remove':
-          return currentMessages.filter(msg => msg.id !== action.message.id);
-        default:
-          return currentMessages;
-      }
-    });
-  }, []);
+// Generic optimistic update hook
+export function useOptimistic<T, P>(
+  state: T,
+  updateFn: (currentState: T, optimisticValue: P) => T
+): [T, (optimisticValue: P) => void] {
+  const [optimisticState, setOptimisticState] = useState<T>(state);
+  const [isPending, startTransition] = useTransition();
 
-  return [optimisticMessages, addOptimisticMessage] as const;
+  const addOptimistic = useCallback(
+    (optimisticValue: P) => {
+      startTransition(() => {
+        const newState = updateFn(state, optimisticValue);
+        setOptimisticState(newState);
+      });
+    },
+    [state, updateFn]
+  );
+
+  // Return the optimistic state when pending, otherwise the actual state
+  return [isPending ? optimisticState : state, addOptimistic];
 }
 
-// Optimistic conversation updates
-export function useOptimisticConversations(
-  conversations: Conversation[]
-) {
-  const [optimisticConversations, setOptimisticConversations] = useState<Conversation[]>(conversations);
-  
-  const addOptimisticConversation = useCallback((action: { type: 'add' | 'update' | 'remove', conversation: Conversation }) => {
-    setOptimisticConversations(currentConversations => {
-      switch (action.type) {
-        case 'add':
-          return [action.conversation, ...currentConversations];
-        case 'update':
-          return currentConversations.map(conv => 
-            conv.id === action.conversation.id ? { ...conv, ...action.conversation } : conv
-          );
-        case 'remove':
-          return currentConversations.filter(conv => conv.id !== action.conversation.id);
-        default:
-          return currentConversations;
-      }
-    });
-  }, []);
+// Optimistic messages hook for chat interface
+export function useOptimisticMessages(messages: Message[]) {
+  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+    messages,
+    (currentMessages, newMessage: Partial<Message>) => [
+      ...currentMessages,
+      {
+        id: `temp-${Date.now()}`,
+        content: newMessage.content || '',
+        message_type: newMessage.message_type || 'TEXT',
+        is_from_user: newMessage.is_from_user ?? true,
+        created_at: new Date().toISOString(),
+        file_path: newMessage.file_path || null,
+        agent_used: null,
+        execution_time_ms: null,
+        ...newMessage,
+      } as Message,
+    ]
+  );
 
-  return [optimisticConversations, addOptimisticConversation] as const;
+  const sendOptimisticMessage = useCallback(
+    (content: string, messageType: Message['message_type'] = 'TEXT') => {
+      addOptimisticMessage({
+        content,
+        message_type: messageType,
+        is_from_user: true,
+      });
+    },
+    [addOptimisticMessage]
+  );
+
+  return {
+    messages: optimisticMessages,
+    sendOptimisticMessage,
+  };
 }
 
-// Optimistic project updates
-export function useOptimisticProjects(
-  projects: Project[]
-) {
-  const [optimisticProjects, setOptimisticProjects] = useState<Project[]>(projects);
-  
-  const addOptimisticProject = useCallback((action: { type: 'add' | 'update' | 'remove', project: Project }) => {
-    setOptimisticProjects(currentProjects => {
+// Optimistic conversations hook
+export function useOptimisticConversations(conversations: Conversation[]) {
+  const [optimisticConversations, addOptimisticConversation] = useOptimistic(
+    conversations,
+    (currentConversations, newConversation: Partial<Conversation>) => [
+      {
+        id: `temp-${Date.now()}`,
+        title: newConversation.title || 'New Conversation',
+        project_id: newConversation.project_id || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        message_count: 0,
+        language_preference: 'es',
+        project_context: {},
+        ...newConversation,
+      } as Conversation,
+      ...currentConversations,
+    ]
+  );
+
+  const createOptimisticConversation = useCallback(
+    (title?: string, projectId?: string) => {
+      addOptimisticConversation({
+        title: title || 'New Conversation',
+        project_id: projectId,
+      });
+    },
+    [addOptimisticConversation]
+  );
+
+  return {
+    conversations: optimisticConversations,
+    createOptimisticConversation,
+  };
+}
+
+// Optimistic projects hook
+export function useOptimisticProjects(projects: Project[]) {
+  const [optimisticProjects, addOptimisticProject] = useOptimistic(
+    projects,
+    (currentProjects, action: { type: 'add' | 'update' | 'delete'; project: Partial<Project> }) => {
       switch (action.type) {
         case 'add':
-          return [...currentProjects, action.project];
+          return [
+            ...currentProjects,
+            {
+              id: `temp-${Date.now()}`,
+              user_id: action.project.user_id || '',
+              project_name: action.project.project_name || 'New Project',
+              project_type: action.project.project_type || null,
+              description: action.project.description || null,
+              current_stage: action.project.current_stage || null,
+              target_audience: action.project.target_audience || null,
+              problem_statement: action.project.problem_statement || null,
+              solution_approach: action.project.solution_approach || null,
+              business_model: action.project.business_model || null,
+              context_data: action.project.context_data || {},
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              ...action.project,
+            } as Project,
+          ];
+        
         case 'update':
-          return currentProjects.map(proj => 
-            proj.id === action.project.id ? { ...proj, ...action.project } : proj
+          return currentProjects.map(project =>
+            project.id === action.project.id
+              ? { ...project, ...action.project, updated_at: new Date().toISOString() }
+              : project
           );
-        case 'remove':
-          return currentProjects.filter(proj => proj.id !== action.project.id);
+        
+        case 'delete':
+          return currentProjects.filter(project => project.id !== action.project.id);
+        
         default:
           return currentProjects;
       }
-    });
-  }, []);
+    }
+  );
 
-  return [optimisticProjects, addOptimisticProject] as const;
+  const addOptimisticProject = useCallback(
+    (project: Partial<Project>) => {
+      addOptimisticProject({ type: 'add', project });
+    },
+    [addOptimisticProject]
+  );
+
+  const updateOptimisticProject = useCallback(
+    (projectId: string, updates: Partial<Project>) => {
+      addOptimisticProject({ type: 'update', project: { id: projectId, ...updates } });
+    },
+    [addOptimisticProject]
+  );
+
+  const deleteOptimisticProject = useCallback(
+    (projectId: string) => {
+      addOptimisticProject({ type: 'delete', project: { id: projectId } });
+    },
+    [addOptimisticProject]
+  );
+
+  return {
+    projects: optimisticProjects,
+    addOptimisticProject,
+    updateOptimisticProject,
+    deleteOptimisticProject,
+  };
 }
 
-// Helper functions for creating optimistic updates
-export const optimisticHelpers = {
-  // Create optimistic message while sending
-  createOptimisticMessage: (content: string, messageType: MessageType = MessageType.TEXT): ChatMessage => ({
-    id: `optimistic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    content,
-    is_from_user: true,
-    message_type: messageType,
-    created_at: new Date().toISOString(),
-    loading: true,
-  }),
+// Generic loading state with optimistic updates
+export function useOptimisticAction<T, P>(
+  initialData: T,
+  action: (data: P) => Promise<T>,
+  optimisticUpdateFn: (currentData: T, payload: P) => T
+) {
+  const [data, setData] = useState<T>(initialData);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [optimisticData, addOptimistic] = useOptimistic(data, optimisticUpdateFn);
 
-  // Create AI response placeholder
-  createAIResponsePlaceholder: (): ChatMessage => ({
-    id: `ai-placeholder-${Date.now()}`,
-    content: '',
-    is_from_user: false,
-    message_type: MessageType.TEXT,
-    created_at: new Date().toISOString(),
-    loading: true,
-  }),
+  const execute = useCallback(
+    async (payload: P) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Apply optimistic update immediately
+        addOptimistic(payload);
+        
+        // Execute actual action
+        const result = await action(payload);
+        setData(result);
+        
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        // Revert optimistic update on error
+        setData(data);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [action, addOptimistic, data]
+  );
 
-  // Create optimistic conversation
-  createOptimisticConversation: (title: string, projectId?: string): Conversation => ({
-    id: `optimistic-conv-${Date.now()}`,
-    user_id: '', // Will be set by backend
-    title,
-    project_id: projectId || null,
-    openai_session_id: null,
-    agent_state: {},
-    project_context: {},
-    language_preference: 'es',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }),
-
-  // Create optimistic project
-  createOptimisticProject: (name: string): Project => ({
-    id: `optimistic-proj-${Date.now()}`,
-    user_id: '', // Will be set by backend
-    project_name: name,
-    project_type: null,
-    description: null,
-    current_stage: null,
-    target_audience: null,
-    problem_statement: null,
-    solution_approach: null,
-    business_model: null,
-    context_data: {},
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }),
-
-  // Convert optimistic message to real message from API response
-  updateOptimisticMessage: (optimisticMessage: ChatMessage, _result: ConversationResult): ChatMessage => ({
-    ...optimisticMessage,
-    id: `message-${Date.now()}`, // Backend would provide real ID
-    loading: false,
-  }),
-
-  // Remove loading state from message
-  finalizeMessage: (message: ChatMessage): ChatMessage => ({
-    ...message,
-    loading: false,
-  }),
-};
+  return {
+    data: optimisticData,
+    isLoading,
+    error,
+    execute,
+  };
+}

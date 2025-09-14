@@ -29,7 +29,7 @@ Administrators:
 ## Tech Stack
 
 The backend is built in Python, using FastAPI.
-The web frontend is built with Next.js 15 + React 19.1, using TypeScript and Tailwind CSS.
+The web frontend is built with React 19.1, using TypeScript and Tailwind CSS.
 The database is in Supabase. Ignacio should save its chat memory of each user in this Supabase Database.
 Any stored media (images, audio files, anything else) is saved in Supabase Storage.
 
@@ -72,7 +72,7 @@ Code formatting is automatically enforced via pre-commit hooks:
 - Manual linting is no longer required - pre-commit handles everything automatically
 - All components, classes, models, and functions are properly typed in both Python and TypeScript
 
-## Current Development Status (2025-01-11)
+## Current Development Status (2025-09-14)
 
 ### ✅ **Multi-Project Architecture - COMPLETED**
 
@@ -92,41 +92,71 @@ Code formatting is automatically enforced via pre-commit hooks:
 
 #### **API Endpoints**
 **Project Management:**
-- `GET/POST /project/projects` - List/create projects
-- `GET/PUT/DELETE /project/projects/{id}` - Manage specific projects
-- `GET /project/projects/{id}/conversations` - Project conversations
-- `GET/PUT /project/projects/{id}/context` - Project-specific context
+- `GET/POST /project/by_user/{user_id}` - List/create projects for user
+- `GET/PUT/DELETE /project/{id}` - Manage specific projects
+- `GET /project/conversations/{id}` - Project conversations
+- `GET/PUT /project/{id}/context` - Project-specific context
 
 **Enhanced Chat:**
-- `POST /conversations/start` - Create conversation with project_id
-- `PUT /conversations/{id}/project` - Associate conversation with project
-- `PUT /conversations/{id}` - Update conversation project association
+- `POST /chat/messages` - Unified message endpoint (new/continue conversations)
+- `PUT /chat/conversations/{id}/project` - Associate conversation with project
+- `PUT /chat/conversations/{id}` - Update conversation details
 
 #### **AI Service Enhancements**
 - **Smart Context Loading**: Automatically loads project-specific context for conversations
 - **Project-Aware Agents**: All 8 agents use relevant project context
 - **Fallback Support**: Backwards compatible with non-project conversations
 
-#### **Frontend Architecture - COMPLETED**
-- **Next.js 15 + React 19.1**: Modern React framework with App Router
-- **Global State Management**: React Context (Auth, Projects, Conversations)
+### ✅ **React 19.1 Frontend Rewrite - PHASE 2 COMPLETED**
+
+**Major Milestone Achieved**: Complete frontend rewrite with modern React 19.1 architecture
+
+#### **Core Architecture & State Management**
+- **Vite + React 19.1**: Fast development with modern React patterns
 - **TypeScript Integration**: Full type safety matching backend Pydantic models
-- **Tailwind CSS**: Responsive design system
-- **React 19.1 Compatibility**: Ready for use(), useOptimistic, useActionState patterns
+- **React Context State Management**: AuthContext, ProjectsContext, ConversationsContext, GlobalContext
+- **API Service Layer**: Complete HTTP client with mocked authentication (Phase 2)
+- **Optimistic Updates**: Comprehensive optimistic UI for better user experience
+
+#### **React 19.1 Modern Patterns Implemented**
+- **useActionState**: Enhanced form handling with pending states and error management
+- **useOptimistic**: Optimistic updates for messages, conversations, and projects
+- **useAsync**: Advanced data fetching with caching, error handling, and retries
+- **Custom Hooks**: Project-specific hooks for common operations and state management
+
+#### **Technical Implementation**
+- **API Integration**: TypeScript-first API calls matching all backend endpoints
+- **Mock Authentication**: Test user system ready for Phase 4 OTP implementation
+- **Project-First Workflow**: Users must create project before accessing chat
+- **Real-time Chat State**: Message sending, conversation management, file uploads
+- **Utility Systems**: Notifications, theme management, offline detection, feature flags
+
+#### **Development Environment**
+- **Vite Development Server**: Running on `http://localhost:3000`
+- **TypeScript Strict Mode**: All types properly defined and validated
+- **ESLint + Prettier**: Code quality and formatting automated
+- **Project Structure**: Organized and scalable component architecture
 
 
-### **Current Workflow**
-1. **Users create multiple projects** with distinct contexts via web interface
-2. **Project switching** through dedicated project manager UI
-3. **Conversations automatically associate with active project**
-4. **AI automatically uses project context** for relevant responses
-5. **Project contexts managed independently** via both API and UI
+### **Current Workflow (Phase 2 Complete)**
+1. **Backend APIs** - Multi-project endpoints with chat integration fully operational
+2. **Frontend Architecture** - React 19.1 state management and API integration complete
+3. **Development Environment** - Vite development server running with hot reload
+4. **Next Phase Ready** - UI components implementation can begin (Phase 3)
 
 ### **Technical Architecture**
-- **Backend**: FastAPI + OpenAI Agent SDK + Supabase
-- **Frontend**: Next.js 15 + React 19.1 + TypeScript + Tailwind CSS with project-centric architecture
+- **Backend**: FastAPI + OpenAI Agent SDK + Supabase (OPERATIONAL)
+- **Frontend**: React 19.1 + Vite + TypeScript + Tailwind CSS (PHASE 2 COMPLETE)
+- **State Management**: React Context API with Auth, Projects, Conversations, Global contexts
 - **Agent Framework**: Multi-agent with specialized expertise domains
 - **File Processing**: Vector stores + content search + metadata extraction
 - **Session Management**: OpenAI conversation sessions with persistent context
 - **Project Context**: Dynamic user project tracking and context injection
-- **State Management**: React Context API with Auth, Project, and Conversation contexts
+- **API Integration**: Complete TypeScript-first client with optimistic updates
+
+### **Immediate Next Steps (Phase 3)**
+1. **Landing Page Implementation** - Hero section and project introduction UI
+2. **Project Creation Flow** - First-time user onboarding with project creation modal
+3. **Chat Interface** - Real-time conversation UI with message history and file uploads
+4. **Project Management** - Multi-project dashboard with CRUD operations UI
+5. **Navigation & Routing** - React Router implementation with project-first guards

@@ -1,97 +1,210 @@
-"use client";
+/**
+ * AuthContext - User Authentication State Management
+ * Handles user authentication state, login/logout, and user data
+ * Phase 2: Uses mocked authentication with test user
+ */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@/types';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import type { User } from '@/types';
 import { api } from '@/services/api';
 
+// Auth State Interface
 interface AuthState {
   user: User | null;
-  isLoading: boolean;
   isAuthenticated: boolean;
+  isLoading: boolean;
   error: string | null;
 }
 
+// Auth Actions
+type AuthAction =
+  | { type: 'AUTH_LOADING' }
+  | { type: 'AUTH_SUCCESS'; payload: User }
+  | { type: 'AUTH_ERROR'; payload: string }
+  | { type: 'AUTH_LOGOUT' }
+  | { type: 'AUTH_CLEAR_ERROR' };
+
+// Auth Context Interface
 interface AuthContextType extends AuthState {
-  login: () => Promise<void>;
-  logout: () => void;
+  // Actions
+  login: (whatsappNumber: string) => Promise<void>;
+  verifyOTP: (whatsappNumber: string, otp: string) => Promise<void>;
+  logout: () => Promise<void>;
+  clearError: () => void;
   refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// Initial state
+const initialState: AuthState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: true, // Start with loading to check existing session
+  error: null,
+};
 
+// Auth reducer
+function authReducer(state: AuthState, action: AuthAction): AuthState {
+  switch (action.type) {
+    case 'AUTH_LOADING':
+      return {
+        ...state,
+        isLoading: true,
+        error: null,
+      };
+
+    case 'AUTH_SUCCESS':
+      return {
+        ...state,
+        user: action.payload,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      };
+
+    case 'AUTH_ERROR':
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: action.payload,
+      };
+
+    case 'AUTH_LOGOUT':
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      };
+
+    case 'AUTH_CLEAR_ERROR':
+      return {
+        ...state,
+        error: null,
+      };
+
+    default:
+      return state;
+  }
+}
+
+// Create context
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// AuthProvider component
 interface AuthProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-    error: null,
-  });
+  const [state, dispatch] = useReducer(authReducer, initialState);
 
-  const login = async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+  // Initialize authentication state
+  useEffect(() => {
+    initializeAuth();
+  }, []);
+
+  const initializeAuth = async () => {
     try {
-      // For now, we use the test user - in production this would handle OTP login
-      const user = await api.user.getCurrentUser();
-      setState({
-        user,
-        isLoading: false,
-        isAuthenticated: true,
-        error: null,
-      });
+      dispatch({ type: 'AUTH_LOADING' });
+      
+      // For Phase 2: Automatically authenticate with mock user
+      // In Phase 4: This will check for stored tokens and validate them
+      const user = await api.auth.getCurrentUser();
+      dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Login failed',
-      }));
+      console.error('Auth initialization failed:', error);
+      dispatch({ 
+        type: 'AUTH_ERROR', 
+        payload: error instanceof Error ? error.message : 'Authentication failed' 
+      });
     }
   };
 
-  const logout = () => {
-    setState({
-      user: null,
-      isLoading: false,
-      isAuthenticated: false,
-      error: null,
-    });
+  const login = async (whatsappNumber: string) => {
+    try {
+      dispatch({ type: 'AUTH_LOADING' });
+      
+      // Phase 2: Mock login
+      // Phase 4: This will send OTP to WhatsApp number
+      await api.auth.login(whatsappNumber);
+      
+      // For Phase 2, immediately get mock user after "login"
+      const user = await api.auth.getCurrentUser();
+      dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      
+    } catch (error) {
+      dispatch({ 
+        type: 'AUTH_ERROR', 
+        payload: error instanceof Error ? error.message : 'Login failed' 
+      });
+      throw error;
+    }
+  };
+
+  const verifyOTP = async (whatsappNumber: string, otp: string) => {
+    try {
+      dispatch({ type: 'AUTH_LOADING' });
+      
+      // Phase 2: Mock OTP verification
+      // Phase 4: This will verify OTP and return JWT token
+      const { user } = await api.auth.verifyOTP(whatsappNumber, otp);
+      
+      // Store token in localStorage (Phase 4)
+      // localStorage.setItem('auth_token', token);
+      
+      dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      
+    } catch (error) {
+      dispatch({ 
+        type: 'AUTH_ERROR', 
+        payload: error instanceof Error ? error.message : 'OTP verification failed' 
+      });
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await api.auth.logout();
+      
+      // Clear stored token (Phase 4)
+      // localStorage.removeItem('auth_token');
+      
+      dispatch({ type: 'AUTH_LOGOUT' });
+      
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Still logout locally even if API call fails
+      dispatch({ type: 'AUTH_LOGOUT' });
+    }
+  };
+
+  const clearError = () => {
+    dispatch({ type: 'AUTH_CLEAR_ERROR' });
   };
 
   const refreshUser = async () => {
-    if (!state.isAuthenticated) return;
-    
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
     try {
-      const user = await api.user.getCurrentUser();
-      setState(prev => ({
-        ...prev,
-        user,
-        isLoading: false,
-        error: null,
-      }));
+      dispatch({ type: 'AUTH_LOADING' });
+      const user = await api.auth.getCurrentUser();
+      dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to refresh user',
-      }));
+      dispatch({ 
+        type: 'AUTH_ERROR', 
+        payload: error instanceof Error ? error.message : 'Failed to refresh user data' 
+      });
     }
   };
-
-  // Auto-login on mount using test user
-  useEffect(() => {
-    login();
-  }, []);
 
   const contextValue: AuthContextType = {
     ...state,
     login,
+    verifyOTP,
     logout,
+    clearError,
     refreshUser,
   };
 
@@ -102,31 +215,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-// React 19.1 compatible hook using use() API
-export function useAuth() {
+// Custom hook to use auth context
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
 
-// React 19.1 compatible hook for conditional context reading
-export function useOptionalAuth() {
-  return useContext(AuthContext);
+// Auth guard component for protected routes
+interface AuthGuardProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
-// Promise-based auth state for React 19.1 use() API
-export function createAuthPromise() {
-  return new Promise<AuthContextType>((resolve, reject) => {
-    // This would be used with use() API in components that need to suspend
-    setTimeout(() => {
-      const context = useOptionalAuth();
-      if (context) {
-        resolve(context);
-      } else {
-        reject(new Error('Auth context not available'));
-      }
-    }, 0);
-  });
+export function AuthGuard({ children, fallback }: AuthGuardProps) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return fallback || (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Authentication Required
+          </h2>
+          <p className="text-gray-600">
+            Please log in to access this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
+
+export default AuthContext;

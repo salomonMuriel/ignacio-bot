@@ -1,373 +1,326 @@
 /**
- * API client for FastAPI backend
- * Type-safe client with React 19.1 use() API support for promise handling
+ * API Service Layer for Ignacio Bot Frontend
+ * Handles all HTTP requests to the FastAPI backend
+ * Uses mocked authentication with test user for Phase 2
  */
 
-import {
+import type {
   User,
-  UserUpdate,
-  Conversation,
-  ConversationCreate,
-  ConversationUpdate,
-  ConversationWithMessages,
-  MessageWithAttachments,
-  UserFile,
   Project,
   ProjectCreate,
   ProjectUpdate,
-  ProjectType,
-  ProjectStage,
-  ConversationResult,
-  TEST_USER_ID,
+  Conversation,
+  Message,
+  AgentMessageResponse,
+  ConversationDetailResponse,
 } from '@/types';
 
-// Base configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Mock user ID from backend (Phase 2 - no authentication yet)
+const MOCK_USER_ID = 'a456f25a-6269-4de3-87df-48b0a3389d01';
 
-// Custom error class for API errors
-export class APIError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public response?: unknown
-  ) {
-    super(message);
-    this.name = 'APIError';
+// API Base Configuration
+const API_BASE_URL = '/api';
+const CHAT_BASE_URL = `${API_BASE_URL}/chat`;
+const PROJECT_BASE_URL = `${API_BASE_URL}/project`;
+
+// HTTP Client Configuration
+class ApiClient {
+  private baseURL: string;
+
+  constructor(baseURL: string = API_BASE_URL) {
+    this.baseURL = baseURL;
   }
-}
 
-// Base fetch wrapper with error handling
-async function apiFetch<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  const config: RequestInit = {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  };
-
-  try {
-    const response = await fetch(url, config);
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
     
-    if (!response.ok) {
-      const errorData = await response.text();
-      let errorMessage = `HTTP ${response.status}`;
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    try {
+      const response = await fetch(url, config);
       
-      try {
-        const parsed = JSON.parse(errorData);
-        errorMessage = parsed.detail || parsed.message || errorMessage;
-      } catch {
-        errorMessage = errorData || errorMessage;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail || `HTTP ${response.status}: ${response.statusText}`
+        );
       }
-      
-      throw new APIError(response.status, errorMessage, errorData);
-    }
 
-    // Handle empty responses
-    if (response.status === 204) {
-      return {} as T;
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    if (error instanceof APIError) {
+      return await response.json();
+    } catch (error) {
+      console.error(`API request failed: ${endpoint}`, error);
       throw error;
     }
-    throw new APIError(0, `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-}
 
-// Utility function for FormData requests (file uploads)
-async function apiFormFetch<T>(
-  endpoint: string,
-  formData: FormData,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  const config: RequestInit = {
-    method: 'POST',
-    ...options,
-    body: formData,
-    // Don't set Content-Type header for FormData - let browser set it with boundary
-  };
-
-  try {
-    const response = await fetch(url, config);
-    
-    if (!response.ok) {
-      const errorData = await response.text();
-      let errorMessage = `HTTP ${response.status}`;
-      
-      try {
-        const parsed = JSON.parse(errorData);
-        errorMessage = parsed.detail || parsed.message || errorMessage;
-      } catch {
-        errorMessage = errorData || errorMessage;
-      }
-      
-      throw new APIError(response.status, errorMessage, errorData);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    if (error instanceof APIError) {
-      throw error;
-    }
-    throw new APIError(0, `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  async get<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET' });
   }
-}
 
-// Health endpoints
-export const healthAPI = {
-  check: (): Promise<{ status: string; timestamp: string; environment: string; version: string }> =>
-    apiFetch('/health/'),
-    
-  database: (): Promise<{ status: string; database: string; timestamp: string }> =>
-    apiFetch('/health/database'),
-};
-
-// User endpoints  
-export const userAPI = {
-  // For now, we'll use the test user ID
-  getCurrentUser: (): Promise<User> =>
-    apiFetch(`/users/${TEST_USER_ID}`),
-    
-  updateUser: (userData: UserUpdate): Promise<User> =>
-    apiFetch(`/users/${TEST_USER_ID}`, {
-      method: 'PUT',
-      body: JSON.stringify(userData),
-    }),
-};
-
-// Conversation endpoints
-export const conversationAPI = {
-  list: (): Promise<Conversation[]> =>
-    apiFetch(`/api/chat/conversations`),
-
-  get: (conversationId: string): Promise<ConversationWithMessages> =>
-    apiFetch(`/api/chat/conversations/${conversationId}`),
-
-  create: (data: { title?: string; project_id?: string }): Promise<Conversation> =>
-    apiFetch('/api/chat/conversations', {
+  async post<T>(endpoint: string, data: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    });
+  }
 
-  update: (conversationId: string, data: ConversationUpdate): Promise<Conversation> =>
-    apiFetch(`/api/chat/conversations/${conversationId}`, {
+  async put<T>(endpoint: string, data: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data),
-    }),
+    });
+  }
 
-  delete: (conversationId: string): Promise<void> =>
-    apiFetch(`/api/chat/conversations/${conversationId}`, {
-      method: 'DELETE',
-    }),
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
+  }
 
-  // Update conversation project association
-  setProject: (conversationId: string, projectId: string | null): Promise<Conversation> =>
-    apiFetch(`/api/chat/conversations/${conversationId}/project`, {
-      method: 'PUT',
-      body: JSON.stringify({ project_id: projectId }),
-    }),
-};
-
-// Message endpoints
-export const messageAPI = {
-  // Send a message using the unified endpoint
-  send: (conversationId: string, content: string, files?: File[]): Promise<any> => {
-    const formData = new FormData();
-    formData.append('content', content);
-    if (conversationId) {
-      formData.append('conversation_id', conversationId);
-    }
+  async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
     
-    // Add file if provided (backend supports single file)
-    if (files && files.length > 0) {
-      formData.append('file', files[0]); // Use first file only
-    }
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail || `HTTP ${response.status}: ${response.statusText}`
+        );
+      }
 
-    return apiFormFetch('/api/chat/messages', formData);
+      return await response.json();
+    } catch (error) {
+      console.error(`API form request failed: ${endpoint}`, error);
+      throw error;
+    }
+  }
+}
+
+// Create API client instances
+const chatClient = new ApiClient(CHAT_BASE_URL);
+const projectClient = new ApiClient(PROJECT_BASE_URL);
+
+// Project API Service
+export const projectApi = {
+  // Get all projects for current user
+  async getProjects(): Promise<Project[]> {
+    return projectClient.get<Project[]>(`/by_user/${MOCK_USER_ID}`);
   },
 
-  // Send message to start new conversation
-  sendNew: (content: string, projectId?: string, files?: File[]): Promise<any> => {
-    const formData = new FormData();
-    formData.append('content', content);
-    if (projectId) {
-      formData.append('project_id', projectId);
-    }
-    
-    // Add file if provided
-    if (files && files.length > 0) {
-      formData.append('file', files[0]);
-    }
+  // Create new project
+  async createProject(projectData: Omit<ProjectCreate, 'user_id'>): Promise<Project> {
+    const data: ProjectCreate = {
+      ...projectData,
+      user_id: MOCK_USER_ID,
+    };
+    return projectClient.post<Project>('/', data);
+  },
 
-    return apiFormFetch('/api/chat/messages', formData);
+  // Get project by ID
+  async getProject(projectId: string): Promise<Project> {
+    return projectClient.get<Project>(`/${projectId}`);
+  },
+
+  // Update project
+  async updateProject(projectId: string, updates: ProjectUpdate): Promise<Project> {
+    return projectClient.put<Project>(`/${projectId}`, updates);
+  },
+
+  // Delete project
+  async deleteProject(projectId: string): Promise<{ message: string }> {
+    return projectClient.delete<{ message: string }>(`/${projectId}`);
+  },
+
+  // Get project context
+  async getProjectContext(projectId: string): Promise<{
+    project_id: string;
+    project_name: string;
+    project_type: string | null;
+    description: string | null;
+    current_stage: string | null;
+    target_audience: string | null;
+    problem_statement: string | null;
+    solution_approach: string | null;
+    business_model: string | null;
+    context_data: Record<string, unknown>;
+  }> {
+    return projectClient.get(`/${projectId}/context`);
+  },
+
+  // Update project context
+  async updateProjectContext(
+    projectId: string, 
+    contextData: Record<string, unknown>
+  ): Promise<{ message: string }> {
+    return projectClient.put(`/${projectId}/context`, contextData);
+  },
+
+  // Get project conversations
+  async getProjectConversations(projectId: string): Promise<Conversation[]> {
+    return projectClient.get<Conversation[]>(`/conversations/${projectId}`);
+  },
+
+  // Get available project types
+  async getProjectTypes(): Promise<Array<{ value: string; label: string }>> {
+    return projectClient.get<Array<{ value: string; label: string }>>('/types');
+  },
+
+  // Get available project stages
+  async getProjectStages(): Promise<Array<{ value: string; label: string }>> {
+    return projectClient.get<Array<{ value: string; label: string }>>('/stages');
+  },
+};
+
+// Chat API Service
+export const chatApi = {
+  // Get all conversations for current user
+  async getConversations(): Promise<Conversation[]> {
+    return chatClient.get<Conversation[]>('/conversations');
+  },
+
+  // Get conversation with messages
+  async getConversation(conversationId: string): Promise<ConversationDetailResponse> {
+    return chatClient.get<ConversationDetailResponse>(`/conversations/${conversationId}`);
+  },
+
+  // Update conversation (title, project association)
+  async updateConversation(
+    conversationId: string, 
+    updates: { title?: string; project_id?: string }
+  ): Promise<Conversation> {
+    return chatClient.put<Conversation>(`/conversations/${conversationId}`, updates);
+  },
+
+  // Delete conversation
+  async deleteConversation(conversationId: string): Promise<{ message: string }> {
+    return chatClient.delete<{ message: string }>(`/conversations/${conversationId}`);
   },
 
   // Get messages for a conversation
-  list: (conversationId: string): Promise<MessageWithAttachments[]> =>
-    apiFetch(`/api/chat/conversations/${conversationId}/messages`),
-};
+  async getMessages(
+    conversationId: string, 
+    limit: number = 50, 
+    offset: number = 0
+  ): Promise<Message[]> {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString(),
+    });
+    return chatClient.get<Message[]>(`/conversations/${conversationId}/messages?${params}`);
+  },
 
-// Project endpoints
-export const projectAPI = {
-  list: (userId: string = TEST_USER_ID): Promise<Project[]> =>
-    apiFetch(`/project/by_user/${userId}`),
-
-  get: (projectId: string): Promise<Project> =>
-    apiFetch(`/project/${projectId}`),
-
-  create: (data: Omit<ProjectCreate, 'user_id'>): Promise<Project> =>
-    apiFetch('/project/', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...data,
-        user_id: TEST_USER_ID,
-      }),
-    }),
-
-  update: (projectId: string, data: ProjectUpdate): Promise<Project> =>
-    apiFetch(`/project/${projectId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-
-  delete: (projectId: string): Promise<void> =>
-    apiFetch(`/project/${projectId}`, {
-      method: 'DELETE',
-    }),
-
-  // Get project types
-  getTypes: (): Promise<Array<{ value: string; label: string }>> =>
-    apiFetch('/project/types'),
-
-  // Get project stages  
-  getStages: (): Promise<Array<{ value: string; label: string }>> =>
-    apiFetch('/project/stages'),
-
-  // Get conversations for a project
-  getConversations: (projectId: string): Promise<Conversation[]> =>
-    apiFetch(`/project/conversations/${projectId}`),
-
-  // Get/update project context
-  getContext: (projectId: string): Promise<any> =>
-    apiFetch(`/project/${projectId}/context`),
-
-  updateContext: (projectId: string, contextData: Record<string, unknown>): Promise<any> =>
-    apiFetch(`/project/${projectId}/context`, {
-      method: 'PUT',
-      body: JSON.stringify(contextData),
-    }),
-};
-
-// File endpoints
-export const fileAPI = {
-  // Upload file to user's storage
-  upload: (file: File, userId: string = TEST_USER_ID): Promise<UserFile> => {
+  // Send message (unified endpoint - handles both new and existing conversations)
+  async sendMessage(params: {
+    content: string;
+    conversationId?: string;
+    projectId?: string;
+    file?: File;
+  }): Promise<AgentMessageResponse> {
     const formData = new FormData();
-    formData.append('user_id', userId);
-    formData.append('file', file);
-
-    return apiFormFetch('/files/upload', formData);
-  },
-
-  // Upload file to conversation
-  uploadToConversation: (conversationId: string, file: File, userId: string = TEST_USER_ID): Promise<UserFile> => {
-    const formData = new FormData();
-    formData.append('user_id', userId);
-    formData.append('file', file);
-
-    return apiFormFetch(`/files/conversations/${conversationId}/files`, formData);
-  },
-
-  // Get file metadata
-  get: (fileId: string, userId: string = TEST_USER_ID): Promise<UserFile> =>
-    apiFetch(`/files/${fileId}?user_id=${userId}`),
-
-  // Get download URL
-  getDownloadUrl: (fileId: string, userId: string = TEST_USER_ID, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> =>
-    apiFetch(`/files/${fileId}/url?user_id=${userId}&expires_in=${expiresIn}`),
-
-  // Get user files
-  getUserFiles: (userId: string = TEST_USER_ID): Promise<UserFile[]> =>
-    apiFetch(`/files/user/${userId}`),
-
-  // Get conversation files
-  getConversationFiles: (conversationId: string): Promise<UserFile[]> =>
-    apiFetch(`/files/conversation/${conversationId}`),
-
-  // Delete file
-  delete: (fileId: string, userId: string = TEST_USER_ID): Promise<{ message: string }> =>
-    apiFetch(`/files/${fileId}?user_id=${userId}`, {
-      method: 'DELETE',
-    }),
-};
-
-// Combined API object
-export const api = {
-  health: healthAPI,
-  user: userAPI,
-  conversations: conversationAPI,
-  messages: messageAPI,
-  projects: projectAPI,
-  files: fileAPI,
-};
-
-// React 19.1 compatible wrappers using use() API
-export const createPromiseWrapper = <T>(promise: Promise<T>) => {
-  return {
-    read: () => promise,
-    promise,
-  };
-};
-
-// SWR-compatible fetchers
-export const swrFetchers = {
-  conversations: () => conversationAPI.list(),
-  
-  conversation: (url: string) => {
-    const conversationId = url.split('/conversations/')[1]?.split('?')[0];
-    if (!conversationId) throw new Error('Invalid conversation URL');
-    return conversationAPI.get(conversationId);
-  },
-  
-  projects: (url: string) => {
-    const userId = url.split('user_id=')[1] || TEST_USER_ID;
-    return projectAPI.list(userId);
-  },
-  
-  project: (url: string) => {
-    const projectId = url.split('/project/')[1]?.split('?')[0];
-    if (!projectId) throw new Error('Invalid project URL');
-    return projectAPI.get(projectId);
-  },
-  
-  messages: (url: string) => {
-    const conversationId = url.split('/conversations/')[1]?.split('/messages')[0];
-    if (!conversationId) throw new Error('Invalid messages URL');
-    return messageAPI.list(conversationId);
-  },
-  
-  files: (url: string) => {
-    if (url.includes('/user/')) {
-      const userId = url.split('/user/')[1] || TEST_USER_ID;
-      return fileAPI.getUserFiles(userId);
-    } else if (url.includes('/conversation/')) {
-      const conversationId = url.split('/conversation/')[1];
-      if (!conversationId) throw new Error('Invalid files URL');
-      return fileAPI.getConversationFiles(conversationId);
+    formData.append('content', params.content);
+    
+    if (params.conversationId) {
+      formData.append('conversation_id', params.conversationId);
     }
-    throw new Error('Invalid files URL');
+    
+    if (params.projectId) {
+      formData.append('project_id', params.projectId);
+    }
+    
+    if (params.file) {
+      formData.append('file', params.file);
+    }
+
+    return chatClient.postFormData<AgentMessageResponse>('/messages', formData);
+  },
+
+  // Associate conversation with project
+  async associateConversationWithProject(
+    conversationId: string, 
+    projectId: string
+  ): Promise<{ message: string }> {
+    return chatClient.put<{ message: string }>(
+      `/conversations/${conversationId}/project`, 
+      { project_id: projectId }
+    );
+  },
+
+  // Get conversation summary
+  async getConversationSummary(conversationId: string): Promise<{
+    conversation_id: string;
+    total_messages: number;
+    agent_interactions: number;
+    tools_used: string[];
+    key_topics: string[];
+    project_context: Record<string, unknown>;
+    last_activity: string;
+  }> {
+    return chatClient.get(`/conversations/${conversationId}/summary`);
+  },
+
+  // Get conversation interactions
+  async getConversationInteractions(conversationId: string): Promise<Array<{
+    id: string;
+    agent_name: string;
+    input_text: string;
+    output_text: string;
+    tools_used: string[];
+    execution_time_ms: number;
+    created_at: string;
+  }>> {
+    return chatClient.get(`/conversations/${conversationId}/interactions`);
+  },
+};
+
+// Combined API service export
+export const api = {
+  projects: projectApi,
+  chat: chatApi,
+  
+  // Mock authentication service for Phase 2
+  auth: {
+    // Mock current user
+    async getCurrentUser(): Promise<User> {
+      return {
+        id: MOCK_USER_ID,
+        whatsapp_number: '+1234567890',
+        full_name: 'Test User',
+        is_active: true,
+        is_admin: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    },
+
+    // Mock login (will be implemented in Phase 4)
+    async login(whatsappNumber: string): Promise<{ message: string }> {
+      console.log('Mock login for:', whatsappNumber);
+      return { message: 'Mock login successful' };
+    },
+
+    // Mock OTP verification (will be implemented in Phase 4)
+    async verifyOTP(whatsappNumber: string, otp: string): Promise<{ token: string; user: User }> {
+      console.log('Mock OTP verification for:', whatsappNumber, otp);
+      const user = await this.getCurrentUser();
+      return { token: 'mock-jwt-token', user };
+    },
+
+    // Mock logout
+    async logout(): Promise<void> {
+      console.log('Mock logout');
+    },
   },
 };
 

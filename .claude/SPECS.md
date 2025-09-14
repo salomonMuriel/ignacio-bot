@@ -4,14 +4,14 @@
 
 ### High-Level Architecture
 - **Backend**: Python FastAPI REST API with OpenAI Agent SDK
-- **Frontend**: Next.js 15 + React 19.1 with TypeScript and Tailwind CSS
+- **Frontend**: React 19.1 with TypeScript and Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
 - **Storage**: Supabase Storage with OpenAI Vector Stores
 - **External Integrations**: WhatsApp Business API, OpenAI API
 - **Authentication**: OTP-based authentication via WhatsApp
 
 ### System Components
-1. **Web Frontend** - Next.js 15 + React 19.1 application with global state management
+1. **Web Frontend** - React 19.1 application with global state management
 2. **REST API Backend** - FastAPI Python application
 3. **WhatsApp Service** - Integration service for WhatsApp Business API
 4. **AI Processing Service** - OpenAI Agent SDK with 8 specialized agents
