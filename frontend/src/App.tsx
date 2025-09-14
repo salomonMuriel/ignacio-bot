@@ -1,35 +1,90 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+
+// Context Providers
+import { AuthProvider } from './contexts/AuthContext';
+import { ProjectsProvider } from './contexts/ProjectsContext';
+import { ConversationsProvider } from './contexts/ConversationsContext';
+import { GlobalProvider } from './contexts/GlobalContext';
+
+// Components
+import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedRoute from './components/ProtectedRoute';
+import ProjectGuard from './components/ProjectGuard';
+
+// Pages
+import LandingPage from './pages/LandingPage';
+import CreateProjectPage from './pages/CreateProjectPage';
+import ChatPage from './pages/ChatPage';
+import ProjectsPage from './pages/ProjectsPage';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <ErrorBoundary>
+      <GlobalProvider>
+        <AuthProvider>
+          <ProjectsProvider>
+            <ConversationsProvider>
+              <Router>
+                <div className="App">
+                  <Routes>
+                    {/* Public Route - Landing Page */}
+                    <Route path="/" element={<LandingPage />} />
+                    
+                    {/* Protected Routes */}
+                    <Route
+                      path="/create-project"
+                      element={
+                        <ProtectedRoute>
+                          <CreateProjectPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    
+                    <Route
+                      path="/projects"
+                      element={
+                        <ProtectedRoute>
+                          <ProjectsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    
+                    <Route
+                      path="/chat"
+                      element={
+                        <ProtectedRoute>
+                          <ProjectGuard requiresProject={true}>
+                            <ChatPage />
+                          </ProjectGuard>
+                        </ProtectedRoute>
+                      }
+                    />
+                    
+                    {/* Catch all - redirect to landing */}
+                    <Route path="*" element={<LandingPage />} />
+                  </Routes>
+                </div>
+                
+                {/* Global Toast Notifications */}
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    className: '',
+                    style: {
+                      background: '#363636',
+                      color: '#fff',
+                    },
+                  }}
+                />
+              </Router>
+            </ConversationsProvider>
+          </ProjectsProvider>
+        </AuthProvider>
+      </GlobalProvider>
+    </ErrorBoundary>
+  );
 }
 
-export default App
+export default App;

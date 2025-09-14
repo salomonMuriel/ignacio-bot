@@ -81,9 +81,9 @@ export interface FileUploadState {
 // Validation utilities
 export type ValidationRule<T> = (value: T) => string | undefined;
 
-export interface ValidationSchema<T> {
+export type ValidationSchema<T> = {
   [K in keyof T]?: ValidationRule<T[K]>[];
-}
+};
 
 // Local storage utilities
 export interface StorageState<T> {
