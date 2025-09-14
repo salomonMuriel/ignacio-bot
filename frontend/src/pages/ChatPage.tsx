@@ -9,10 +9,9 @@ export default function ChatPage() {
   const { projects, activeProject, setActiveProject, isLoading: projectsLoading } = useProjects();
   const { 
     conversations, 
-    currentConversation, 
-    messages, 
+    activeConversation, 
     sendMessage, 
-    startNewConversation,
+    createConversation,
     isLoading: conversationsLoading 
   } = useConversations();
   const navigate = useNavigate();
@@ -35,17 +34,17 @@ export default function ChatPage() {
 
   // Start new conversation if none exists for active project
   useEffect(() => {
-    if (activeProject && !currentConversation && !conversationsLoading) {
-      startNewConversation(activeProject.id);
+    if (activeProject && !activeConversation && !conversationsLoading) {
+      (activeProject.id);
     }
-  }, [activeProject, currentConversation, conversationsLoading, startNewConversation]);
+  }, [activeProject, activeConversation, conversationsLoading, createConversation]);
 
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !activeProject || !currentConversation || isSending) return;
+    if (!messageInput.trim() || !activeProject || isSending) return;
 
     setIsSending(true);
     try {
-      await sendMessage(messageInput, currentConversation.id);
+      await sendMessage({content: messageInput, conversationId: activeConversation?.id});
       setMessageInput('');
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -106,7 +105,7 @@ export default function ChatPage() {
               <div
                 key={conversation.id}
                 className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                  currentConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
+                  activeConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
                 }`}
               >
                 <p className="font-medium text-gray-800 truncate">
@@ -122,7 +121,7 @@ export default function ChatPage() {
 
         <div className="p-4 border-t border-gray-200">
           <button
-            onClick={() => activeProject && startNewConversation(activeProject.id)}
+            onClick={() => activeProject && createConversation(activeProject.id)}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
           >
             New Conversation
@@ -137,9 +136,9 @@ export default function ChatPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold text-gray-800">Chat with Ignacio</h1>
-              {currentConversation && (
+              {activeConversation && (
                 <p className="text-sm text-gray-600">
-                  {currentConversation.title || 'New Conversation'}
+                  {activeConversation.title || 'New Conversation'}
                 </p>
               )}
             </div>
@@ -154,11 +153,11 @@ export default function ChatPage() {
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {!currentConversation ? (
+          {!activeConversation ? (
             <div className="text-center text-gray-500 mt-8">
               <p>Starting new conversation...</p>
             </div>
-          ) : messages.length === 0 ? (
+          ) : activeConversation.messages.length === 0 ? (
             <div className="text-center text-gray-500 mt-8">
               <div className="bg-white rounded-lg shadow-sm p-8 max-w-2xl mx-auto">
                 <h3 className="text-lg font-medium text-gray-800 mb-4">
@@ -184,14 +183,14 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            messages.map((message) => (
+            activeConversation.messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.is_from_user ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-3xl rounded-lg p-4 ${
-                    message.role === 'user'
+                    message.is_from_user
                       ? 'bg-blue-600 text-white'
                       : 'bg-white border border-gray-200 text-gray-800'
                   }`}
@@ -199,7 +198,7 @@ export default function ChatPage() {
                   <p className="whitespace-pre-wrap">{message.content}</p>
                   <p
                     className={`text-xs mt-2 ${
-                      message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                      message.is_from_user ? 'text-blue-100' : 'text-gray-500'
                     }`}
                   >
                     {message.created_at && new Date(message.created_at).toLocaleTimeString()}
@@ -217,7 +216,7 @@ export default function ChatPage() {
               <textarea
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 placeholder="Type your message to Ignacio..."
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                 rows={3}

@@ -14,7 +14,7 @@ from app.services.ai_service import get_ignacio_service
 from app.services.database import db_service
 from app.services.storage import storage_service
 
-router = APIRouter(prefix="/api/chat", tags=["chat"])
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 # Request/Response models for Agent SDK

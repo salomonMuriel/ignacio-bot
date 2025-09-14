@@ -19,7 +19,7 @@ import type {
 const MOCK_USER_ID = 'a456f25a-6269-4de3-87df-48b0a3389d01';
 
 // API Base Configuration
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:8000';
 const CHAT_BASE_URL = `${API_BASE_URL}/chat`;
 const PROJECT_BASE_URL = `${API_BASE_URL}/project`;
 

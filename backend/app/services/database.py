@@ -521,6 +521,7 @@ class DatabaseService:
     # User Project operations
     async def get_user_projects(self, user_id: UUID) -> list[Project]:
         """Get all projects for a user"""
+        print(str(user_id))
         response = (
             self.client.table("user_projects")
             .select("*")
