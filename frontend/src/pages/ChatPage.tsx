@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useNavigate } from 'react-router-dom';
-import { Project } from '../types';
 
 export default function ChatPage() {
   const { user } = useAuth();

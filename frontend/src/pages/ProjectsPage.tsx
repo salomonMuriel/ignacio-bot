@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useNavigate } from 'react-router-dom';
-import { Project, ProjectType, ProjectStage } from '../types';
+import { type Project, ProjectType, ProjectStage } from '../types';
 
 export default function ProjectsPage() {
   const { user } = useAuth();

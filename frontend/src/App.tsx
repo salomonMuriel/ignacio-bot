@@ -45,7 +45,9 @@ function App() {
                       path="/projects"
                       element={
                         <ProtectedRoute>
-                          <ProjectsPage />
+                          <ProjectGuard requiresProject={false}>
+                            <ProjectsPage />
+                          </ProjectGuard>
                         </ProtectedRoute>
                       }
                     />
