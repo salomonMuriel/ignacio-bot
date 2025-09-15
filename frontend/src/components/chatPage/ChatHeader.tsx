@@ -1,8 +1,8 @@
-import type { ConversationWithMessages } from '@/types';
+import type { ConversationDetailResponse } from '@/types';
 import ignacioAvatar from '../../assets/ignacio_avatar.png';
 
 interface ChatHeaderProps {
-  activeConversation: ConversationWithMessages | null;
+  activeConversation: ConversationDetailResponse | null;
 }
 
 export default function ChatHeader({ activeConversation }: ChatHeaderProps) {

@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Conversation, ConversationWithMessages, Project } from '@/types';
+import type { Conversation, ConversationDetailResponse, Project } from '@/types';
 
 interface ConversationSidebarProps {
   conversations: Conversation[];
-  activeConversation: ConversationWithMessages | null;
+  activeConversation: ConversationDetailResponse | null;
   activeProject: Project | null;
   onConversationClick: (conversation: Conversation) => void;
   onNewConversation: () => void;

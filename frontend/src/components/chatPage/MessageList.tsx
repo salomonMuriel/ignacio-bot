@@ -1,12 +1,12 @@
-import React, { useRef, forwardRef } from 'react';
-import type { OptimisticMessage, ConversationWithMessages, Project } from '@/types';
+import { forwardRef } from 'react';
+import type { OptimisticMessage, ConversationDetailResponse, Project } from '@/types';
 import ChatMessage from './ChatMessage';
 import WelcomeMessage from './WelcomeMessage';
 import ignacioAvatar from '../../assets/ignacio_avatar.png';
 
 interface MessageListProps {
   optimisticMessages: OptimisticMessage[];
-  activeConversation: ConversationWithMessages | null;
+  activeConversation: ConversationDetailResponse | null;
   activeProject: Project | null;
   isSending: boolean;
   onRetryMessage: (message: OptimisticMessage) => void;
