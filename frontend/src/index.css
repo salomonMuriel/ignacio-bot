@@ -1,1 +1,31 @@
 @import "tailwindcss";
+
+/* Ignacio Brand Color System */
+:root {
+  /* Brand Colors */
+  --ig-dark-primary: #15192d;
+  --ig-dark-secondary: #592f7e;
+  --ig-accent-orange: #db6934;
+  --ig-accent-yellow: #eec75d;
+
+  /* Gradient Definitions */
+  --ig-bg-gradient: linear-gradient(135deg, var(--ig-dark-primary) 0%, var(--ig-dark-secondary) 100%);
+  --ig-accent-gradient: linear-gradient(135deg, var(--ig-accent-orange) 0%, var(--ig-accent-yellow) 100%);
+  --ig-accent-gradient-hover: linear-gradient(135deg, #e07742 0%, #f0d170 100%);
+
+  /* Text Colors for Dark Theme */
+  --ig-text-primary: #ffffff;
+  --ig-text-secondary: #e2e8f0;
+  --ig-text-muted: #94a3b8;
+  --ig-text-accent: var(--ig-accent-yellow);
+
+  /* Surface Colors */
+  --ig-surface-primary: rgba(21, 25, 45, 0.95);
+  --ig-surface-secondary: rgba(89, 47, 126, 0.8);
+  --ig-surface-glass: rgba(21, 25, 45, 0.6);
+
+  /* Border Colors */
+  --ig-border-primary: rgba(89, 47, 126, 0.3);
+  --ig-border-accent: var(--ig-accent-orange);
+  --ig-border-glass: rgba(255, 255, 255, 0.1);
+}
