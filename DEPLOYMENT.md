@@ -28,6 +28,11 @@
 
 ### Step 2: Prepare Production Environment
 
+**Environment Configuration**: The backend is now environment-aware and automatically loads the appropriate .env file based on the `APP_ENV` environment variable:
+- `APP_ENV=development` → loads `.env.local`
+- `APP_ENV=production` → loads `.env.production`
+- `APP_ENV=test` → loads `.env.test`
+
 1. **Create production environment file**:
    ```bash
    cp .env.production.example .env.production
@@ -139,9 +144,11 @@ LOG_LEVEL=INFO
 - ✅ Production uvicorn configuration (4 workers)
 - ✅ No development reload flag
 - ✅ Health check endpoint
-- ✅ Proper environment detection
-- ✅ Security headers configuration
-- ✅ Production logging configuration
+- ✅ Environment-aware configuration (auto-detects .env files)
+- ✅ Configurable security headers and ALLOWED_HOSTS
+- ✅ Production logging configuration (LOG_LEVEL, LOG_FORMAT)
+- ✅ Configurable JWT token expiration (24 hours default)
+- ✅ Rate limiting and performance settings ready
 
 ### Infrastructure:
 - ✅ Restart policies (unless-stopped)
@@ -174,6 +181,12 @@ LOG_LEVEL=INFO
    - Check nginx configuration
    - Verify static files are built correctly
    - Check browser console for errors
+
+5. **Environment Configuration Issues**:
+   - Verify `APP_ENV=production` is set in docker-compose.prod.yml
+   - Ensure `.env.production` file exists and has correct values
+   - Check that environment variables match between .env.production.example and actual .env.production
+   - Verify the backend container can access the .env.production file
 
 ### Logs and Debugging:
 - **Coolify.io Dashboard**: View application logs

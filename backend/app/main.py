@@ -3,11 +3,50 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
-# Load environment variables from .env.local
+# Load environment variables based on APP_ENV
 import os
 from pathlib import Path
-env_path = Path(__file__).parent.parent.parent / '.env.local'
+
+def get_env_file_path() -> Path:
+    """Get the path to the appropriate .env file based on APP_ENV."""
+    app_env = os.getenv("APP_ENV", "development")
+    if app_env == "production":
+        filename = ".env.production"
+    elif app_env == "test":
+        filename = ".env.test"
+    else:
+        filename = ".env.local"
+    return Path(__file__).parent.parent.parent / filename
+
+env_path = get_env_file_path()
 load_dotenv(env_path)
+
+# Configure logging
+import logging
+import sys
+
+def configure_logging():
+    """Configure application logging based on settings."""
+    from app.core.config import settings
+
+    # Set log level
+    log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+
+    # Configure root logger
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s' if settings.log_format == 'text'
+               else '{"timestamp": "%(asctime)s", "name": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}',
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+
+    # Set uvicorn logging level
+    logging.getLogger("uvicorn").setLevel(log_level)
+    logging.getLogger("uvicorn.access").setLevel(log_level)
+
+configure_logging()
 
 # Ensure OpenAI API key is set in environment for Agent SDK
 if 'OPENAI_API_KEY' not in os.environ and hasattr(os.environ, 'get'):
@@ -37,10 +76,16 @@ app.add_middleware(
 )
 
 # Add trusted host middleware for security
-# Allow testserver for testing
-allowed_hosts = ["localhost", "127.0.0.1", settings.backend_host, "testserver"]
-if settings.app_env == "development":
-    allowed_hosts.extend(["*"])  # Allow all hosts in development
+allowed_hosts = settings.allowed_hosts_list.copy()
+# Always allow testserver for testing
+allowed_hosts.append("testserver")
+# Always include backend_host if not already present
+if settings.backend_host not in allowed_hosts:
+    allowed_hosts.append(settings.backend_host)
+
+# In development, allow all hosts if not explicitly configured
+if settings.app_env == "development" and settings.allowed_hosts == "localhost,127.0.0.1":
+    allowed_hosts = ["*"]
 
 app.add_middleware(
     TrustedHostMiddleware,

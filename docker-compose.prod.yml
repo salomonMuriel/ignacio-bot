@@ -13,6 +13,8 @@ services:
       - DEBUG=False
     env_file:
       - .env.production
+    volumes:
+      - ./.env.production:/app/.env.production:ro
     restart: unless-stopped
     networks:
       - ignacio-network
