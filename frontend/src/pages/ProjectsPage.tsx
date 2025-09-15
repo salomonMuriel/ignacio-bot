@@ -83,7 +83,7 @@ export default function ProjectsPage() {
                   color: 'var(--ig-dark-primary)'
                 }}
                 onMouseEnter={(e) => (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient-hover)'}
-                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient)'
+                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient)'}
               >
                 New Project
               </button>
