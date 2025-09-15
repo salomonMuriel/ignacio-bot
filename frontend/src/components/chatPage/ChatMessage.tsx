@@ -1,6 +1,7 @@
 import type { OptimisticMessage } from '@/types';
 import { OptimisticMessageStatus } from '@/types';
 import ignacioAvatar from '../../assets/ignacio_avatar.png';
+import MarkdownRenderer from '../ui/MarkdownRenderer';
 
 interface ChatMessageProps {
   message: OptimisticMessage;
@@ -54,7 +55,11 @@ export default function ChatMessage({ message, onRetry, onDelete }: ChatMessageP
           }}
         >
           <div className="px-5 py-4">
-            <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
+            <div className="text-sm">
+              <MarkdownRenderer isUserMessage={message.is_from_user}>
+                {message.content}
+              </MarkdownRenderer>
+            </div>
 
             {/* Error message and retry/delete buttons for failed messages */}
             {'status' in message && message.status === OptimisticMessageStatus.FAILED && (
