@@ -10,9 +10,9 @@ import ignacioAvatar from '../assets/ignacio_avatar.png';
 export default function ChatPage() {
   const { user } = useAuth();
   const { projects, activeProject, setActiveProject, isLoading: projectsLoading } = useProjects();
-  const { 
-    conversations, 
-    activeConversation, 
+  const {
+    conversations,
+    activeConversation,
     sendMessage,
     loadConversation,
     setActiveConversation
@@ -86,7 +86,7 @@ export default function ChatPage() {
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
   };
 
   useEffect(() => {
@@ -247,7 +247,7 @@ export default function ChatPage() {
             border: '2px solid var(--ig-border-accent)'
           }}>
             <svg className="w-8 h-8" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+              <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
             </svg>
           </div>
           <p className="text-lg font-medium mb-2" style={{ color: 'var(--ig-text-primary)' }}>Authentication Required</p>
@@ -262,7 +262,7 @@ export default function ChatPage() {
   }
 
   // Filter conversations to only show those for the active project
-  const projectConversations = conversations.filter(conv => 
+  const projectConversations = conversations.filter(conv =>
     activeProject ? conv.project_id === activeProject.id : true
   );
 
@@ -284,14 +284,14 @@ export default function ChatPage() {
               boxShadow: 'var(--ig-shadow-sm)'
             }}>
               <svg className="w-4 h-4" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
               </svg>
             </div>
             <h2 className="text-lg font-semibold" style={{ color: 'var(--ig-text-primary)' }}>Conversations</h2>
           </div>
 
           {activeProject && (
-            <div className="glass-surface-light rounded-xl p-4" style={{
+            <div className="glass-surface-light rounded-xl p-4 relative" style={{
               boxShadow: 'var(--ig-shadow-sm)'
             }}>
               <div className="flex items-center space-x-2 mb-2">
@@ -299,6 +299,33 @@ export default function ChatPage() {
                 <p className="text-xs font-medium" style={{ color: 'var(--ig-text-muted)' }}>ACTIVE PROJECT</p>
               </div>
               <p className="font-medium truncate text-sm" style={{ color: 'var(--ig-text-accent)' }}>{activeProject.project_name}</p>
+              <button
+                  onClick={() => navigate('/projects')}
+                  className="px-2 py-1 rounded-xl border transition-all cursor-pointer duration-300 flex items-center group absolute top-1 right-1 "
+                  style={{
+                    color: 'var(--ig-text-accent)',
+                    borderColor: 'var(--ig-border-accent)',
+                    background: 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'var(--ig-surface-glass-light)';
+                    target.style.borderColor = 'var(--ig-accent-yellow)';
+                    target.style.transform = 'translateY(-1px)';
+                    target.style.boxShadow = 'var(--ig-shadow-sm)';
+                  }}
+                  onMouseLeave={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'transparent';
+                    target.style.borderColor = 'var(--ig-border-accent)';
+                    target.style.transform = 'translateY(0)';
+                    target.style.boxShadow = 'none';
+                  }}
+                >
+                  <svg className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M0 0h24v24H0z" fill="none" /><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
+                  </svg>
+                </button>
             </div>
           )}
         </div>
@@ -317,7 +344,7 @@ export default function ChatPage() {
                   boxShadow: 'var(--ig-shadow-sm)'
                 }}>
                   <svg className="w-6 h-6" style={{ color: 'var(--ig-text-muted)' }} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z" />
                   </svg>
                 </div>
                 <p className="font-medium mb-1">No conversations yet</p>
@@ -332,22 +359,21 @@ export default function ChatPage() {
                   <div
                     key={conversation.id}
                     onClick={() => handleConversationClick(conversation)}
-                    className={`group relative p-4 cursor-pointer transition-all duration-300 rounded-xl ${
-                      isActive ? 'ring-1' : ''
-                    }`}
+                    className={`group relative p-2 cursor-pointer transition-all duration-300 rounded-xl ${isActive ? 'ring-1' : ''
+                      }`}
                     style={{
                       ...(isActive
                         ? {
-                            background: 'var(--ig-surface-glass-dark)',
-                            border: '1px solid var(--ig-border-glass-bright)',
-                            backdropFilter: 'var(--ig-blur-lg)',
-                            boxShadow: 'var(--ig-shadow-md), var(--ig-shadow-glow)',
-                            ringColor: 'var(--ig-border-accent)'
-                          }
+                          background: 'var(--ig-surface-glass-dark)',
+                          border: '1px solid var(--ig-border-glass-bright)',
+                          backdropFilter: 'var(--ig-blur-lg)',
+                          boxShadow: 'var(--ig-shadow-md), var(--ig-shadow-glow)',
+                          ringColor: 'var(--ig-border-accent)'
+                        }
                         : {
-                            background: 'transparent',
-                            border: '1px solid transparent'
-                          }
+                          background: 'transparent',
+                          border: '1px solid transparent'
+                        }
                       ),
                       animation: 'fadeInUp 0.3s var(--ig-spring)'
                     }}
@@ -377,19 +403,6 @@ export default function ChatPage() {
                     )}
 
                     <div className="flex items-start space-x-3">
-                      {/* Conversation Avatar */}
-                      <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center transition-all duration-200" style={{
-                        background: isActive ? 'var(--ig-accent-gradient)' : 'var(--ig-surface-glass-light)',
-                        border: `1px solid ${isActive ? 'transparent' : 'var(--ig-border-glass)'}`,
-                        boxShadow: isActive ? 'var(--ig-shadow-sm)' : 'none'
-                      }}>
-                        <svg className="w-5 h-5" style={{
-                          color: isActive ? 'var(--ig-dark-primary)' : 'var(--ig-text-muted)'
-                        }} fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-                        </svg>
-                      </div>
-
                       {/* Conversation Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
@@ -474,7 +487,7 @@ export default function ChatPage() {
             }}
           >
             <svg className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
             </svg>
             <span>New Conversation</span>
           </button>
@@ -516,35 +529,6 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-
-            <button
-              onClick={() => navigate('/projects')}
-              className="px-4 py-2 rounded-xl border transition-all duration-300 flex items-center space-x-2 group"
-              style={{
-                color: 'var(--ig-text-accent)',
-                borderColor: 'var(--ig-border-accent)',
-                background: 'transparent'
-              }}
-              onMouseEnter={(e) => {
-                const target = e.target as HTMLButtonElement;
-                target.style.background = 'var(--ig-surface-glass-light)';
-                target.style.borderColor = 'var(--ig-accent-yellow)';
-                target.style.transform = 'translateY(-1px)';
-                target.style.boxShadow = 'var(--ig-shadow-sm)';
-              }}
-              onMouseLeave={(e) => {
-                const target = e.target as HTMLButtonElement;
-                target.style.background = 'transparent';
-                target.style.borderColor = 'var(--ig-border-accent)';
-                target.style.transform = 'translateY(0)';
-                target.style.boxShadow = 'none';
-              }}
-            >
-              <svg className="w-4 h-4 transition-transform duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-              <span>Manage Projects</span>
-            </button>
           </div>
         </div>
 
@@ -638,20 +622,20 @@ export default function ChatPage() {
                         maxWidth: 'calc(100% - 4rem)',
                         ...(message.is_from_user
                           ? {
-                              background: 'var(--ig-accent-gradient)',
-                              color: '#ffffff',
-                              borderRadius: '1.5rem 1.5rem 0.5rem 1.5rem',
-                              boxShadow: 'var(--ig-shadow-md)',
-                              border: '1px solid rgba(255, 255, 255, 0.1)'
-                            }
+                            background: 'var(--ig-accent-gradient)',
+                            color: '#ffffff',
+                            borderRadius: '1.5rem 1.5rem 0.5rem 1.5rem',
+                            boxShadow: 'var(--ig-shadow-md)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                          }
                           : {
-                              background: 'var(--ig-surface-glass-dark)',
-                              border: '1px solid var(--ig-border-glass-bright)',
-                              color: 'var(--ig-text-primary)',
-                              backdropFilter: 'var(--ig-blur-lg)',
-                              borderRadius: '1.5rem 1.5rem 1.5rem 0.5rem',
-                              boxShadow: 'var(--ig-shadow-md)'
-                            }
+                            background: 'var(--ig-surface-glass-dark)',
+                            border: '1px solid var(--ig-border-glass-bright)',
+                            color: 'var(--ig-text-primary)',
+                            backdropFilter: 'var(--ig-blur-lg)',
+                            borderRadius: '1.5rem 1.5rem 1.5rem 0.5rem',
+                            boxShadow: 'var(--ig-shadow-md)'
+                          }
                         )
                       }}
                     >
@@ -666,7 +650,7 @@ export default function ChatPage() {
                           }}>
                             <div className="flex items-center space-x-2 mb-2">
                               <svg className="w-4 h-4" style={{ color: '#ef4444' }} fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                               </svg>
                               <p className="text-sm font-medium" style={{ color: '#ef4444' }}>Failed to send</p>
                             </div>
@@ -743,14 +727,14 @@ export default function ChatPage() {
                                   <div className="flex items-center space-x-1">
                                     <div className="w-3 h-3 rounded-full opacity-70" style={{ background: '#ef4444' }}>
                                       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                                       </svg>
                                     </div>
                                   </div>
                                 ) : (
                                   <div className="w-3 h-3 rounded-full opacity-70" style={{ background: 'rgba(255, 255, 255, 0.8)' }}>
                                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                                     </svg>
                                   </div>
                                 )
@@ -758,7 +742,7 @@ export default function ChatPage() {
                                 // Regular message - assume sent
                                 <div className="w-3 h-3 rounded-full opacity-70" style={{ background: 'rgba(255, 255, 255, 0.8)' }}>
                                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                                   </svg>
                                 </div>
                               )}
@@ -851,7 +835,7 @@ export default function ChatPage() {
               }}
             >
               <svg className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
               </svg>
             </button>
 
@@ -938,7 +922,7 @@ export default function ChatPage() {
               ) : (
                 <>
                   <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+                    <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
                   </svg>
                   <span>Send</span>
                 </>
