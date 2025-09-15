@@ -1,4 +1,4 @@
-import { Project, ProjectType } from '@/types';
+import { type Project, ProjectType } from '@/types';
 
 interface ProjectLogoProps {
   project: Project;

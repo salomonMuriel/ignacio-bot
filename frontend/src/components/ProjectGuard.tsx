@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useProjects } from '../contexts/ProjectsContext';
+import LoadingScreen from './ui/LoadingScreen';
 
 interface ProjectGuardProps {
   children: ReactNode;
@@ -12,9 +13,7 @@ export default function ProjectGuard({ children, requiresProject = true }: Proje
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading projects...</div>
-      </div>
+      <LoadingScreen/>
     );
   }
 

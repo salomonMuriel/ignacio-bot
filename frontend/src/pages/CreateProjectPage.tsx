@@ -99,8 +99,8 @@ export default function CreateProjectPage() {
                   }}
                   rows={3}
                   placeholder="Provide a brief overview of your project"
-                  onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-accent)'}
-                  onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-primary)'}
+                  onFocus={(e) => (e.target as HTMLTextAreaElement).style.borderColor = 'var(--ig-border-accent)'}
+                  onBlur={(e) => (e.target as HTMLTextAreaElement).style.borderColor = 'var(--ig-border-primary)'}
                 />
                 <p className="text-xs mt-1" style={{ color: 'var(--ig-text-muted)' }}>
                   A short description to help Ignacio understand your project's purpose
@@ -202,8 +202,8 @@ export default function CreateProjectPage() {
                   }}
                   rows={3}
                   placeholder="What problem does your project aim to solve?"
-                  onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-accent)'}
-                  onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-primary)'}
+                  onFocus={(e) => (e.target as HTMLTextAreaElement).style.borderColor = 'var(--ig-border-accent)'}
+                  onBlur={(e) => (e.target as HTMLTextAreaElement).style.borderColor = 'var(--ig-border-primary)'}
                 />
                 <p className="text-xs mt-1" style={{ color: 'var(--ig-text-muted)' }}>
                   Clearly articulate the problem or need your project addresses
@@ -226,8 +226,8 @@ export default function CreateProjectPage() {
                   }}
                   rows={3}
                   placeholder="How do you plan to solve this problem?"
-                  onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-accent)'}
-                  onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-primary)'}
+                  onFocus={(e) => (e.target as HTMLTextAreaElement).style.borderColor = 'var(--ig-border-accent)'}
+                  onBlur={(e) => (e.target as HTMLTextAreaElement).style.borderColor = 'var(--ig-border-primary)'}
                 />
                 <p className="text-xs mt-1" style={{ color: 'var(--ig-text-muted)' }}>
                   Describe your proposed solution or approach
@@ -250,8 +250,8 @@ export default function CreateProjectPage() {
                   }}
                   rows={3}
                   placeholder="How will your project generate value or revenue?"
-                  onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-accent)'}
-                  onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-primary)'}
+                  onFocus={(e) => (e.target as HTMLTextAreaElement).style.borderColor = 'var(--ig-border-accent)'}
+                  onBlur={(e) => (e.target as HTMLTextAreaElement).style.borderColor = 'var(--ig-border-primary)'}
                 />
                 <p className="text-xs mt-1" style={{ color: 'var(--ig-text-muted)' }}>
                   Explain how your project will create and capture value

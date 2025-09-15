@@ -303,39 +303,4 @@ export function useProjects(): ProjectsContextType {
   return context;
 }
 
-// Project guard component - ensures user has at least one project
-interface ProjectGuardProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}
-
-export function ProjectGuard({ children, fallback }: ProjectGuardProps) {
-  const { hasProjects, isLoading } = useProjects();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!hasProjects) {
-    return fallback || (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Create Your First Project
-          </h2>
-          <p className="text-gray-600">
-            You need to create a project before you can start chatting with Ignacio.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
-
 export default ProjectsContext;

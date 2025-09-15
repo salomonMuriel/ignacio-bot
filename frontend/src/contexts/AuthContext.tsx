@@ -7,6 +7,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { User } from '@/types';
 import { api } from '@/services/api';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 // Auth State Interface
 interface AuthState {
@@ -235,9 +236,7 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <LoadingScreen/>
     );
   }
 
