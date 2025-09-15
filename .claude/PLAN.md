@@ -135,17 +135,17 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 
 ### 3.1 Backend File Handling
 - [x] Configure Supabase Storage integration
-- [x] Implement file upload service (10MB limit, audio/docs/images only)
+- [x] Implement file upload service (20MB limit, audio/docs/images only)
 - [x] Create file metadata management
 - [x] Build file download/serving logic with user permission checks
 - [x] Add comprehensive file type validation and security
 
 ### 3.2 Frontend File Management
-- [x] Build file upload components with drag-and-drop interface
-- [x] Create drag-and-drop file interface
-- [x] Implement file preview functionality
-- [x] Add file management in chat interface (attachment button)
-- [x] Build file listing for user files (FileManager component)
+- [] Build file upload components with drag-and-drop interface
+- [] Create drag-and-drop file interface
+- [] Implement file preview functionality
+- [] Add file management in chat interface (attachment button)
+- [] Build file listing for user files (FileManager component)
 
 ### 3.3 File API Endpoints
 - [x] `POST /files/upload` - Upload file
@@ -157,12 +157,12 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 - [x] `GET /files/{file_id}/url` - Get signed URL
 
 ### 3.4 AI Document Integration **⚠️ REMAINING TASKS**
-- [ ] **MISSING**: Implement document content extraction (PDF, DOC, DOCX text extraction)
-- [ ] **MISSING**: Build document search and retrieval for AI context
-- [ ] **MISSING**: Integrate documents into AI context for smart responses
-- [ ] **MISSING**: Create document-aware AI responses
+- [ ] Implement document content extraction (PDF, DOC, DOCX text extraction)
+- [ ] Build document search and retrieval for AI context
+- [ ] Integrate documents into AI context for smart responses
+- [ ] Create document-aware AI responses
 
-**Success Criteria**: ✅ **MOSTLY COMPLETE** - Users can upload, manage, and reference files in conversations. ⚠️ **MISSING**: AI cannot yet access document content for intelligent responses.
+**Success Criteria**:  Users can upload, manage, and reference files in conversations, and AI can reference the files if mentioned or part of its current conversation.
 
 ## Phase 4: Authentication System
 **Duration**: 2-3 days
@@ -177,11 +177,11 @@ This plan outlines the step-by-step implementation of Ignacio Bot, organized int
 - [ ] Build user session management
 
 ### 4.2 Frontend Authentication
-- [ ] Create login page with phone number input
-- [ ] Build OTP verification form
-- [ ] Implement authentication context
-- [ ] Create protected route wrapper
-- [ ] Build user profile components
+- [X] Create login page with phone number input
+- [X] Build OTP verification form
+- [X] Implement authentication context
+- [X] Create protected route wrapper
+- [X] Build user profile components
 - [ ] Implement logout functionality
 
 ### 4.3 Authentication API Endpoints

@@ -57,38 +57,13 @@ The backend uses `uv` as the package manager for Python dependencies.
 - Backend runs on `http://localhost:8000`
 - API documentation available at `http://localhost:8000/docs`
 
-### Testing
-- `uv run pytest tests/` to run the test suite
-- `uv run pytest tests/ --cov=app` to run with coverage
-- `uv run python test_agent.py` to run end-to-end Agent SDK integration tests
-- 96 comprehensive tests covering database, AI service, and API endpoints
-- Complete Agent SDK integration testing with database persistence verification
-
 ## Code Styling
 
 Code formatting is automatically enforced via pre-commit hooks:
-- **Backend**: Black, isort, Ruff, and MyPy handle all Python formatting and type checking
+- **Backend**: Ruff for formatting only.
 - **Frontend**: Prettier handles JS/TS/CSS/MD formatting
-- Manual linting is no longer required - pre-commit handles everything automatically
 - All components, classes, models, and functions are properly typed in both Python and TypeScript
 
-## Current Development Status (2025-09-15)
-
-### ✅ **Multi-Project Architecture - COMPLETED**
-
-**Major Milestone Achieved**: Full multi-project support with project-centric workflow
-
-#### **Core Project Architecture**
-- **Multiple Projects per User**: Users can create/manage multiple independent projects
-- **Project-Conversation Association**: Each conversation links to specific project for context
-- **Project-Specific Context**: AI uses relevant project context automatically
-- **Complete Project CRUD**: Create, read, update, delete projects with full validation
-
-#### **Enhanced Database Schema**  
-- **conversations.project_id**: Links conversations to specific projects (Migration 005)
-- **user_projects**: Full project management (name, type, stage, context)
-- **agent_interactions**: Comprehensive tracking of agent usage and tools
-- **user_files**: Vector store integration with OpenAI file sync
 
 #### **API Endpoints**
 **Project Management:**
@@ -107,65 +82,6 @@ Code formatting is automatically enforced via pre-commit hooks:
 - **Project-Aware Agents**: All 8 agents use relevant project context
 - **Fallback Support**: Backwards compatible with non-project conversations
 
-### ✅ **Chat Integration & UI Fixes - COMPLETED (2025-09-15)**
-
-**Major Milestone Achieved**: Fully functional chat system with seamless conversation management
-
-#### **Frontend-Backend Chat Integration**
-- **Unified Messaging Flow**: Single `/chat/messages` endpoint handles both new and existing conversations
-- **Automatic Conversation Creation**: New conversations created seamlessly when no active conversation exists
-- **Project Context Integration**: All new conversations automatically associate with active project
-- **Real-time State Management**: Conversations and messages update immediately after sending
-
-#### **Chat UI Improvements**
-- **Full Browser Height Layout**: Chat interface now fits browser window perfectly (`h-screen`)
-- **Project-Filtered Conversations**: Conversation list shows only conversations for active project
-- **Active Conversation Indicators**: Visual highlighting with blue border, background, and "Active" badge
-- **Scrollable Conversation List**: Proper overflow handling with fixed header and footer
-- **Click-to-Switch Conversations**: Easy conversation navigation with immediate loading
-- **Auto-Loading New Conversations**: New conversations automatically become active after creation
-
-#### **Technical Fixes**
-- **Removed Broken createConversation**: Eliminated non-functional explicit conversation creation
-- **Simplified New Conversation Flow**: "New Conversation" button clears active state for fresh start
-- **Fixed State Management**: Proper async handling in ConversationsContext for conversation loading
-- **Improved Layout Structure**: Flex layout with proper `flex-shrink-0` preventing UI compression
-
-### ✅ **React 19.1 Frontend Rewrite - PHASE 2 COMPLETED**
-
-**Major Milestone Achieved**: Complete frontend rewrite with modern React 19.1 architecture
-
-#### **Core Architecture & State Management**
-- **Vite + React 19.1**: Fast development with modern React patterns
-- **TypeScript Integration**: Full type safety matching backend Pydantic models
-- **React Context State Management**: AuthContext, ProjectsContext, ConversationsContext, GlobalContext
-- **API Service Layer**: Complete HTTP client with mocked authentication (Phase 2)
-- **Optimistic Updates**: Comprehensive optimistic UI for better user experience
-
-#### **React 19.1 Modern Patterns Implemented**
-- **useActionState**: Enhanced form handling with pending states and error management
-- **useOptimistic**: Optimistic updates for messages, conversations, and projects
-- **useAsync**: Advanced data fetching with caching, error handling, and retries
-- **Custom Hooks**: Project-specific hooks for common operations and state management
-
-#### **Technical Implementation**
-- **API Integration**: TypeScript-first API calls matching all backend endpoints
-- **Mock Authentication**: Test user system ready for Phase 4 OTP implementation
-- **Project-First Workflow**: Users must create project before accessing chat
-- **Real-time Chat State**: Message sending, conversation management, file uploads
-- **Utility Systems**: Notifications, theme management, offline detection, feature flags
-
-#### **Development Environment**
-- **Vite Development Server**: Running on `http://localhost:3000`
-- **TypeScript Strict Mode**: All types properly defined and validated
-- **ESLint + Prettier**: Code quality and formatting automated
-- **Project Structure**: Organized and scalable component architecture
-
-### **Current Workflow (Chat Integration Complete)**
-1. **Backend APIs** - Multi-project endpoints with chat integration fully operational ✅
-2. **Frontend Architecture** - React 19.1 state management and API integration complete ✅
-3. **Chat System** - Real-time conversation UI with project integration working ✅
-4. **Development Environment** - Both servers running with full functionality ✅
 
 ### **Technical Architecture**
 - **Backend**: FastAPI + OpenAI Agent SDK + Supabase (OPERATIONAL)
@@ -180,16 +96,3 @@ Code formatting is automatically enforced via pre-commit hooks:
 ### **Active Development Environment**
 - **Frontend**: http://localhost:3000 (Vite dev server)
 - **Backend**: http://localhost:8000 (FastAPI + uvicorn)
-- **Chat Flow**: ✅ New conversation creation works
-- **Chat Flow**: ✅ Conversation continuation works  
-- **Chat Flow**: ✅ Project association works
-- **UI**: ✅ Project-filtered conversation list
-- **UI**: ✅ Active conversation indicators
-- **UI**: ✅ Full browser height layout
-
-### **Next Development Priorities**
-1. **UI Polish** - Minor visual improvements and edge case handling
-2. **File Upload Integration** - Complete file attachment workflow in chat
-3. **Conversation Management** - Edit titles, delete conversations, conversation search
-4. **Project Dashboard** - Enhanced project management interface
-5. **WhatsApp Integration** - Phase 4 authentication and WhatsApp bot setup

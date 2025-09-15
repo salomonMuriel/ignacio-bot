@@ -24,7 +24,8 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
-      "Bash(npm create:*)"
+      "Bash(npm create:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
