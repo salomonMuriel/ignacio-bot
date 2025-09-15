@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef, useOptimistic, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useNavigate } from 'react-router-dom';
 import type { Conversation, OptimisticMessage, MessageResponse } from '@/types';
 import { OptimisticMessageStatus, MessageType } from '@/types';
+import ignacioAvatar from '../assets/ignacio_avatar.png';
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -14,8 +15,7 @@ export default function ChatPage() {
     activeConversation, 
     sendMessage,
     loadConversation,
-    setActiveConversation,
-    isLoading: conversationsLoading 
+    setActiveConversation
   } = useConversations();
   const navigate = useNavigate();
   const [messageInput, setMessageInput] = useState('');
@@ -211,11 +211,11 @@ export default function ChatPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--ig-bg-gradient)' }}>
         <div className="glass-surface rounded-2xl p-8 text-center" style={{ boxShadow: 'var(--ig-shadow-xl)' }}>
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full glass-surface-light flex items-center justify-center" style={{
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full glass-surface-light flex items-center justify-center overflow-hidden" style={{
             boxShadow: 'var(--ig-shadow-md), var(--ig-shadow-glow-accent)',
             animation: 'pulseGlow 2s infinite'
           }}>
-            <span className="text-2xl font-bold" style={{ color: 'var(--ig-text-accent)' }}>I</span>
+            <img src={ignacioAvatar} alt="Ignacio" className="w-full h-full object-cover" />
           </div>
           <div className="flex items-center justify-center space-x-3">
             <div className="w-2 h-2 rounded-full" style={{
@@ -493,10 +493,10 @@ export default function ChatPage() {
               {/* Ignacio Status Indicator */}
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-xl glass-surface-light flex items-center justify-center" style={{
+                  <div className="w-12 h-12 rounded-xl glass-surface-light flex items-center justify-center overflow-hidden" style={{
                     boxShadow: 'var(--ig-shadow-md), var(--ig-shadow-glow-accent)'
                   }}>
-                    <span className="text-lg font-bold" style={{ color: 'var(--ig-text-accent)' }}>I</span>
+                    <img src={ignacioAvatar} alt="Ignacio" className="w-full h-full object-cover" />
                   </div>
                   {/* Online status */}
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2" style={{
@@ -553,17 +553,7 @@ export default function ChatPage() {
           ref={messagesContainerRef}
           className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0"
         >
-          {!activeConversation ? (
-            <div className="text-center mt-8" style={{
-              color: 'var(--ig-text-muted)',
-              animation: 'fadeInUp 0.3s var(--ig-spring)'
-            }}>
-              <div className="inline-flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full bg-current animate-pulse"></div>
-                <p>Starting new conversation...</p>
-              </div>
-            </div>
-          ) : optimisticMessages.length === 0 ? (
+          {(!activeConversation && optimisticMessages.length === 0) ? (
             <div className="text-center mt-8" style={{
               color: 'var(--ig-text-muted)',
               animation: 'fadeInScale 0.4s var(--ig-spring)'
@@ -575,10 +565,10 @@ export default function ChatPage() {
                 }}
               >
                 {/* Ignacio Avatar */}
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full glass-surface-light flex items-center justify-center" style={{
+                <div className="w-16 h-16 mx-auto mb-6 rounded-full glass-surface-light flex items-center justify-center overflow-hidden" style={{
                   boxShadow: 'var(--ig-shadow-md), var(--ig-shadow-glow-accent)'
                 }}>
-                  <span className="text-2xl font-bold" style={{ color: 'var(--ig-text-accent)' }}>I</span>
+                  <img src={ignacioAvatar} alt="Ignacio" className="w-full h-full object-cover" />
                 </div>
 
                 <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
@@ -628,17 +618,17 @@ export default function ChatPage() {
                 >
                   <div className={`flex ${message.is_from_user ? 'flex-row-reverse' : 'flex-row'} items-end space-x-3 max-w-4xl`}>
                     {/* Avatar */}
-                    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${message.is_from_user ? 'ml-3' : 'mr-3'}`} style={{
+                    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${message.is_from_user ? 'ml-3' : 'mr-3'} ${!message.is_from_user ? 'overflow-hidden' : ''}`} style={{
                       background: message.is_from_user ? 'var(--ig-accent-gradient)' : 'var(--ig-surface-glass-light)',
                       border: `1px solid ${message.is_from_user ? 'transparent' : 'var(--ig-border-glass-bright)'}`,
                       backdropFilter: 'var(--ig-blur-sm)',
                       boxShadow: 'var(--ig-shadow-sm)'
                     }}>
-                      <span className="font-semibold text-sm" style={{
-                        color: message.is_from_user ? 'var(--ig-dark-primary)' : 'var(--ig-text-accent)'
-                      }}>
-                        {message.is_from_user ? 'U' : 'I'}
-                      </span>
+                      {message.is_from_user ? (
+                        <span className="font-semibold text-sm" style={{ color: 'var(--ig-dark-primary)' }}>U</span>
+                      ) : (
+                        <img src={ignacioAvatar} alt="Ignacio" className="w-full h-full object-cover" />
+                      )}
                     </div>
 
                     {/* Message Bubble */}
@@ -649,7 +639,7 @@ export default function ChatPage() {
                         ...(message.is_from_user
                           ? {
                               background: 'var(--ig-accent-gradient)',
-                              color: 'var(--ig-dark-primary)',
+                              color: '#ffffff',
                               borderRadius: '1.5rem 1.5rem 0.5rem 1.5rem',
                               boxShadow: 'var(--ig-shadow-md)',
                               border: '1px solid rgba(255, 255, 255, 0.1)'
@@ -732,7 +722,7 @@ export default function ChatPage() {
                             className="text-xs opacity-70"
                             style={{
                               color: message.is_from_user
-                                ? 'rgba(21, 25, 45, 0.8)'
+                                ? 'rgba(255, 255, 255, 0.8)'
                                 : 'var(--ig-text-muted)'
                             }}
                           >
@@ -758,7 +748,7 @@ export default function ChatPage() {
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="w-3 h-3 rounded-full opacity-70" style={{ background: 'rgba(21, 25, 45, 0.6)' }}>
+                                  <div className="w-3 h-3 rounded-full opacity-70" style={{ background: 'rgba(255, 255, 255, 0.8)' }}>
                                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                                       <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                                     </svg>
@@ -766,7 +756,7 @@ export default function ChatPage() {
                                 )
                               ) : (
                                 // Regular message - assume sent
-                                <div className="w-3 h-3 rounded-full opacity-70" style={{ background: 'rgba(21, 25, 45, 0.6)' }}>
+                                <div className="w-3 h-3 rounded-full opacity-70" style={{ background: 'rgba(255, 255, 255, 0.8)' }}>
                                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                                   </svg>
@@ -786,13 +776,13 @@ export default function ChatPage() {
                 <div className="flex justify-start group" style={{ animation: 'fadeInUp 0.3s var(--ig-spring)' }}>
                   <div className="flex items-end space-x-3 max-w-4xl">
                     {/* Ignacio Avatar */}
-                    <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center mr-3" style={{
+                    <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center mr-3 overflow-hidden" style={{
                       background: 'var(--ig-surface-glass-light)',
                       border: '1px solid var(--ig-border-glass-bright)',
                       backdropFilter: 'var(--ig-blur-sm)',
                       boxShadow: 'var(--ig-shadow-sm)'
                     }}>
-                      <span className="font-semibold text-sm" style={{ color: 'var(--ig-text-accent)' }}>I</span>
+                      <img src={ignacioAvatar} alt="Ignacio" className="w-full h-full object-cover" />
                     </div>
 
                     {/* Typing bubble */}

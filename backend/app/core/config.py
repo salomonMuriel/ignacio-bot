@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # Application
     app_env: str = "development"
     debug: bool = True
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "*"
 
     # Server
     backend_host: str = "localhost"

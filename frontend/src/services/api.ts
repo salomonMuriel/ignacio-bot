@@ -295,8 +295,8 @@ export const api = {
     async getCurrentUser(): Promise<User> {
       return {
         id: MOCK_USER_ID,
-        whatsapp_number: '+1234567890',
-        full_name: 'Test User',
+        phone_number: '+1234567890',
+        name: 'Salomon',
         is_active: true,
         is_admin: false,
         created_at: new Date().toISOString(),
