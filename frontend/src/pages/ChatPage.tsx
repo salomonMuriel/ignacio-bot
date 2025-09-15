@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useOptimistic, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useNavigate } from 'react-router-dom';
-import type { Conversation } from '@/types';
+import type { Conversation, OptimisticMessage, MessageResponse } from '@/types';
+import { OptimisticMessageStatus, MessageType } from '@/types';
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -21,6 +22,53 @@ export default function ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to convert MessageResponse to OptimisticMessage
+  const messageToOptimistic = (message: MessageResponse, status: OptimisticMessageStatus = OptimisticMessageStatus.SENT): OptimisticMessage => ({
+    id: message.id,
+    content: message.content || '',
+    is_from_user: message.is_from_user,
+    message_type: message.message_type,
+    created_at: message.created_at,
+    status,
+    file_path: message.file_path,
+    attachments: [],
+  });
+
+  // Manual optimistic state management
+  const [pendingMessages, setPendingMessages] = useState<OptimisticMessage[]>([]);
+
+  // Combine real messages with pending optimistic messages
+  const realMessages = useMemo(() => {
+    return activeConversation?.messages?.map(msg => messageToOptimistic(msg)) || [];
+  }, [activeConversation?.messages]);
+
+  const optimisticMessages = useMemo(() => {
+    // Simply combine real messages with all pending messages
+    // Pending messages are cleared on successful send, so no complex filtering needed
+    console.log('Combining messages - Real:', realMessages.length, 'Pending:', pendingMessages.length);
+    return [...realMessages, ...pendingMessages];
+  }, [realMessages, pendingMessages]);
+
+  const addOptimisticMessage = (message: OptimisticMessage) => {
+    console.log('Adding optimistic message:', message);
+    setPendingMessages(prev => {
+      const existingIndex = prev.findIndex(m => m.id === message.id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = message;
+        return updated;
+      }
+      return [...prev, message];
+    });
+  };
+
+  // Note: No automatic cleanup needed since we clear pending messages on successful send
+
+  // Clear pending messages when conversation changes
+  useEffect(() => {
+    setPendingMessages([]);
+  }, [activeConversation?.id]);
 
   // Redirect if user has no projects
   useEffect(() => {
@@ -42,10 +90,12 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    if (activeConversation?.messages) {
+    console.log('Optimistic messages changed:', optimisticMessages.length, optimisticMessages);
+    console.log('Real messages:', realMessages.length, 'Pending messages:', pendingMessages.length);
+    if (optimisticMessages.length > 0) {
       scrollToBottom();
     }
-  }, [activeConversation?.messages]);
+  }, [optimisticMessages, realMessages.length, pendingMessages.length]);
 
   // Scroll to bottom when starting to send a message
   useEffect(() => {
@@ -57,12 +107,50 @@ export default function ChatPage() {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeProject || isSending) return;
 
+    const messageContent = messageInput.trim();
+
+    // Clear input immediately
+    setMessageInput('');
+
+    // Create optimistic message with temporary ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticUserMessage: OptimisticMessage = {
+      id: tempId,
+      content: messageContent,
+      is_from_user: true,
+      message_type: MessageType.TEXT,
+      created_at: new Date().toISOString(),
+      status: OptimisticMessageStatus.PENDING,
+      attachments: [],
+    };
+
+    // Add optimistic message immediately
+    console.log('Adding optimistic message:', optimisticUserMessage);
+    addOptimisticMessage(optimisticUserMessage);
+
     setIsSending(true);
     try {
-      await sendMessage({content: messageInput, conversationId: activeConversation?.id});
-      setMessageInput('');
+      const response = await sendMessage({
+        content: messageContent,
+        conversationId: activeConversation?.id
+      });
+
+      // Clear all pending messages since the real messages will come from the conversation reload
+      console.log('Message sent successfully, clearing all pending messages');
+      setPendingMessages([]);
+
+      // The conversation context will reload and show the real messages
+
     } catch (error) {
       console.error('Failed to send message:', error);
+
+      // Update optimistic message to failed status
+      const failedMessage: OptimisticMessage = {
+        ...optimisticUserMessage,
+        status: OptimisticMessageStatus.FAILED,
+        error: error instanceof Error ? error.message : 'Failed to send message',
+      };
+      addOptimisticMessage(failedMessage);
     } finally {
       setIsSending(false);
     }
@@ -75,7 +163,51 @@ export default function ChatPage() {
     }
   };
 
-  if (projectsLoading || conversationsLoading) {
+  const handleRetryMessage = async (failedMessage: OptimisticMessage) => {
+    if (isSending) return;
+
+    // Update message to pending status
+    const retryingMessage: OptimisticMessage = {
+      ...failedMessage,
+      status: OptimisticMessageStatus.PENDING,
+      error: undefined,
+    };
+    addOptimisticMessage(retryingMessage);
+
+    setIsSending(true);
+    try {
+      const response = await sendMessage({
+        content: failedMessage.content,
+        conversationId: activeConversation?.id
+      });
+
+      // Clear all pending messages since the real messages will come from the conversation reload
+      console.log('Retry successful, clearing all pending messages');
+      setPendingMessages([]);
+
+    } catch (error) {
+      console.error('Failed to retry message:', error);
+
+      // Update back to failed status
+      const reFailedMessage: OptimisticMessage = {
+        ...retryingMessage,
+        status: OptimisticMessageStatus.FAILED,
+        error: error instanceof Error ? error.message : 'Failed to send message',
+      };
+      addOptimisticMessage(reFailedMessage);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleDeleteMessage = (messageToDelete: OptimisticMessage) => {
+    // For now, we'll implement a simple deletion by adding a "DELETED" action to optimistic updates
+    // This could be improved with a proper deletion mechanism in the useOptimistic reducer
+    console.log('Deleting message:', messageToDelete.id);
+    // TODO: Implement proper message deletion
+  };
+
+  if (projectsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--ig-bg-gradient)' }}>
         <div className="glass-surface rounded-2xl p-8 text-center" style={{ boxShadow: 'var(--ig-shadow-xl)' }}>
@@ -431,7 +563,7 @@ export default function ChatPage() {
                 <p>Starting new conversation...</p>
               </div>
             </div>
-          ) : activeConversation.messages.length === 0 ? (
+          ) : optimisticMessages.length === 0 ? (
             <div className="text-center mt-8" style={{
               color: 'var(--ig-text-muted)',
               animation: 'fadeInScale 0.4s var(--ig-spring)'
@@ -488,7 +620,7 @@ export default function ChatPage() {
             </div>
           ) : (
             <>
-              {activeConversation.messages.map((message) => (
+              {optimisticMessages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.is_from_user ? 'justify-end' : 'justify-start'} group`}
@@ -536,6 +668,64 @@ export default function ChatPage() {
                       <div className="px-5 py-4">
                         <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
 
+                        {/* Error message and retry/delete buttons for failed messages */}
+                        {'status' in message && message.status === OptimisticMessageStatus.FAILED && (
+                          <div className="mt-3 p-3 rounded-lg" style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)'
+                          }}>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <svg className="w-4 h-4" style={{ color: '#ef4444' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                              </svg>
+                              <p className="text-sm font-medium" style={{ color: '#ef4444' }}>Failed to send</p>
+                            </div>
+                            {message.error && (
+                              <p className="text-xs mb-3" style={{ color: '#dc2626' }}>{message.error}</p>
+                            )}
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleRetryMessage(message)}
+                                className="px-3 py-1 rounded-md text-xs font-medium transition-all duration-200"
+                                style={{
+                                  background: '#ef4444',
+                                  color: 'white',
+                                  border: 'none'
+                                }}
+                                onMouseEnter={(e) => {
+                                  const target = e.target as HTMLButtonElement;
+                                  target.style.background = '#dc2626';
+                                }}
+                                onMouseLeave={(e) => {
+                                  const target = e.target as HTMLButtonElement;
+                                  target.style.background = '#ef4444';
+                                }}
+                              >
+                                Retry
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMessage(message)}
+                                className="px-3 py-1 rounded-md text-xs font-medium transition-all duration-200"
+                                style={{
+                                  background: 'transparent',
+                                  color: '#6b7280',
+                                  border: '1px solid #6b7280'
+                                }}
+                                onMouseEnter={(e) => {
+                                  const target = e.target as HTMLButtonElement;
+                                  target.style.background = '#f3f4f6';
+                                }}
+                                onMouseLeave={(e) => {
+                                  const target = e.target as HTMLButtonElement;
+                                  target.style.background = 'transparent';
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Message metadata */}
                         <div className={`flex items-center mt-2 space-x-2 ${message.is_from_user ? 'justify-end' : 'justify-start'}`}>
                           <p
@@ -555,13 +745,33 @@ export default function ChatPage() {
                           {/* Message status for user messages */}
                           {message.is_from_user && (
                             <div className="flex items-center space-x-1">
-                              <div className="w-3 h-3 rounded-full opacity-70" style={{
-                                background: 'rgba(21, 25, 45, 0.6)'
-                              }}>
-                                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                                </svg>
-                              </div>
+                              {'status' in message ? (
+                                // Optimistic message with status
+                                message.status === OptimisticMessageStatus.PENDING ? (
+                                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin opacity-70"></div>
+                                ) : message.status === OptimisticMessageStatus.FAILED ? (
+                                  <div className="flex items-center space-x-1">
+                                    <div className="w-3 h-3 rounded-full opacity-70" style={{ background: '#ef4444' }}>
+                                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                                      </svg>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="w-3 h-3 rounded-full opacity-70" style={{ background: 'rgba(21, 25, 45, 0.6)' }}>
+                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                  </div>
+                                )
+                              ) : (
+                                // Regular message - assume sent
+                                <div className="w-3 h-3 rounded-full opacity-70" style={{ background: 'rgba(21, 25, 45, 0.6)' }}>
+                                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                  </svg>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

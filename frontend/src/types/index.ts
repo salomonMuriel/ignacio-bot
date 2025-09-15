@@ -157,6 +157,26 @@ export interface Message {
   created_at: string;
 }
 
+// Optimistic message status for UI
+export enum OptimisticMessageStatus {
+  PENDING = "pending",
+  SENT = "sent",
+  FAILED = "failed",
+}
+
+// Optimistic message for immediate UI feedback
+export interface OptimisticMessage {
+  id: string; // temporary ID for optimistic updates
+  content: string;
+  is_from_user: boolean;
+  message_type: MessageType;
+  created_at: string;
+  status: OptimisticMessageStatus;
+  error?: string;
+  file_path?: string;
+  attachments?: string[];
+}
+
 export interface MessageCreate {
   content: string;
   message_type?: MessageType;
