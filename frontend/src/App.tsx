@@ -17,6 +17,7 @@ import LandingPage from './pages/LandingPage';
 import CreateProjectPage from './pages/CreateProjectPage';
 import ChatPage from './pages/ChatPage';
 import ProjectsPage from './pages/ProjectsPage';
+import UserPage from './pages/UserPage';
 
 function App() {
   return (
@@ -62,7 +63,16 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    
+
+                    <Route
+                      path="/user"
+                      element={
+                        <ProtectedRoute>
+                          <UserPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
                     {/* Catch all - redirect to landing */}
                     <Route path="*" element={<LandingPage />} />
                   </Routes>

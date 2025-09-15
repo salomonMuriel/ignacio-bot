@@ -17,11 +17,7 @@ export default function HeroSection() {
           return;
         }
         
-        if (projects.length === 0) {
-          navigate('/create-project');
-        } else {
-          navigate('/chat');
-        }
+        navigate('/chat');
       };
 
     return (

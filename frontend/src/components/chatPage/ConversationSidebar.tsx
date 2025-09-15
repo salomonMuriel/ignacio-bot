@@ -209,23 +209,28 @@ export default function ConversationSidebar({
       <div className="p-4 flex-shrink-0" style={{ borderTop: '1px solid var(--ig-border-primary)' }}>
         <button
           onClick={onNewConversation}
-          className="w-full py-3 px-4 rounded-xl transition-all duration-300 font-medium flex items-center justify-center space-x-2 group"
+          className="w-full py-3 px-4 rounded-xl transition-all duration-300 font-medium flex items-center justify-center space-x-2 group backdrop-blur-md"
           style={{
-            background: 'var(--ig-accent-gradient)',
-            color: 'var(--ig-dark-primary)',
+            background: 'var(--ig-surface-glass-light)',
+            color: 'var(--ig-text-primary)',
+            border: '1px solid var(--ig-border-glass-bright)',
             boxShadow: 'var(--ig-shadow-md)'
           }}
           onMouseEnter={(e) => {
             const target = e.target as HTMLButtonElement;
-            target.style.background = 'var(--ig-accent-gradient-hover)';
+            target.style.background = 'var(--ig-accent-gradient)';
+            target.style.color = 'var(--ig-dark-primary)';
             target.style.transform = 'translateY(-1px)';
-            target.style.boxShadow = 'var(--ig-shadow-lg), var(--ig-shadow-glow)';
+            target.style.boxShadow = 'var(--ig-shadow-lg), var(--ig-shadow-glow-accent)';
+            target.style.border = '1px solid var(--ig-border-accent)';
           }}
           onMouseLeave={(e) => {
             const target = e.target as HTMLButtonElement;
-            target.style.background = 'var(--ig-accent-gradient)';
+            target.style.background = 'var(--ig-surface-glass-light)';
+            target.style.color = 'var(--ig-text-primary)';
             target.style.transform = 'translateY(0)';
             target.style.boxShadow = 'var(--ig-shadow-md)';
+            target.style.border = '1px solid var(--ig-border-glass-bright)';
           }}
         >
           <svg className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" fill="currentColor" viewBox="0 0 24 24">

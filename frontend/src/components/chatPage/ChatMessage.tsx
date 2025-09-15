@@ -17,13 +17,13 @@ export default function ChatMessage({ message, onRetry, onDelete }: ChatMessageP
       <div className={`flex ${message.is_from_user ? 'flex-row-reverse' : 'flex-row'} items-end space-x-3 max-w-4xl`}>
         {/* Avatar */}
         <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${message.is_from_user ? 'ml-3' : 'mr-3'} ${!message.is_from_user ? 'overflow-hidden' : ''}`} style={{
-          background: message.is_from_user ? 'var(--ig-accent-gradient)' : 'var(--ig-surface-glass-light)',
+          background: message.is_from_user ? 'rgba(219, 105, 52, 0.6)' : 'var(--ig-surface-glass-light)',
           border: `1px solid ${message.is_from_user ? 'transparent' : 'var(--ig-border-glass-bright)'}`,
           backdropFilter: 'var(--ig-blur-sm)',
           boxShadow: 'var(--ig-shadow-sm)'
         }}>
           {message.is_from_user ? (
-            <span className="font-semibold text-sm" style={{ color: 'var(--ig-dark-primary)' }}>U</span>
+            <span className="font-semibold text-sm" style={{ color: '#ffffff' }}>U</span>
           ) : (
             <img src={ignacioAvatar} alt="Ignacio" className="w-full h-full object-cover" />
           )}
@@ -36,7 +36,7 @@ export default function ChatMessage({ message, onRetry, onDelete }: ChatMessageP
             maxWidth: 'calc(100% - 4rem)',
             ...(message.is_from_user
               ? {
-                background: 'var(--ig-accent-gradient)',
+                background: 'rgba(219, 105, 52, 0.6)',
                 color: '#ffffff',
                 borderRadius: '1.5rem 1.5rem 0.5rem 1.5rem',
                 boxShadow: 'var(--ig-shadow-md)',
