@@ -19,13 +19,158 @@
   --ig-text-muted: #94a3b8;
   --ig-text-accent: var(--ig-accent-yellow);
 
-  /* Surface Colors */
+  /* Enhanced Surface Colors with Glassmorphism */
   --ig-surface-primary: rgba(21, 25, 45, 0.95);
   --ig-surface-secondary: rgba(89, 47, 126, 0.8);
-  --ig-surface-glass: rgba(21, 25, 45, 0.6);
+  --ig-surface-glass: rgba(21, 25, 45, 0.7);
+  --ig-surface-glass-light: rgba(255, 255, 255, 0.05);
+  --ig-surface-glass-dark: rgba(21, 25, 45, 0.85);
+  --ig-surface-message-user: rgba(219, 105, 52, 0.1);
+  --ig-surface-message-bot: rgba(255, 255, 255, 0.03);
 
   /* Border Colors */
   --ig-border-primary: rgba(89, 47, 126, 0.3);
   --ig-border-accent: var(--ig-accent-orange);
   --ig-border-glass: rgba(255, 255, 255, 0.1);
+  --ig-border-glass-bright: rgba(255, 255, 255, 0.15);
+
+  /* Shadow System */
+  --ig-shadow-sm: 0 2px 8px rgba(21, 25, 45, 0.2);
+  --ig-shadow-md: 0 4px 20px rgba(21, 25, 45, 0.3);
+  --ig-shadow-lg: 0 8px 40px rgba(21, 25, 45, 0.4);
+  --ig-shadow-xl: 0 12px 60px rgba(21, 25, 45, 0.5);
+  --ig-shadow-glow: 0 0 20px rgba(219, 105, 52, 0.1);
+  --ig-shadow-glow-accent: 0 0 30px rgba(238, 199, 93, 0.1);
+
+  /* Backdrop Blur Levels */
+  --ig-blur-sm: blur(8px);
+  --ig-blur-md: blur(12px);
+  --ig-blur-lg: blur(16px);
+  --ig-blur-xl: blur(20px);
+
+  /* Animation Timing */
+  --ig-transition-fast: 0.15s ease-out;
+  --ig-transition-normal: 0.25s ease-out;
+  --ig-transition-slow: 0.35s ease-out;
+  --ig-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Enhanced Glassmorphism Utilities */
+.glass-surface {
+  backdrop-filter: var(--ig-blur-md);
+  -webkit-backdrop-filter: var(--ig-blur-md);
+  background: var(--ig-surface-glass);
+  border: 1px solid var(--ig-border-glass);
+}
+
+.glass-surface-light {
+  backdrop-filter: var(--ig-blur-lg);
+  -webkit-backdrop-filter: var(--ig-blur-lg);
+  background: var(--ig-surface-glass-light);
+  border: 1px solid var(--ig-border-glass-bright);
+}
+
+/* Animation Keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes typingDots {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: var(--ig-shadow-md);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: var(--ig-shadow-md), var(--ig-shadow-glow);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(89, 47, 126, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(89, 47, 126, 0.5);
 }
