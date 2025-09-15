@@ -305,3 +305,31 @@ class ConversationSummary(BaseModel):
     key_topics: List[str] = []
     project_context: Dict[str, Any] = {}
     last_activity: datetime
+
+
+# Prompt Template models
+class PromptTemplateBase(BaseModel):
+    title: str
+    content: str
+    tags: List[str] = []
+    is_active: bool = True
+
+
+class PromptTemplate(PromptTemplateBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    created_by: UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class PromptTemplateCreate(PromptTemplateBase):
+    created_by: UUID
+
+
+class PromptTemplateUpdate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+    tags: List[str] | None = None
+    is_active: bool | None = None

@@ -18,6 +18,7 @@ import CreateProjectPage from './pages/CreateProjectPage';
 import ChatPage from './pages/ChatPage';
 import ProjectsPage from './pages/ProjectsPage';
 import UserPage from './pages/UserPage';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
@@ -69,6 +70,15 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <UserPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    <Route
+                      path="/admin"
+                      element={
+                        <ProtectedRoute>
+                          <AdminPage />
                         </ProtectedRoute>
                       }
                     />

@@ -18,6 +18,9 @@ from app.models.database import (
     MessageWithAttachments,
     OTPCode,
     OTPCodeCreate,
+    PromptTemplate,
+    PromptTemplateCreate,
+    PromptTemplateUpdate,
     User,
     UserCreate,
     UserFile,
@@ -593,6 +596,102 @@ class DatabaseService:
             .execute()
         )
         return [Conversation(**item) for item in response.data]
+
+    # Prompt Template operations
+    async def create_prompt_template(self, template_data: PromptTemplateCreate) -> PromptTemplate:
+        """Create a new prompt template (admin only)"""
+        response = (
+            self.client.table("prompt_templates")
+            .insert(
+                {
+                    "title": template_data.title,
+                    "content": template_data.content,
+                    "tags": template_data.tags,
+                    "created_by": str(template_data.created_by),
+                    "is_active": template_data.is_active,
+                }
+            )
+            .execute()
+        )
+
+        if response.data:
+            return PromptTemplate(**response.data[0])
+        raise Exception("Failed to create prompt template")
+
+    async def get_prompt_templates(self, active_only: bool = True) -> list[PromptTemplate]:
+        """Get all prompt templates"""
+        query = self.client.table("prompt_templates").select("*")
+        
+        if active_only:
+            query = query.eq("is_active", True)
+            
+        response = query.order("created_at", desc=True).execute()
+        return [PromptTemplate(**item) for item in response.data]
+
+    async def get_prompt_template_by_id(self, template_id: UUID) -> PromptTemplate | None:
+        """Get a specific prompt template by ID"""
+        response = (
+            self.client.table("prompt_templates")
+            .select("*")
+            .eq("id", str(template_id))
+            .execute()
+        )
+
+        if response.data:
+            return PromptTemplate(**response.data[0])
+        return None
+
+    async def update_prompt_template(
+        self, template_id: UUID, template_data: PromptTemplateUpdate
+    ) -> PromptTemplate | None:
+        """Update a prompt template (admin only)"""
+        update_dict = {}
+        if template_data.title is not None:
+            update_dict["title"] = template_data.title
+        if template_data.content is not None:
+            update_dict["content"] = template_data.content
+        if template_data.tags is not None:
+            update_dict["tags"] = template_data.tags
+        if template_data.is_active is not None:
+            update_dict["is_active"] = template_data.is_active
+
+        if not update_dict:
+            return await self.get_prompt_template_by_id(template_id)
+
+        response = (
+            self.client.table("prompt_templates")
+            .update(update_dict)
+            .eq("id", str(template_id))
+            .execute()
+        )
+
+        if response.data:
+            return PromptTemplate(**response.data[0])
+        return None
+
+    async def delete_prompt_template(self, template_id: UUID) -> bool:
+        """Delete a prompt template (admin only)"""
+        response = (
+            self.client.table("prompt_templates")
+            .delete()
+            .eq("id", str(template_id))
+            .execute()
+        )
+        return len(response.data) > 0
+
+    async def get_prompt_templates_by_tags(self, tags: list[str], active_only: bool = True) -> list[PromptTemplate]:
+        """Get prompt templates that contain any of the specified tags"""
+        query = self.client.table("prompt_templates").select("*")
+        
+        if active_only:
+            query = query.eq("is_active", True)
+            
+        # Use overlap operator to find templates with any matching tags
+        if tags:
+            query = query.filter("tags", "ov", tags)
+            
+        response = query.order("created_at", desc=True).execute()
+        return [PromptTemplate(**item) for item in response.data]
 
 
 # Global database service instance

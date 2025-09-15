@@ -45,6 +45,14 @@ def configure_logging():
     # Set uvicorn logging level
     logging.getLogger("uvicorn").setLevel(log_level)
     logging.getLogger("uvicorn.access").setLevel(log_level)
+    
+    # Suppress verbose HTTP request logs from httpx (used by Supabase client)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    
+    # Also suppress other noisy loggers in production
+    if settings.app_env == "production":
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        logging.getLogger("requests").setLevel(logging.WARNING)
 
 configure_logging()
 
@@ -56,7 +64,7 @@ if 'OPENAI_API_KEY' not in os.environ and hasattr(os.environ, 'get'):
         os.environ['OPENAI_API_KEY'] = temp_settings.openai_api_key
 
 from app.core.config import settings
-from app.routers import chat, files, health, project
+from app.routers import chat, files, health, project, prompt_templates
 
 # Create FastAPI application
 app = FastAPI(
@@ -97,6 +105,7 @@ app.include_router(health.router)
 app.include_router(chat.router)
 app.include_router(files.router, prefix="/files", tags=["files"])
 app.include_router(project.router)
+app.include_router(prompt_templates.router)
 
 
 @app.get("/")

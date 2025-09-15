@@ -300,3 +300,30 @@ export interface Notification {
   message?: string;
   duration?: number;
 }
+
+// Prompt Template types
+export interface PromptTemplate {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+}
+
+export interface PromptTemplateCreate {
+  title: string;
+  content: string;
+  tags: string[];
+  created_by: string;
+  is_active?: boolean;
+}
+
+export interface PromptTemplateUpdate {
+  title?: string;
+  content?: string;
+  tags?: string[];
+  is_active?: boolean;
+}

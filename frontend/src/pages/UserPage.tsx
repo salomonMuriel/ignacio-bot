@@ -240,16 +240,48 @@ export default function UserPage() {
               <p className="mb-4" style={{ color: 'var(--ig-text-secondary)' }}>
                 As an administrator, you have access to advanced features and can manage other users.
               </p>
-              <div className="space-y-2">
-                <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
-                  • View all user conversations
-                </p>
-                <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
-                  • Create, edit, and delete user accounts
-                </p>
-                <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
-                  • Manage system settings and configurations
-                </p>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
+                    • Manage prompt templates for user interactions
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
+                    • View all user conversations and analytics
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
+                    • Create, edit, and delete user accounts
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
+                    • Manage system settings and configurations
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-300"
+                  style={{
+                    background: 'var(--ig-accent-gradient)',
+                    color: 'var(--ig-dark-primary)',
+                    boxShadow: 'var(--ig-shadow-md)'
+                  }}
+                  onMouseEnter={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'var(--ig-accent-gradient-hover)';
+                    target.style.transform = 'translateY(-1px)';
+                    target.style.boxShadow = 'var(--ig-shadow-lg)';
+                  }}
+                  onMouseLeave={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'var(--ig-accent-gradient)';
+                    target.style.transform = 'translateY(0)';
+                    target.style.boxShadow = 'var(--ig-shadow-md)';
+                  }}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10V11.5C15.4,11.5 16,12.4 16,13V16C16,17.4 15.4,18 14.8,18H9.2C8.6,18 8,17.4 8,16V13C8,12.4 8.6,11.5 9.2,11.5V10C9.2,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.5,8.7 10.5,10V11.5H13.5V10C13.5,8.7 12.8,8.2 12,8.2Z" />
+                  </svg>
+                  <span>Open Admin Dashboard</span>
+                </button>
               </div>
             </div>
           )}

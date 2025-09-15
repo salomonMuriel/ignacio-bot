@@ -13,6 +13,9 @@ import type {
   Message,
   AgentMessageResponse,
   ConversationDetailResponse,
+  PromptTemplate,
+  PromptTemplateCreate,
+  PromptTemplateUpdate,
 } from '@/types';
 
 // Mock user ID from backend (Phase 2 - no authentication yet)
@@ -284,10 +287,64 @@ export const chatApi = {
   },
 };
 
+// Prompt Templates API Client
+const promptTemplateClient = new ApiClient();
+
+const promptTemplateApi = {
+  // Get all prompt templates
+  async getPromptTemplates(activeOnly: boolean = true, tags?: string[]): Promise<PromptTemplate[]> {
+    const params = new URLSearchParams();
+    params.append('active_only', activeOnly.toString());
+    
+    if (tags && tags.length > 0) {
+      tags.forEach(tag => params.append('tags', tag));
+    }
+    
+    return promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?${params}`);
+  },
+
+  // Get a specific prompt template
+  async getPromptTemplate(templateId: string): Promise<PromptTemplate> {
+    return promptTemplateClient.get<PromptTemplate>(`/api/prompt-templates/${templateId}`);
+  },
+
+  // Create a new prompt template (admin only)
+  async createPromptTemplate(templateData: PromptTemplateCreate): Promise<PromptTemplate> {
+    return promptTemplateClient.post<PromptTemplate>('/api/prompt-templates', templateData);
+  },
+
+  // Update a prompt template (admin only)
+  async updatePromptTemplate(
+    templateId: string, 
+    templateData: PromptTemplateUpdate, 
+    adminUserId: string
+  ): Promise<PromptTemplate> {
+    const params = new URLSearchParams({ admin_user_id: adminUserId });
+    return promptTemplateClient.put<PromptTemplate>(
+      `/api/prompt-templates/${templateId}?${params}`, 
+      templateData
+    );
+  },
+
+  // Delete a prompt template (admin only)
+  async deletePromptTemplate(templateId: string, adminUserId: string): Promise<{ message: string }> {
+    const params = new URLSearchParams({ admin_user_id: adminUserId });
+    return promptTemplateClient.delete<{ message: string }>(
+      `/api/prompt-templates/${templateId}?${params}`
+    );
+  },
+
+  // Get all unique tags
+  async getAllTags(): Promise<string[]> {
+    return promptTemplateClient.get<string[]>('/api/prompt-templates/tags/all');
+  },
+};
+
 // Combined API service export
 export const api = {
   projects: projectApi,
   chat: chatApi,
+  promptTemplates: promptTemplateApi,
   
   // Mock authentication service for Phase 2
   auth: {

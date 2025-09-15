@@ -166,16 +166,14 @@ async def get_project_conversations(project_id: UUID):
         # Get conversations for the project
         conversations = await db_service.get_project_conversations(project_id)
         
-        # Get message count for each conversation
+        # Return conversation data without message count to avoid N+1 queries
         result = []
         for conv in conversations:
-            messages = await db_service.get_conversation_messages(conv.id)
             result.append({
                 "id": conv.id,
                 "title": conv.title,
                 "created_at": conv.created_at.isoformat(),
                 "updated_at": conv.updated_at.isoformat(),
-                "message_count": len(messages),
                 "language_preference": conv.language_preference,
                 "project_context": conv.project_context
             })

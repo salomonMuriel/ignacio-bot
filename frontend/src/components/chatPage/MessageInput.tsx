@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import PromptTemplateSelector from './PromptTemplateSelector';
+import type { PromptTemplate } from '@/types';
 
 interface MessageInputProps {
   messageInput: string;
@@ -15,7 +17,19 @@ export default function MessageInput({
   onSendMessage,
   onKeyPress
 }: MessageInputProps) {
+  const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
+
+  const handleTemplateSelect = (template: PromptTemplate) => {
+    setMessageInput(template.content);
+  };
+
   return (
+    <>
+      <PromptTemplateSelector
+        isOpen={isTemplateSelectorOpen}
+        onClose={() => setIsTemplateSelectorOpen(false)}
+        onTemplateSelect={handleTemplateSelect}
+      />
     <div className="p-6 flex-shrink-0 glass-surface" style={{
       borderTop: '1px solid var(--ig-border-primary)',
       boxShadow: '0 -4px 20px rgba(21, 25, 45, 0.2)'
@@ -46,6 +60,35 @@ export default function MessageInput({
         >
           <svg className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+          </svg>
+        </button>
+
+        {/* Prompt Template Button */}
+        <button
+          onClick={() => setIsTemplateSelectorOpen(true)}
+          className="p-3 rounded-xl transition-all duration-300 flex-shrink-0 group"
+          style={{
+            background: 'var(--ig-surface-glass-light)',
+            border: '1px solid var(--ig-border-glass)',
+            color: 'var(--ig-text-muted)'
+          }}
+          onMouseEnter={(e) => {
+            const target = e.target as HTMLButtonElement;
+            target.style.background = 'var(--ig-surface-glass-dark)';
+            target.style.borderColor = 'var(--ig-border-accent)';
+            target.style.color = 'var(--ig-text-accent)';
+            target.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            const target = e.target as HTMLButtonElement;
+            target.style.background = 'var(--ig-surface-glass-light)';
+            target.style.borderColor = 'var(--ig-border-glass)';
+            target.style.color = 'var(--ig-text-muted)';
+            target.style.transform = 'translateY(0)';
+          }}
+        >
+          <svg className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M9,10V12H7V10H9M13,10V12H11V10H13M17,10V12H15V10H17M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M19,19V7H5V19H19M19,5H5V7H19V5Z" />
           </svg>
         </button>
 
@@ -161,5 +204,6 @@ export default function MessageInput({
         </div>
       </div>
     </div>
+    </>
   );
 }
