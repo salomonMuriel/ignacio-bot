@@ -57,7 +57,6 @@ interface ConversationsContextType extends ConversationsState {
     file?: File;
     messageType?: MessageType;
   }) => Promise<AgentMessageResponse>;
-  createConversation: (title?: string, projectId?: string) => Promise<Conversation>;
   updateConversation: (conversationId: string, updates: { title?: string; project_id?: string }) => Promise<void>;
   deleteConversation: (conversationId: string) => Promise<void>;
   setActiveConversation: (conversation: ConversationDetailResponse | null) => void;
@@ -287,17 +286,16 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
       
       dispatch({ type: 'MESSAGE_SENT', payload: response });
       
-      // If this created a new conversation, reload conversations list
+      // If this created a new conversation, reload conversations list and set as active
       if (!params.conversationId && response.conversation_id) {
-        loadConversations();
+        await loadConversations();
+        // Load the new conversation and set it as active
+        await loadConversation(response.conversation_id);
       }
       
       // If there's an active conversation, reload it to get the latest messages
-      if (state.activeConversation) {
-        if (params.conversationId === state.activeConversation.id || 
-            (!params.conversationId && response.conversation_id === state.activeConversation.id)) {
-          loadConversation(state.activeConversation.id);
-        }
+      else if (state.activeConversation && params.conversationId === state.activeConversation.id) {
+        await loadConversation(state.activeConversation.id);
       }
       
       return response;
@@ -309,17 +307,6 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
     }
   };
 
-  const createConversation = async (_title?: string, _projectId?: string): Promise<Conversation> => {
-    try {
-      // For now, conversations are created automatically when sending the first message
-      // This is a placeholder for explicit conversation creation
-      throw new Error('Explicit conversation creation not implemented. Use sendMessage instead.');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create conversation';
-      dispatch({ type: 'CONVERSATIONS_ERROR', payload: errorMessage });
-      throw error;
-    }
-  };
 
   const updateConversation = async (
     conversationId: string, 
@@ -388,7 +375,6 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
     loadConversations,
     loadConversation,
     sendMessage,
-    createConversation,
     updateConversation,
     deleteConversation,
     setActiveConversation,

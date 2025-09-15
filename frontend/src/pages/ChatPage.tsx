@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useNavigate } from 'react-router-dom';
+import type { Conversation } from '@/types';
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -10,8 +11,9 @@ export default function ChatPage() {
   const { 
     conversations, 
     activeConversation, 
-    sendMessage, 
-    createConversation,
+    sendMessage,
+    loadConversation,
+    setActiveConversation,
     isLoading: conversationsLoading 
   } = useConversations();
   const navigate = useNavigate();
@@ -31,13 +33,6 @@ export default function ChatPage() {
       setActiveProject(projects[0]);
     }
   }, [activeProject, projects, setActiveProject]);
-
-  // Start new conversation if none exists for active project
-  useEffect(() => {
-    if (activeProject && !activeConversation && !conversationsLoading) {
-      (activeProject.id);
-    }
-  }, [activeProject, activeConversation, conversationsLoading, createConversation]);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeProject || isSending) return;
@@ -80,32 +75,44 @@ export default function ChatPage() {
     return null; // Will redirect to create-project
   }
 
+  // Filter conversations to only show those for the active project
+  const projectConversations = conversations.filter(conv => 
+    activeProject ? conv.project_id === activeProject.id : true
+  );
+
+  const handleConversationClick = (conversation: Conversation) => {
+    loadConversation(conversation.id);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex">
       {/* Sidebar - Conversations */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+        <div className="p-4 border-b border-gray-200 flex-shrink-0">
           <h2 className="text-lg font-semibold text-gray-800">Conversations</h2>
           {activeProject && (
             <div className="mt-2">
               <p className="text-sm text-gray-600">Project:</p>
-              <p className="font-medium text-gray-800">{activeProject.project_name}</p>
+              <p className="font-medium text-gray-800 truncate">{activeProject.project_name}</p>
             </div>
           )}
         </div>
         
         <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
+          {projectConversations.length === 0 ? (
             <div className="p-4 text-gray-500 text-center">
               <p>No conversations yet.</p>
               <p className="text-sm mt-1">Start chatting with Ignacio!</p>
             </div>
           ) : (
-            conversations.map((conversation) => (
+            projectConversations.map((conversation) => (
               <div
                 key={conversation.id}
-                className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                  activeConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
+                onClick={() => handleConversationClick(conversation)}
+                className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  activeConversation?.id === conversation.id 
+                    ? 'bg-blue-50 border-l-4 border-l-blue-500 border-blue-200' 
+                    : ''
                 }`}
               >
                 <p className="font-medium text-gray-800 truncate">
@@ -114,14 +121,25 @@ export default function ChatPage() {
                 <p className="text-sm text-gray-500 mt-1">
                   {conversation.created_at && new Date(conversation.created_at).toLocaleDateString()}
                 </p>
+                {activeConversation?.id === conversation.id && (
+                  <div className="mt-1">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      Active
+                    </span>
+                  </div>
+                )}
               </div>
             ))
           )}
         </div>
 
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <button
-            onClick={() => activeProject && createConversation(activeProject.id)}
+            onClick={() => {
+              // Clear active conversation to start fresh
+              // New conversation will be created automatically when user sends first message
+              setActiveConversation(null);
+            }}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
           >
             New Conversation
@@ -130,9 +148,9 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full">
         {/* Chat Header */}
-        <div className="bg-white border-b border-gray-200 p-4">
+        <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold text-gray-800">Chat with Ignacio</h1>
@@ -152,7 +170,7 @@ export default function ChatPage() {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
           {!activeConversation ? (
             <div className="text-center text-gray-500 mt-8">
               <p>Starting new conversation...</p>
@@ -210,7 +228,7 @@ export default function ChatPage() {
         </div>
 
         {/* Message Input */}
-        <div className="bg-white border-t border-gray-200 p-4">
+        <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
           <div className="flex space-x-4">
             <div className="flex-1">
               <textarea

@@ -17,9 +17,6 @@ from app.services.project_context_service import project_context_service
 router = APIRouter(prefix="/project", tags=["project"])
 
 
-
-
-
 @router.get("/types")
 async def get_project_types():
     """Get available project types"""

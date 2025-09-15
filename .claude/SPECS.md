@@ -42,11 +42,14 @@
 - `GET /project/types` - Available project types
 - `GET /project/stages` - Available project stages
 
-### Enhanced Chat Endpoints
-- `POST /api/chat/conversations/start` - Create conversation (with optional project_id)
-- `PUT /api/chat/conversations/{id}/project` - Associate conversation with project
-- `GET/PUT /api/chat/conversations/{id}` - Manage conversations with project info
-- `POST /api/chat/files/{id}/integrate` - Integrate files into AI context
+### Enhanced Chat Endpoints (IMPLEMENTED & WORKING)
+- `GET /chat/conversations` - Get user's conversations
+- `POST /chat/messages` - Unified message endpoint (handles both new/continue conversations)
+- `GET /chat/conversations/{conversation_id}` - Get conversation with messages
+- `PUT /chat/conversations/{conversation_id}` - Update conversation details
+- `PUT /chat/conversations/{conversation_id}/project` - Associate conversation with project
+- `GET /chat/conversations/{conversation_id}/messages` - Get conversation messages
+- `DELETE /chat/conversations/{conversation_id}` - Delete conversation
 
 ## 4. Database Schema
 
