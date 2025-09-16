@@ -130,7 +130,7 @@ class IgnacioAgentService:
                 "text": f"[File attachment: {file_name} - Unable to process: {str(e)}]"
             }
 
-    async def start_conversation(self, user_id: UUID, initial_message: str, project_id: UUID | None = None) -> ConversationResult:
+    async def start_conversation(self, user_id: UUID, initial_message: str, project_id: UUID | None = None, file_contents: list[tuple[bytes, str, str]] | None = None) -> ConversationResult:
         """Start a new conversation with Ignacio"""
         start_time = time.time()
 
@@ -150,7 +150,7 @@ class IgnacioAgentService:
         conversation = await db_service.create_conversation(conversation_data)
 
         # Process the message
-        result = await self.continue_conversation(conversation.id, initial_message)
+        result = await self.continue_conversation(conversation.id, initial_message, file_contents=file_contents)
         return result
 
     async def continue_conversation(self, conversation_id: UUID, message: str, file_attachments: List[UserFile] = None, file_contents: List[tuple[bytes, str, str]] = None) -> ConversationResult:
@@ -195,12 +195,15 @@ class IgnacioAgentService:
 
             # Prepare message content for Agent SDK
             message_content = []
-            
+
             # Add file attachments if provided
             if file_contents:
+                print(f"[AI_SERVICE] Processing {len(file_contents)} file(s) for Agent SDK")
                 # Process files directly from content (more efficient)
                 for file_content, file_name, file_type in file_contents:
+                    print(f"[AI_SERVICE] Processing file: {file_name} ({file_type}, {len(file_content)} bytes)")
                     file_input = self._process_file_for_agent(file_content, file_name, file_type)
+                    print(f"[AI_SERVICE] File processed as: {file_input.get('type', 'unknown')}")
                     message_content.append(file_input)
             elif file_attachments:
                 # Legacy support: download from storage (less efficient)
@@ -214,7 +217,11 @@ class IgnacioAgentService:
                 "type": "input_text",
                 "text": message
             })
-            
+
+            print(f"[AI_SERVICE] Final message content structure: {len(message_content)} items")
+            for i, item in enumerate(message_content):
+                print(f"[AI_SERVICE] Item {i}: {item.get('type', 'unknown')} - {item.get('filename', 'N/A') if 'filename' in item else 'text content'}")
+
             # Create messages in Agent SDK format
             agent_messages = [
                 {
@@ -222,13 +229,15 @@ class IgnacioAgentService:
                     "content": message_content
                 }
             ]
-            
+
+            print(f"[AI_SERVICE] Calling Agent SDK with {len(agent_messages)} message(s)")
             # Run the main agent with context and file attachments
             result = await Runner.run(
                 self.ignacio_agent,
                 agent_messages,
                 context=project_context
             )
+            print(f"[AI_SERVICE] Agent SDK completed successfully")
 
             execution_time = int((time.time() - start_time) * 1000)
 

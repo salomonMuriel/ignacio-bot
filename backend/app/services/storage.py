@@ -15,8 +15,8 @@ from app.services.database import db_service
 class StorageService:
     """Service class for file storage operations using Supabase Storage"""
 
-    # File size limit: 10MB in bytes
-    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    # File size limit: 20MB in bytes
+    MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
     # Allowed file types
     ALLOWED_EXTENSIONS = {
@@ -47,7 +47,7 @@ class StorageService:
 
         # Check file size
         if len(file_content) > self.MAX_FILE_SIZE:
-            return False, f"File size ({len(file_content)} bytes) exceeds maximum allowed size of {self.MAX_FILE_SIZE} bytes (10MB)"
+            return False, f"File size ({len(file_content)} bytes) exceeds maximum allowed size of {self.MAX_FILE_SIZE} bytes (20MB)"
 
         # Check file extension
         file_extension = f".{file_name.split('.')[-1].lower()}" if "." in file_name else ""

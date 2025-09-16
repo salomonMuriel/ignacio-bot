@@ -17,6 +17,7 @@ import type {
   PromptTemplateCreate,
   PromptTemplateUpdate,
   TemplateType,
+  UserFile,
 } from '@/types';
 
 // Mock user ID from backend (Phase 2 - no authentication yet)
@@ -26,6 +27,7 @@ const MOCK_USER_ID = 'a456f25a-6269-4de3-87df-48b0a3389d01';
 const API_BASE_URL = 'http://localhost:8000';
 const CHAT_BASE_URL = `${API_BASE_URL}/chat`;
 const PROJECT_BASE_URL = `${API_BASE_URL}/project`;
+const FILES_BASE_URL = `${API_BASE_URL}/files`;
 
 // HTTP Client Configuration
 class ApiClient {
@@ -232,22 +234,49 @@ export const chatApi = {
     projectId?: string;
     file?: File;
   }): Promise<AgentMessageResponse> {
+    console.log('[API] Preparing sendMessage request:', {
+      hasContent: !!params.content,
+      hasConversationId: !!params.conversationId,
+      hasProjectId: !!params.projectId,
+      hasFile: !!params.file,
+      fileInfo: params.file ? {
+        name: params.file.name,
+        size: params.file.size,
+        type: params.file.type
+      } : null
+    });
+
     const formData = new FormData();
     formData.append('content', params.content);
-    
+
     if (params.conversationId) {
       formData.append('conversation_id', params.conversationId);
     }
-    
+
     if (params.projectId) {
       formData.append('project_id', params.projectId);
     }
-    
+
     if (params.file) {
       formData.append('file', params.file);
+      console.log('[API] File attached to FormData:', {
+        name: params.file.name,
+        size: params.file.size
+      });
     }
 
-    return chatClient.postFormData<AgentMessageResponse>('/messages', formData);
+    console.log('[API] Sending request to /messages endpoint');
+    try {
+      const response = await chatClient.postFormData<AgentMessageResponse>('/messages', formData);
+      console.log('[API] Request successful:', {
+        conversationId: response.conversation_id,
+        agentUsed: response.agent_used
+      });
+      return response;
+    } catch (error) {
+      console.error('[API] Request failed:', error);
+      throw error;
+    }
   },
 
   // Associate conversation with project
@@ -369,11 +398,55 @@ const promptTemplateApi = {
   },
 };
 
+// File API Client
+const fileClient = new ApiClient(FILES_BASE_URL);
+
+// File API Service
+const fileApi = {
+  // Get all files for a user
+  async getUserFiles(userId: string): Promise<UserFile[]> {
+    return fileClient.get<UserFile[]>(`/user/${userId}`);
+  },
+
+  // Get file metadata
+  async getFileMetadata(fileId: string, userId: string): Promise<UserFile> {
+    return fileClient.get<UserFile>(`/${fileId}?user_id=${userId}`);
+  },
+
+  // Get a signed URL for file access/preview
+  async getFileUrl(fileId: string, userId: string, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> {
+    return fileClient.get<{ url: string; expires_in: number }>(`/${fileId}/url?user_id=${userId}&expires_in=${expiresIn}`);
+  },
+
+  // Get files for a specific conversation
+  async getConversationFiles(conversationId: string): Promise<UserFile[]> {
+    return fileClient.get<UserFile[]>(`/conversation/${conversationId}`);
+  },
+
+  // Delete a file
+  async deleteFile(fileId: string, userId: string): Promise<{ message: string }> {
+    return fileClient.delete<{ message: string }>(`/${fileId}?user_id=${userId}`);
+  },
+
+  // Download file content
+  async downloadFile(fileId: string, userId: string): Promise<Blob> {
+    const url = `${FILES_BASE_URL}/${fileId}/download?user_id=${userId}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.statusText}`);
+    }
+
+    return response.blob();
+  },
+};
+
 // Combined API service export
 export const api = {
   projects: projectApi,
   chat: chatApi,
   promptTemplates: promptTemplateApi,
+  files: fileApi,
   
   // Mock authentication service for Phase 2
   auth: {
@@ -392,20 +465,17 @@ export const api = {
 
     // Mock login (will be implemented in Phase 4)
     async login(whatsappNumber: string): Promise<{ message: string }> {
-      console.log('Mock login for:', whatsappNumber);
       return { message: 'Mock login successful' };
     },
 
     // Mock OTP verification (will be implemented in Phase 4)
     async verifyOTP(whatsappNumber: string, otp: string): Promise<{ token: string; user: User }> {
-      console.log('Mock OTP verification for:', whatsappNumber, otp);
       const user = await this.getCurrentUser();
       return { token: 'mock-jwt-token', user };
     },
 
     // Mock logout
     async logout(): Promise<void> {
-      console.log('Mock logout');
     },
   },
 };

@@ -352,12 +352,21 @@ async def send_message_unified(
     file: UploadFile = File(None)
 ):
     """Unified endpoint for sending messages - handles both new conversations and continuing existing ones
-    
+
     - If conversation_id is provided: continues existing conversation
     - If conversation_id is not provided: creates new conversation with auto-generated title
     - Supports optional file attachment (single image or PDF)
     - For new conversations, project_id can be specified for project context
     """
+    print(f"[CHAT] Received message request:")
+    print(f"  - Content length: {len(content)}")
+    print(f"  - Conversation ID: {conversation_id}")
+    print(f"  - Project ID: {project_id}")
+    print(f"  - File attached: {file.filename if file and file.filename else 'None'}")
+    if file and file.filename:
+        print(f"  - File size: {file.size if hasattr(file, 'size') else 'Unknown'}")
+        print(f"  - File type: {file.content_type}")
+
     try:
         # Parse UUIDs if provided
         parsed_conversation_id = None
@@ -378,70 +387,104 @@ async def send_message_unified(
         # Handle file upload if provided
         uploaded_file = None
         file_content_data = None
-        
+
         if file and file.filename:
+            print(f"[CHAT] Processing file upload: {file.filename}")
+
             # Validate file type - only accept PDFs and images
             if not file.content_type:
+                print(f"[CHAT] ERROR: File type not detected for {file.filename}")
                 raise HTTPException(
-                    status_code=400, 
+                    status_code=400,
                     detail=f"File type not detected for {file.filename}"
                 )
-            
+
             if not (file.content_type.startswith('image/') or file.content_type == 'application/pdf'):
+                print(f"[CHAT] ERROR: Unsupported file type {file.content_type}")
                 raise HTTPException(
                     status_code=400,
                     detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted."
                 )
-            
+
+            print(f"[CHAT] File validation passed, reading content...")
             # Read file content
             file_content = await file.read()
+            print(f"[CHAT] File content read successfully: {len(file_content)} bytes")
             file_content_data = [(file_content, file.filename, file.content_type)]
 
         # Determine if this is a new conversation or continuing existing one
         if parsed_conversation_id:
+            print(f"[CHAT] Continuing existing conversation: {parsed_conversation_id}")
             # Continue existing conversation
             conversation = await db_service.get_conversation_by_id(parsed_conversation_id)
             if not conversation:
+                print(f"[CHAT] ERROR: Conversation {parsed_conversation_id} not found")
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, 
+                    status_code=status.HTTP_404_NOT_FOUND,
                     detail="Conversation not found"
                 )
-            
+
             # Upload file if provided and associate with conversation
             if file_content_data:
-                uploaded_file = await storage_service.upload_file(
-                    user_id=TEMP_USER_ID,
-                    file_content=file_content_data[0][0],
-                    file_name=file_content_data[0][1],
-                    content_type=file_content_data[0][2],
-                    conversation_id=parsed_conversation_id,
-                )
-            
+                print(f"[CHAT] Uploading file to storage for conversation {parsed_conversation_id}")
+                try:
+                    uploaded_file = await storage_service.upload_file(
+                        user_id=TEMP_USER_ID,
+                        file_content=file_content_data[0][0],
+                        file_name=file_content_data[0][1],
+                        content_type=file_content_data[0][2],
+                        conversation_id=parsed_conversation_id,
+                    )
+                    print(f"[CHAT] File uploaded successfully: {uploaded_file.id}")
+                except Exception as e:
+                    print(f"[CHAT] ERROR: File upload failed: {str(e)}")
+                    raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+            print(f"[CHAT] Calling Agent SDK to continue conversation...")
             # Process message with Agent SDK
-            agent_result = await get_ignacio_service().continue_conversation(
-                conversation_id=parsed_conversation_id,
-                message=content,
-                file_contents=file_content_data if file_content_data else None
-            )
+            try:
+                agent_result = await get_ignacio_service().continue_conversation(
+                    conversation_id=parsed_conversation_id,
+                    message=content,
+                    file_contents=file_content_data if file_content_data else None
+                )
+                print(f"[CHAT] Agent SDK processing completed successfully")
+            except Exception as e:
+                print(f"[CHAT] ERROR: Agent SDK processing failed: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
             
         else:
+            print(f"[CHAT] Starting new conversation with project {parsed_project_id}")
             # Start new conversation
             # Upload file if provided (conversation_id will be set after creation)
             if file_content_data:
-                uploaded_file = await storage_service.upload_file(
-                    user_id=TEMP_USER_ID,
-                    file_content=file_content_data[0][0],
-                    file_name=file_content_data[0][1],
-                    content_type=file_content_data[0][2],
-                    conversation_id=None,  # Will be updated after conversation creation
-                )
-            
+                print(f"[CHAT] Uploading file to storage for new conversation")
+                try:
+                    uploaded_file = await storage_service.upload_file(
+                        user_id=TEMP_USER_ID,
+                        file_content=file_content_data[0][0],
+                        file_name=file_content_data[0][1],
+                        content_type=file_content_data[0][2],
+                        conversation_id=None,  # Will be updated after conversation creation
+                    )
+                    print(f"[CHAT] File uploaded successfully: {uploaded_file.id}")
+                except Exception as e:
+                    print(f"[CHAT] ERROR: File upload failed: {str(e)}")
+                    raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+            print(f"[CHAT] Calling Agent SDK to start conversation...")
             # Start conversation with Agent SDK
-            agent_result = await get_ignacio_service().start_conversation(
-                user_id=TEMP_USER_ID,
-                initial_message=content,
-                project_id=parsed_project_id
-            )
+            try:
+                agent_result = await get_ignacio_service().start_conversation(
+                    user_id=TEMP_USER_ID,
+                    initial_message=content,
+                    project_id=parsed_project_id,
+                    file_contents=file_content_data if file_content_data else None
+                )
+                print(f"[CHAT] Agent SDK conversation started successfully")
+            except Exception as e:
+                print(f"[CHAT] ERROR: Agent SDK conversation start failed: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
             
             # Update uploaded file with conversation_id if file was uploaded
             if uploaded_file and hasattr(agent_result, 'conversation_id'):
@@ -477,7 +520,7 @@ async def send_message_unified(
                 detail="Failed to retrieve AI response message"
             )
 
-        return AgentMessageResponse(
+        response = AgentMessageResponse(
             message=MessageResponse(
                 id=ai_message.id,
                 content=ai_message.content,
@@ -494,9 +537,18 @@ async def send_message_unified(
             execution_time_ms=agent_result.execution_time_ms,
             conversation_id=agent_result.conversation_id,
         )
+
+        print(f"[CHAT] Request completed successfully:")
+        print(f"  - Conversation ID: {agent_result.conversation_id}")
+        print(f"  - Agent used: {agent_result.agent_used}")
+        print(f"  - Execution time: {agent_result.execution_time_ms}ms")
+        print(f"  - File processed: {bool(file_content_data)}")
+
+        return response
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[CHAT] ERROR: Unexpected error occurred: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to send message: {str(e)}",

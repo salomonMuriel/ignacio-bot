@@ -24,6 +24,7 @@ export default function ChatPage() {
   } = useConversations();
   const navigate = useNavigate();
   const [messageInput, setMessageInput] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -50,12 +51,10 @@ export default function ChatPage() {
   const optimisticMessages = useMemo(() => {
     // Simply combine real messages with all pending messages
     // Pending messages are cleared on successful send, so no complex filtering needed
-    console.log('Combining messages - Real:', realMessages.length, 'Pending:', pendingMessages.length);
     return [...realMessages, ...pendingMessages];
   }, [realMessages, pendingMessages]);
 
   const addOptimisticMessage = (message: OptimisticMessage) => {
-    console.log('Adding optimistic message:', message);
     setPendingMessages(prev => {
       const existingIndex = prev.findIndex(m => m.id === message.id);
       if (existingIndex >= 0) {
@@ -94,8 +93,6 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    console.log('Optimistic messages changed:', optimisticMessages.length, optimisticMessages);
-    console.log('Real messages:', realMessages.length, 'Pending messages:', pendingMessages.length);
     if (optimisticMessages.length > 0) {
       scrollToBottom();
     }
@@ -109,12 +106,26 @@ export default function ChatPage() {
   }, [isSending]);
 
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !activeProject || isSending) return;
+    if ((!messageInput.trim() && !selectedFile) || !activeProject || isSending) return;
 
-    const messageContent = messageInput.trim();
+    const messageContent = messageInput.trim() || (selectedFile ? `[File: ${selectedFile.name}]` : '');
 
-    // Clear input immediately
+    console.log('[ChatPage] Starting message send:', {
+      hasText: !!messageInput.trim(),
+      hasFile: !!selectedFile,
+      fileInfo: selectedFile ? {
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type
+      } : null,
+      conversationId: activeConversation?.id,
+      projectId: activeProject?.id
+    });
+
+    // Clear input and file immediately
     setMessageInput('');
+    const fileToSend = selectedFile;
+    setSelectedFile(null);
 
     // Create optimistic message with temporary ID
     const tempId = `temp-${Date.now()}`;
@@ -129,24 +140,44 @@ export default function ChatPage() {
     };
 
     // Add optimistic message immediately
-    console.log('Adding optimistic message:', optimisticUserMessage);
     addOptimisticMessage(optimisticUserMessage);
 
     setIsSending(true);
     try {
+      console.log('[ChatPage] Calling sendMessage API with:', {
+        content: messageContent,
+        conversationId: activeConversation?.id,
+        hasFile: !!fileToSend,
+        fileSize: fileToSend?.size
+      });
+
       const response = await sendMessage({
         content: messageContent,
-        conversationId: activeConversation?.id
+        conversationId: activeConversation?.id,
+        file: fileToSend || undefined
+      });
+
+      console.log('[ChatPage] Message sent successfully:', {
+        responseId: response.conversation_id,
+        agentUsed: response.agent_used,
+        executionTime: response.execution_time_ms
       });
 
       // Clear all pending messages since the real messages will come from the conversation reload
-      console.log('Message sent successfully, clearing all pending messages');
       setPendingMessages([]);
 
       // The conversation context will reload and show the real messages
 
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('[ChatPage] Failed to send message:', {
+        error: error instanceof Error ? error.message : error,
+        hasFile: !!fileToSend,
+        fileInfo: fileToSend ? {
+          name: fileToSend.name,
+          size: fileToSend.size,
+          type: fileToSend.type
+        } : null
+      });
 
       // Update optimistic message to failed status
       const failedMessage: OptimisticMessage = {
@@ -186,7 +217,6 @@ export default function ChatPage() {
       });
 
       // Clear all pending messages since the real messages will come from the conversation reload
-      console.log('Retry successful, clearing all pending messages');
       setPendingMessages([]);
 
     } catch (error) {
@@ -207,7 +237,6 @@ export default function ChatPage() {
   const handleDeleteMessage = (messageToDelete: OptimisticMessage) => {
     // For now, we'll implement a simple deletion by adding a "DELETED" action to optimistic updates
     // This could be improved with a proper deletion mechanism in the useOptimistic reducer
-    console.log('Deleting message:', messageToDelete.id);
     // TODO: Implement proper message deletion
   };
 
@@ -262,6 +291,8 @@ export default function ChatPage() {
           isSending={isSending}
           onSendMessage={handleSendMessage}
           onKeyPress={handleKeyPress}
+          selectedFile={selectedFile}
+          onFileSelect={setSelectedFile}
         />
       </div>
     </div>

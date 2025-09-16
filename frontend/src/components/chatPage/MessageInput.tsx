@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PromptTemplateSelector from './PromptTemplateSelector';
 import SaveTemplateModal from './SaveTemplateModal';
-import type { PromptTemplate } from '@/types';
+import FileAttachmentModal from './FileAttachmentModal';
+import type { PromptTemplate, UserFile } from '@/types';
 
 interface MessageInputProps {
   messageInput: string;
@@ -9,6 +10,8 @@ interface MessageInputProps {
   isSending: boolean;
   onSendMessage: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
+  selectedFile?: File | UserFile | null;
+  onFileSelect: (file: File | UserFile | null) => void;
 }
 
 export default function MessageInput({
@@ -16,11 +19,15 @@ export default function MessageInput({
   setMessageInput,
   isSending,
   onSendMessage,
-  onKeyPress
+  onKeyPress,
+  selectedFile,
+  onFileSelect
 }: MessageInputProps) {
   const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
   const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
+  const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
+  const [fileError, setFileError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleTemplateSelect = (template: PromptTemplate) => {
@@ -43,6 +50,19 @@ export default function MessageInput({
     setTemplateRefreshTrigger(prev => prev + 1); // Trigger template list refresh
   };
 
+  const handleFileModalSelect = (file: File | UserFile) => {
+    console.log('[MessageInput] File selected from modal:', file);
+    setFileError(null);
+    onFileSelect(file);
+    setIsFileModalOpen(false);
+  };
+
+  const handleRemoveFile = () => {
+    console.log('[MessageInput] File removed by user');
+    onFileSelect(null);
+    setFileError(null);
+  };
+
   // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -59,8 +79,6 @@ export default function MessageInput({
       const scrollHeight = textarea.scrollHeight - padding;
       const lines = Math.floor(scrollHeight / lineHeight);
       const actualLines = Math.min(Math.max(lines, minLines), maxLines);
-      console.log(lines)      
-      console.log(actualLines)
 
       const newHeight = actualLines * lineHeight + padding;
       textarea.style.height = `${newHeight}px`;
@@ -85,34 +103,46 @@ export default function MessageInput({
         initialContent={messageInput.trim()}
         onTemplateCreated={handleTemplateCreated}
       />
+      <FileAttachmentModal
+        isOpen={isFileModalOpen}
+        onClose={() => setIsFileModalOpen(false)}
+        onFileSelect={handleFileModalSelect}
+      />
     <div className="p-6 flex-shrink-0 glass-surface" style={{
       borderTop: '1px solid var(--ig-border-primary)',
       boxShadow: '0 -4px 20px rgba(21, 25, 45, 0.2)'
     }}>
-      <div className="flex items-end gap-3 border-2">
+      <div className="flex items-end gap-3">
         {/* Left side - Extras */}
         <div className="flex gap-2" style={{ alignItems: 'flex-end' }}>
           {/* File Attachment Button */}
           <button
+            onClick={() => setIsFileModalOpen(true)}
+            disabled={isSending}
             className="p-3 rounded-xl transition-all duration-300 flex-shrink-0 group"
             style={{
               background: 'var(--ig-surface-glass-light)',
               border: '1px solid var(--ig-border-glass)',
-              color: 'var(--ig-text-muted)'
+              color: 'var(--ig-text-muted)',
+              cursor: isSending ? 'not-allowed' : 'pointer'
             }}
             onMouseEnter={(e) => {
-              const target = e.target as HTMLButtonElement;
-              target.style.background = 'var(--ig-surface-glass-dark)';
-              target.style.borderColor = 'var(--ig-border-accent)';
-              target.style.color = 'var(--ig-text-accent)';
-              target.style.transform = 'translateY(-1px)';
+              if (!isSending) {
+                const target = e.target as HTMLButtonElement;
+                target.style.background = 'var(--ig-surface-glass-dark)';
+                target.style.borderColor = 'var(--ig-border-accent)';
+                target.style.color = 'var(--ig-text-accent)';
+                target.style.transform = 'translateY(-1px)';
+              }
             }}
             onMouseLeave={(e) => {
-              const target = e.target as HTMLButtonElement;
-              target.style.background = 'var(--ig-surface-glass-light)';
-              target.style.borderColor = 'var(--ig-border-glass)';
-              target.style.color = 'var(--ig-text-muted)';
-              target.style.transform = 'translateY(0)';
+              if (!isSending) {
+                const target = e.target as HTMLButtonElement;
+                target.style.background = 'var(--ig-surface-glass-light)';
+                target.style.borderColor = 'var(--ig-border-glass)';
+                target.style.color = 'var(--ig-text-muted)';
+                target.style.transform = 'translateY(0)';
+              }
             }}
           >
             <svg className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
@@ -124,6 +154,62 @@ export default function MessageInput({
 
         {/* Center - Message Input Field */}
         <div className="flex-1">
+          {/* File Preview */}
+          {selectedFile && (
+            <div className="mb-3 p-3 rounded-lg border" style={{
+              background: 'var(--ig-surface-glass-light)',
+              border: '1px solid var(--ig-border-glass)',
+            }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded" style={{
+                    background: 'var(--ig-surface-glass-dark)',
+                  }}>
+                    {(selectedFile instanceof File ? selectedFile.type : selectedFile.file_type).startsWith('image/') ? (
+                      <svg className="w-4 h-4" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium" style={{ color: 'var(--ig-text-primary)' }}>
+                      {selectedFile instanceof File ? selectedFile.name : selectedFile.file_name}
+                    </span>
+                    <span className="text-xs" style={{ color: 'var(--ig-text-muted)' }}>
+                      {((selectedFile instanceof File ? selectedFile.size : selectedFile.file_size) / 1024 / 1024).toFixed(1)} MB
+                      {selectedFile instanceof File ? '' : ' • Previous file'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleRemoveFile}
+                  className="p-1 rounded-full transition-colors duration-200"
+                  style={{
+                    color: 'var(--ig-text-muted)',
+                  }}
+                  onMouseEnter={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'var(--ig-surface-glass-dark)';
+                    target.style.color = 'var(--ig-text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'transparent';
+                    target.style.color = 'var(--ig-text-muted)';
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             value={messageInput}
@@ -218,21 +304,21 @@ export default function MessageInput({
           {/* Send Button */}
           <button
             onClick={onSendMessage}
-            disabled={!messageInput.trim() || isSending}
+            disabled={(!messageInput.trim() && !selectedFile) || isSending}
             className="p-3 rounded-xl transition-all duration-300 flex-shrink-0 group"
             style={{
-              background: !messageInput.trim() || isSending
+              background: (!messageInput.trim() && !selectedFile) || isSending
                 ? 'var(--ig-surface-glass-light)'
                 : 'var(--ig-accent-gradient)',
-              color: !messageInput.trim() || isSending
+              color: (!messageInput.trim() && !selectedFile) || isSending
                 ? 'var(--ig-text-muted)'
                 : 'var(--ig-dark-primary)',
-              cursor: !messageInput.trim() || isSending ? 'not-allowed' : 'pointer',
+              cursor: (!messageInput.trim() && !selectedFile) || isSending ? 'not-allowed' : 'pointer',
               border: '1px solid transparent',
-              boxShadow: !messageInput.trim() || isSending ? 'none' : 'var(--ig-shadow-md)'
+              boxShadow: (!messageInput.trim() && !selectedFile) || isSending ? 'none' : 'var(--ig-shadow-md)'
             }}
             onMouseEnter={(e) => {
-              if (messageInput.trim() && !isSending) {
+              if ((messageInput.trim() || selectedFile) && !isSending) {
                 const target = e.target as HTMLButtonElement;
                 target.style.background = 'var(--ig-accent-gradient-hover)';
                 target.style.transform = 'translateY(-1px)';
@@ -240,7 +326,7 @@ export default function MessageInput({
               }
             }}
             onMouseLeave={(e) => {
-              if (messageInput.trim() && !isSending) {
+              if ((messageInput.trim() || selectedFile) && !isSending) {
                 const target = e.target as HTMLButtonElement;
                 target.style.background = 'var(--ig-accent-gradient)';
                 target.style.transform = 'translateY(0)';
@@ -258,6 +344,23 @@ export default function MessageInput({
           </button>
         </div>
       </div>
+
+      {/* Error Display */}
+      {fileError && (
+        <div className="mt-3 p-3 rounded-lg" style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+        }}>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 flex-shrink-0" style={{ color: '#ef4444' }} fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12,2L13.09,8.26L22,9L13.09,9.74L12,16L10.91,9.74L2,9L10.91,8.26L12,2Z" />
+            </svg>
+            <span className="text-sm" style={{ color: '#ef4444' }}>
+              {fileError}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Helpful hints */}
       <div className="flex items-center justify-between mt-3">
