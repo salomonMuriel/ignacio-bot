@@ -96,3 +96,17 @@ Code formatting is automatically enforced via pre-commit hooks:
 ### **Active Development Environment**
 - **Frontend**: http://localhost:3000 (Vite dev server)
 - **Backend**: http://localhost:8000 (FastAPI + uvicorn)
+
+### **File Attachment System Status (September 2025)**
+- ✅ **Phase 1-4 Complete**: File upload modal with tabbed interface, search, filtering, sorting
+- ✅ **FileAttachmentModal.tsx**: Two-tab modal (Upload New / Previous Files) with enhanced UX
+- ✅ **MessageInput.tsx**: Integrated with modal trigger, supports both File and UserFile objects
+- ✅ **API Integration**: Full file CRUD operations through `/files` endpoints
+- ❌ **Phase 5 Pending**: File reuse with conversation linking (see TODO.md for detailed implementation plan)
+
+### **Current File System Architecture**
+- **Storage**: Supabase Storage with metadata in `user_files` table
+- **Upload Flow**: FormData through `/chat/messages` endpoint
+- **File Validation**: 20MB limit, images and PDFs only
+- **Frontend Modal**: Two-tab interface with drag/drop, search, filter, sort capabilities
+- **Missing**: Many-to-many file-conversation relationships and reuse functionality

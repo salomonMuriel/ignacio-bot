@@ -66,3 +66,36 @@
 - Projects → Conversations (one-to-many)
 - Conversations → Messages (one-to-many)
 - Conversations → Agent Interactions (one-to-many)
+- Users → Files (one-to-many)
+- Files → Conversations (many-to-many via file_conversations table)
+
+## 5. File Management System
+
+### File Storage Architecture
+- **Storage Backend**: Supabase Storage for binary file data
+- **Metadata Storage**: PostgreSQL `user_files` table for file metadata
+- **File Validation**: 20MB size limit, images and PDFs only
+- **Upload Flow**: FormData through `/chat/messages` endpoint
+
+### File Modal Interface
+- **Two-Tab System**: Upload New files or select from Previous Files
+- **Upload Interface**: Drag & drop zone with file picker and validation
+- **File Library**: Search, filter by type, sort by date/name/size
+- **Enhanced UX**: Recent files section, file metadata display
+- **File Reuse**: Ability to reuse files across multiple conversations
+
+### File API Endpoints
+- `GET /files/user/{user_id}` - Get user's files
+- `GET /files/{file_id}` - Get file metadata
+- `GET /files/{file_id}/url` - Get signed URL for file access
+- `GET /files/conversation/{conversation_id}` - Get files for conversation
+- `GET /files/{file_id}/conversations` - Get conversation history for file
+- `POST /files/{file_id}/reuse` - Reuse file in new conversation
+- `DELETE /files/{file_id}` - Delete file
+- `GET /files/{file_id}/download` - Download file content
+
+### File Reuse System
+- **Storage Efficiency**: Single storage object with multiple metadata records
+- **Conversation Linking**: Many-to-many relationship between files and conversations
+- **Usage Tracking**: Track file reuse patterns and conversation associations
+- **Database Schema**: Junction table `file_conversations` for many-to-many relationships

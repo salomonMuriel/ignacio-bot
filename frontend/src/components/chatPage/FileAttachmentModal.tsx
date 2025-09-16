@@ -30,6 +30,8 @@ export default function FileAttachmentModal({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [fileTypeFilter, setFileTypeFilter] = useState<'all' | 'images' | 'pdfs'>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'size'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const modalRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +50,8 @@ export default function FileAttachmentModal({
       setError(null);
       setSearchQuery('');
       setFileTypeFilter('all');
+      setSortBy('date');
+      setSortOrder('desc');
     }
   }, [isOpen]);
 
@@ -138,6 +142,24 @@ export default function FileAttachmentModal({
     }
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = 'var(--ig-border-glass)';
+    e.currentTarget.style.background = 'var(--ig-surface-glass-light)';
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      const file = files[0];
+      const errorMsg = validateFile(file);
+      if (errorMsg) {
+        setError(errorMsg);
+        return;
+      }
+      setFileSelection({ newFile: file, selectedExistingFile: null });
+      setError(null);
+    }
+  };
+
   const handleExistingFileSelect = (file: UserFile) => {
     setFileSelection({ newFile: null, selectedExistingFile: file });
   };
@@ -167,20 +189,60 @@ export default function FileAttachmentModal({
     });
   };
 
-  const filteredFiles = userFiles.filter(file => {
-    // Search filter
-    const matchesSearch = file.file_name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredAndSortedFiles = userFiles
+    .filter(file => {
+      // Search filter
+      const matchesSearch = file.file_name.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Type filter
-    let matchesType = true;
-    if (fileTypeFilter === 'images') {
-      matchesType = file.file_type.startsWith('image/');
-    } else if (fileTypeFilter === 'pdfs') {
-      matchesType = file.file_type === 'application/pdf';
-    }
+      // Type filter
+      let matchesType = true;
+      if (fileTypeFilter === 'images') {
+        matchesType = file.file_type.startsWith('image/');
+      } else if (fileTypeFilter === 'pdfs') {
+        matchesType = file.file_type === 'application/pdf';
+      }
 
-    return matchesSearch && matchesType;
-  });
+      return matchesSearch && matchesType;
+    })
+    .sort((a, b) => {
+      let aVal: any, bVal: any;
+
+      switch (sortBy) {
+        case 'name':
+          aVal = a.file_name.toLowerCase();
+          bVal = b.file_name.toLowerCase();
+          break;
+        case 'size':
+          aVal = a.file_size;
+          bVal = b.file_size;
+          break;
+        case 'date':
+        default:
+          aVal = new Date(a.created_at).getTime();
+          bVal = new Date(b.created_at).getTime();
+          break;
+      }
+
+      if (sortOrder === 'asc') {
+        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      } else {
+        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+      }
+    });
+
+  // Get recent files (last 10 uploaded)
+  const recentFiles = userFiles
+    .filter(file => {
+      // Type filter for recent files too
+      if (fileTypeFilter === 'images') {
+        return file.file_type.startsWith('image/');
+      } else if (fileTypeFilter === 'pdfs') {
+        return file.file_type === 'application/pdf';
+      }
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10);
 
   const selectedFile = fileSelection.newFile || fileSelection.selectedExistingFile;
   const canConfirm = selectedFile !== null;
@@ -284,23 +346,7 @@ export default function FileAttachmentModal({
                   e.currentTarget.style.borderColor = 'var(--ig-border-glass)';
                   e.currentTarget.style.background = 'var(--ig-surface-glass-light)';
                 }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.style.borderColor = 'var(--ig-border-glass)';
-                  e.currentTarget.style.background = 'var(--ig-surface-glass-light)';
-
-                  const files = Array.from(e.dataTransfer.files);
-                  if (files.length > 0) {
-                    const file = files[0];
-                    const errorMsg = validateFile(file);
-                    if (errorMsg) {
-                      setError(errorMsg);
-                      return;
-                    }
-                    setFileSelection({ newFile: file, selectedExistingFile: null });
-                    setError(null);
-                  }
-                }}
+                onDrop={handleDrop}
               >
                 <div className="flex flex-col items-center space-y-2">
                   <svg className="w-12 h-12 mx-auto" style={{ color: 'var(--ig-text-muted)' }} fill="currentColor" viewBox="0 0 24 24">
@@ -377,8 +423,8 @@ export default function FileAttachmentModal({
             // Previous Files Tab
             <div className="space-y-4">
               {/* Search and Filter Controls */}
-              <div className="flex gap-3">
-                <div className="flex-1">
+              <div className="flex gap-2 flex-wrap">
+                <div className="flex-1 min-w-0">
                   <input
                     type="text"
                     placeholder="Search files..."
@@ -414,92 +460,174 @@ export default function FileAttachmentModal({
                   <option value="images">Images</option>
                   <option value="pdfs">PDFs</option>
                 </select>
+                <select
+                  value={`${sortBy}-${sortOrder}`}
+                  onChange={(e) => {
+                    const [sort, order] = e.target.value.split('-');
+                    setSortBy(sort as any);
+                    setSortOrder(order as any);
+                  }}
+                  className="px-3 py-2 rounded-lg text-sm transition-all duration-200"
+                  style={{
+                    background: 'var(--ig-surface-glass-light)',
+                    border: '1px solid var(--ig-border-glass)',
+                    color: 'var(--ig-text-primary)'
+                  }}
+                >
+                  <option value="date-desc">Newest First</option>
+                  <option value="date-asc">Oldest First</option>
+                  <option value="name-asc">Name A-Z</option>
+                  <option value="name-desc">Name Z-A</option>
+                  <option value="size-desc">Largest First</option>
+                  <option value="size-asc">Smallest First</option>
+                </select>
               </div>
 
-              {/* Files List */}
-              {isLoadingFiles ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin"
-                       style={{ color: 'var(--ig-accent-primary)' }}></div>
-                </div>
-              ) : filteredFiles.length > 0 ? (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {filteredFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      onClick={() => handleExistingFileSelect(file)}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                        fileSelection.selectedExistingFile?.id === file.id ? 'ring-2' : ''
-                      }`}
-                      style={{
-                        background: fileSelection.selectedExistingFile?.id === file.id
-                          ? 'var(--ig-surface-glass-dark)'
-                          : 'var(--ig-surface-glass-light)',
-                        border: `1px solid ${fileSelection.selectedExistingFile?.id === file.id
-                          ? 'var(--ig-accent-primary)'
-                          : 'var(--ig-border-glass)'}`,
-                        ringColor: fileSelection.selectedExistingFile?.id === file.id
-                          ? 'var(--ig-accent-primary)'
-                          : 'transparent'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (fileSelection.selectedExistingFile?.id !== file.id) {
-                          const target = e.currentTarget;
-                          target.style.background = 'var(--ig-surface-glass-dark)';
-                          target.style.borderColor = 'var(--ig-border-accent)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (fileSelection.selectedExistingFile?.id !== file.id) {
-                          const target = e.currentTarget;
-                          target.style.background = 'var(--ig-surface-glass-light)';
-                          target.style.borderColor = 'var(--ig-border-glass)';
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded" style={{ background: 'var(--ig-surface-glass-dark)' }}>
-                          {file.file_type.startsWith('image/') ? (
-                            <svg className="w-4 h-4" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                            </svg>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate" style={{ color: 'var(--ig-text-primary)' }}>
-                            {file.file_name}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--ig-text-muted)' }}>
-                            <span>{formatFileSize(file.file_size)}</span>
-                            <span>•</span>
-                            <span>{formatDate(file.created_at)}</span>
+              {/* Recent Files Section */}
+              {!searchQuery && recentFiles.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--ig-text-primary)' }}>
+                    Recent Files
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {recentFiles.slice(0, 4).map((file) => (
+                      <div
+                        key={file.id}
+                        onClick={() => handleExistingFileSelect(file)}
+                        className={`p-2 rounded-lg border cursor-pointer transition-all duration-200 ${
+                          fileSelection.selectedExistingFile?.id === file.id ? 'ring-1' : ''
+                        }`}
+                        style={{
+                          background: fileSelection.selectedExistingFile?.id === file.id
+                            ? 'var(--ig-surface-glass-dark)'
+                            : 'var(--ig-surface-glass-light)',
+                          border: `1px solid ${fileSelection.selectedExistingFile?.id === file.id
+                            ? 'var(--ig-accent-primary)'
+                            : 'var(--ig-border-glass)'}`,
+                          ringColor: fileSelection.selectedExistingFile?.id === file.id
+                            ? 'var(--ig-accent-primary)'
+                            : 'transparent'
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded" style={{ background: 'var(--ig-surface-glass-dark)' }}>
+                            {file.file_type.startsWith('image/') ? (
+                              <svg className="w-3 h-3" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3 h-3" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate" style={{ color: 'var(--ig-text-primary)' }}>
+                              {file.file_name}
+                            </p>
+                            <p className="text-xs" style={{ color: 'var(--ig-text-muted)' }}>
+                              {formatFileSize(file.file_size)}
+                            </p>
                           </div>
                         </div>
-                        {fileSelection.selectedExistingFile?.id === file.id && (
-                          <div className="p-1 rounded-full" style={{ background: 'var(--ig-accent-primary)' }}>
-                            <svg className="w-3 h-3" style={{ color: 'white' }} fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
-                            </svg>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <svg className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--ig-text-muted)' }} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                  </svg>
-                  <p className="text-sm" style={{ color: 'var(--ig-text-muted)' }}>
-                    {searchQuery || fileTypeFilter !== 'all' ? 'No files match your search' : 'No files uploaded yet'}
-                  </p>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* All Files List */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium" style={{ color: 'var(--ig-text-primary)' }}>
+                    {searchQuery ? `Search Results (${filteredAndSortedFiles.length})` : `All Files (${filteredAndSortedFiles.length})`}
+                  </h3>
+                </div>
+
+                {isLoadingFiles ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin"
+                         style={{ color: 'var(--ig-accent-primary)' }}></div>
+                  </div>
+                ) : filteredAndSortedFiles.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {filteredAndSortedFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        onClick={() => handleExistingFileSelect(file)}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                          fileSelection.selectedExistingFile?.id === file.id ? 'ring-2' : ''
+                        }`}
+                        style={{
+                          background: fileSelection.selectedExistingFile?.id === file.id
+                            ? 'var(--ig-surface-glass-dark)'
+                            : 'var(--ig-surface-glass-light)',
+                          border: `1px solid ${fileSelection.selectedExistingFile?.id === file.id
+                            ? 'var(--ig-accent-primary)'
+                            : 'var(--ig-border-glass)'}`,
+                          ringColor: fileSelection.selectedExistingFile?.id === file.id
+                            ? 'var(--ig-accent-primary)'
+                            : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (fileSelection.selectedExistingFile?.id !== file.id) {
+                            const target = e.currentTarget;
+                            target.style.background = 'var(--ig-surface-glass-dark)';
+                            target.style.borderColor = 'var(--ig-border-accent)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (fileSelection.selectedExistingFile?.id !== file.id) {
+                            const target = e.currentTarget;
+                            target.style.background = 'var(--ig-surface-glass-light)';
+                            target.style.borderColor = 'var(--ig-border-glass)';
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded" style={{ background: 'var(--ig-surface-glass-dark)' }}>
+                            {file.file_type.startsWith('image/') ? (
+                              <svg className="w-4 h-4" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" style={{ color: 'var(--ig-text-accent)' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate" style={{ color: 'var(--ig-text-primary)' }}>
+                              {file.file_name}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--ig-text-muted)' }}>
+                              <span>{formatFileSize(file.file_size)}</span>
+                              <span>•</span>
+                              <span>{formatDate(file.created_at)}</span>
+                            </div>
+                          </div>
+                          {fileSelection.selectedExistingFile?.id === file.id && (
+                            <div className="p-1 rounded-full" style={{ background: 'var(--ig-accent-primary)' }}>
+                              <svg className="w-3 h-3" style={{ color: 'white' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <svg className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--ig-text-muted)' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                    </svg>
+                    <p className="text-sm" style={{ color: 'var(--ig-text-muted)' }}>
+                      {searchQuery || fileTypeFilter !== 'all' ? 'No files match your search' : 'No files uploaded yet'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
