@@ -38,6 +38,11 @@ export enum SyncStatus {
   REMOVED = "removed",
 }
 
+export enum TemplateType {
+  ADMIN = "admin",
+  USER = "user",
+}
+
 // User types
 export interface User {
   id: string;
@@ -311,6 +316,7 @@ export interface PromptTemplate {
   created_at: string;
   updated_at: string;
   is_active: boolean;
+  template_type: TemplateType;
 }
 
 export interface PromptTemplateCreate {
@@ -319,6 +325,7 @@ export interface PromptTemplateCreate {
   tags: string[];
   created_by: string;
   is_active?: boolean;
+  template_type?: TemplateType;
 }
 
 export interface PromptTemplateUpdate {
@@ -326,4 +333,5 @@ export interface PromptTemplateUpdate {
   content?: string;
   tags?: string[];
   is_active?: boolean;
+  template_type?: TemplateType;
 }

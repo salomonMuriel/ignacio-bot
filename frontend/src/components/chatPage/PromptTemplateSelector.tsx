@@ -1,56 +1,163 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
-import type { PromptTemplate } from '@/types';
+import { useAuth } from '../../contexts/AuthContext';
+import type { PromptTemplate, TemplateType } from '@/types';
+
+// Template Card Component
+interface TemplateCardProps {
+  template: PromptTemplate;
+  onSelect: (template: PromptTemplate) => void;
+  selectedTags: string[];
+  isAdmin: boolean;
+}
+
+function TemplateCard({ template, onSelect, selectedTags, isAdmin }: TemplateCardProps) {
+  return (
+    <div
+      onClick={() => onSelect(template)}
+      className="p-4 rounded-lg glass-surface border cursor-pointer transition-all duration-300 hover:scale-[1.02]"
+      style={{
+        borderColor: 'var(--ig-border-glass)',
+        backdropFilter: 'var(--ig-blur-sm)'
+      }}
+      onMouseEnter={(e) => {
+        const target = e.currentTarget as HTMLDivElement;
+        target.style.borderColor = 'var(--ig-border-accent)';
+        target.style.boxShadow = 'var(--ig-shadow-md), var(--ig-shadow-glow)';
+      }}
+      onMouseLeave={(e) => {
+        const target = e.currentTarget as HTMLDivElement;
+        target.style.borderColor = 'var(--ig-border-glass)';
+        target.style.boxShadow = 'none';
+      }}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center space-x-2">
+          <h4 className="font-semibold" style={{ color: 'var(--ig-text-primary)' }}>
+            {template.title}
+          </h4>
+          <span
+            className="px-2 py-1 text-xs rounded-full"
+            style={{
+              background: isAdmin 
+                ? 'rgba(99, 102, 241, 0.2)' 
+                : 'rgba(16, 185, 129, 0.2)',
+              color: isAdmin ? '#6366f1' : '#10b981'
+            }}
+          >
+            {isAdmin ? 'Curated' : 'Personal'}
+          </span>
+        </div>
+        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" style={{ color: 'var(--ig-text-accent)' }} viewBox="0 0 24 24">
+          <path d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z" />
+        </svg>
+      </div>
+      
+      <p className="text-sm mb-3" style={{ color: 'var(--ig-text-muted)' }}>
+        {template.content.length > 150 
+          ? `${template.content.substring(0, 150)}...` 
+          : template.content}
+      </p>
+      
+      {template.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {template.tags.map((tag) => (
+            <span
+              key={tag}
+              className="px-2 py-1 text-xs rounded-full"
+              style={{
+                background: selectedTags.includes(tag)
+                  ? 'var(--ig-accent-gradient)'
+                  : 'var(--ig-surface-glass-light)',
+                color: selectedTags.includes(tag)
+                  ? 'var(--ig-dark-primary)'
+                  : 'var(--ig-text-accent)',
+                border: '1px solid var(--ig-border-glass)'
+              }}
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface PromptTemplateSelectorProps {
   onTemplateSelect: (template: PromptTemplate) => void;
   isOpen: boolean;
   onClose: () => void;
+  refreshTrigger?: number; // Trigger to refresh template list
 }
 
 export default function PromptTemplateSelector({ 
   onTemplateSelect, 
   isOpen, 
-  onClose 
+  onClose,
+  refreshTrigger
 }: PromptTemplateSelectorProps) {
-  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
-  const [filteredTemplates, setFilteredTemplates] = useState<PromptTemplate[]>([]);
+  const { user } = useAuth();
+  const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
+  const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
+  const [filteredTemplates, setFilteredTemplates] = useState<{ admin: PromptTemplate[], user: PromptTemplate[] }>({
+    admin: [],
+    user: []
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'admin' | 'user'>('all');
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Load templates when component mounts or opens
+  // Load templates when component mounts, opens, or refresh is triggered
   useEffect(() => {
-    if (isOpen && templates.length === 0) {
+    if (isOpen && (adminTemplates.length === 0 && userTemplates.length === 0)) {
       loadTemplates();
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
-  // Filter templates based on search and tags
+  // Reload templates when refreshTrigger changes
   useEffect(() => {
-    let filtered = templates;
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(template => 
-        template.title.toLowerCase().includes(query) ||
-        template.content.toLowerCase().includes(query) ||
-        template.tags.some(tag => tag.toLowerCase().includes(query))
-      );
+    if (refreshTrigger && refreshTrigger > 0 && user) {
+      loadTemplates();
     }
+  }, [refreshTrigger, user]);
 
-    // Filter by selected tags
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(template =>
-        selectedTags.some(selectedTag => template.tags.includes(selectedTag))
-      );
-    }
+  // Filter templates based on search, tags, and category
+  useEffect(() => {
+    const filterTemplateList = (templateList: PromptTemplate[]) => {
+      let filtered = templateList;
 
-    setFilteredTemplates(filtered);
-  }, [templates, searchQuery, selectedTags]);
+      // Filter by search query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(template => 
+          template.title.toLowerCase().includes(query) ||
+          template.content.toLowerCase().includes(query) ||
+          template.tags.some(tag => tag.toLowerCase().includes(query))
+        );
+      }
+
+      // Filter by selected tags
+      if (selectedTags.length > 0) {
+        filtered = filtered.filter(template =>
+          selectedTags.some(selectedTag => template.tags.includes(selectedTag))
+        );
+      }
+
+      return filtered;
+    };
+
+    const filteredAdmin = selectedCategory === 'user' ? [] : filterTemplateList(adminTemplates);
+    const filteredUser = selectedCategory === 'admin' ? [] : filterTemplateList(userTemplates);
+
+    setFilteredTemplates({
+      admin: filteredAdmin,
+      user: filteredUser
+    });
+  }, [adminTemplates, userTemplates, searchQuery, selectedTags, selectedCategory]);
 
   // Close modal when clicking outside
   useEffect(() => {
@@ -81,13 +188,17 @@ export default function PromptTemplateSelector({
   }, [isOpen, onClose]);
 
   const loadTemplates = async () => {
+    if (!user) return;
+    
     try {
       setIsLoading(true);
-      const [templatesData, tagsData] = await Promise.all([
-        api.promptTemplates.getPromptTemplates(true), // Only active templates
+      const [templateData, tagsData] = await Promise.all([
+        api.promptTemplates.getTemplatesForUser(user.id, true), // Get admin + user templates
         api.promptTemplates.getAllTags()
       ]);
-      setTemplates(templatesData);
+      
+      setAdminTemplates(templateData.adminTemplates);
+      setUserTemplates(templateData.userTemplates);
       setAvailableTags(tagsData);
     } catch (err) {
       console.error('Failed to load prompt templates:', err);
@@ -102,6 +213,7 @@ export default function PromptTemplateSelector({
     // Reset state
     setSearchQuery('');
     setSelectedTags([]);
+    setSelectedCategory('all');
   };
 
   const toggleTag = (tag: string) => {
@@ -177,6 +289,36 @@ export default function PromptTemplateSelector({
             />
           </div>
 
+          {/* Category filter */}
+          <div className="mb-4">
+            <div className="text-sm font-medium mb-2" style={{ color: 'var(--ig-text-primary)' }}>
+              Template type:
+            </div>
+            <div className="flex gap-2">
+              {(['all', 'admin', 'user'] as const).map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className="px-4 py-2 text-sm rounded-lg transition-all duration-300"
+                  style={{
+                    background: selectedCategory === category
+                      ? 'var(--ig-accent-gradient)'
+                      : 'var(--ig-surface-glass-light)',
+                    color: selectedCategory === category
+                      ? 'var(--ig-dark-primary)'
+                      : 'var(--ig-text-primary)',
+                    border: '1px solid var(--ig-border-glass)'
+                  }}
+                >
+                  {category === 'all' ? 'All Templates' : 
+                   category === 'admin' ? 'Curated' : 'My Templates'}
+                  {category === 'admin' && ` (${adminTemplates.length})`}
+                  {category === 'user' && ` (${userTemplates.length})`}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Tag filters */}
           {availableTags.length > 0 && (
             <div>
@@ -213,7 +355,7 @@ export default function PromptTemplateSelector({
             <div className="flex items-center justify-center py-16">
               <div className="w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--ig-text-accent)' }}></div>
             </div>
-          ) : filteredTemplates.length === 0 ? (
+          ) : (filteredTemplates.admin.length === 0 && filteredTemplates.user.length === 0) ? (
             <div className="text-center py-16">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{
                 background: 'var(--ig-surface-glass-light)',
@@ -233,67 +375,64 @@ export default function PromptTemplateSelector({
               </p>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {filteredTemplates.map((template) => (
-                <div
-                  key={template.id}
-                  onClick={() => handleTemplateSelect(template)}
-                  className="p-4 rounded-lg glass-surface border cursor-pointer transition-all duration-300 hover:scale-[1.02]"
-                  style={{
-                    borderColor: 'var(--ig-border-glass)',
-                    backdropFilter: 'var(--ig-blur-sm)'
-                  }}
-                  onMouseEnter={(e) => {
-                    const target = e.currentTarget as HTMLDivElement;
-                    target.style.borderColor = 'var(--ig-border-accent)';
-                    target.style.boxShadow = 'var(--ig-shadow-md), var(--ig-shadow-glow)';
-                  }}
-                  onMouseLeave={(e) => {
-                    const target = e.currentTarget as HTMLDivElement;
-                    target.style.borderColor = 'var(--ig-border-glass)';
-                    target.style.boxShadow = 'none';
-                  }}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-semibold" style={{ color: 'var(--ig-text-primary)' }}>
-                      {template.title}
-                    </h4>
-                    <div className="flex items-center space-x-2 ml-4">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" style={{ color: 'var(--ig-text-accent)' }} viewBox="0 0 24 24">
-                        <path d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z" />
-                      </svg>
-                    </div>
+            <div className="space-y-6">
+              {/* Admin Templates */}
+              {filteredTemplates.admin.length > 0 && (
+                <div>
+                  <div className="flex items-center mb-4">
+                    <div className="w-2 h-6 rounded-full" style={{ background: 'var(--ig-accent-gradient)' }}></div>
+                    <h3 className="ml-3 text-lg font-semibold" style={{ color: 'var(--ig-text-primary)' }}>
+                      Curated Templates
+                    </h3>
+                    <span className="ml-2 px-2 py-1 text-xs rounded-full" style={{
+                      background: 'var(--ig-surface-glass-light)',
+                      color: 'var(--ig-text-muted)'
+                    }}>
+                      {filteredTemplates.admin.length}
+                    </span>
                   </div>
-                  
-                  <p className="text-sm mb-3" style={{ color: 'var(--ig-text-muted)' }}>
-                    {template.content.length > 150 
-                      ? `${template.content.substring(0, 150)}...` 
-                      : template.content}
-                  </p>
-                  
-                  {template.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {template.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-1 text-xs rounded-full"
-                          style={{
-                            background: selectedTags.includes(tag)
-                              ? 'var(--ig-accent-gradient)'
-                              : 'var(--ig-surface-glass-light)',
-                            color: selectedTags.includes(tag)
-                              ? 'var(--ig-dark-primary)'
-                              : 'var(--ig-text-accent)',
-                            border: '1px solid var(--ig-border-glass)'
-                          }}
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <div className="grid gap-4">
+                    {filteredTemplates.admin.map((template) => (
+                      <TemplateCard 
+                        key={template.id} 
+                        template={template} 
+                        onSelect={handleTemplateSelect}
+                        selectedTags={selectedTags}
+                        isAdmin={true}
+                      />
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {/* User Templates */}
+              {filteredTemplates.user.length > 0 && (
+                <div>
+                  <div className="flex items-center mb-4">
+                    <div className="w-2 h-6 rounded-full" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}></div>
+                    <h3 className="ml-3 text-lg font-semibold" style={{ color: 'var(--ig-text-primary)' }}>
+                      My Templates
+                    </h3>
+                    <span className="ml-2 px-2 py-1 text-xs rounded-full" style={{
+                      background: 'var(--ig-surface-glass-light)',
+                      color: 'var(--ig-text-muted)'
+                    }}>
+                      {filteredTemplates.user.length}
+                    </span>
+                  </div>
+                  <div className="grid gap-4">
+                    {filteredTemplates.user.map((template) => (
+                      <TemplateCard 
+                        key={template.id} 
+                        template={template} 
+                        onSelect={handleTemplateSelect}
+                        selectedTags={selectedTags}
+                        isAdmin={false}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -302,7 +441,7 @@ export default function PromptTemplateSelector({
         <div className="p-6 border-t" style={{ borderColor: 'var(--ig-border-glass)' }}>
           <div className="flex items-center justify-between">
             <div className="text-sm" style={{ color: 'var(--ig-text-muted)' }}>
-              {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} available
+              {filteredTemplates.admin.length + filteredTemplates.user.length} template{(filteredTemplates.admin.length + filteredTemplates.user.length) !== 1 ? 's' : ''} available
             </div>
             <button
               onClick={onClose}

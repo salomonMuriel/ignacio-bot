@@ -599,7 +599,7 @@ class DatabaseService:
 
     # Prompt Template operations
     async def create_prompt_template(self, template_data: PromptTemplateCreate) -> PromptTemplate:
-        """Create a new prompt template (admin only)"""
+        """Create a new prompt template"""
         response = (
             self.client.table("prompt_templates")
             .insert(
@@ -609,6 +609,7 @@ class DatabaseService:
                     "tags": template_data.tags,
                     "created_by": str(template_data.created_by),
                     "is_active": template_data.is_active,
+                    "template_type": template_data.template_type.value,
                 }
             )
             .execute()
@@ -618,12 +619,23 @@ class DatabaseService:
             return PromptTemplate(**response.data[0])
         raise Exception("Failed to create prompt template")
 
-    async def get_prompt_templates(self, active_only: bool = True) -> list[PromptTemplate]:
-        """Get all prompt templates"""
+    async def get_prompt_templates(
+        self, 
+        active_only: bool = True, 
+        template_type: str | None = None,
+        user_id: UUID | None = None
+    ) -> list[PromptTemplate]:
+        """Get prompt templates with optional filtering by type and user"""
         query = self.client.table("prompt_templates").select("*")
         
         if active_only:
             query = query.eq("is_active", True)
+            
+        if template_type:
+            query = query.eq("template_type", template_type)
+            
+        if user_id:
+            query = query.eq("created_by", str(user_id))
             
         response = query.order("created_at", desc=True).execute()
         return [PromptTemplate(**item) for item in response.data]
@@ -644,7 +656,7 @@ class DatabaseService:
     async def update_prompt_template(
         self, template_id: UUID, template_data: PromptTemplateUpdate
     ) -> PromptTemplate | None:
-        """Update a prompt template (admin only)"""
+        """Update a prompt template"""
         update_dict = {}
         if template_data.title is not None:
             update_dict["title"] = template_data.title
@@ -654,6 +666,8 @@ class DatabaseService:
             update_dict["tags"] = template_data.tags
         if template_data.is_active is not None:
             update_dict["is_active"] = template_data.is_active
+        if template_data.template_type is not None:
+            update_dict["template_type"] = template_data.template_type.value
 
         if not update_dict:
             return await self.get_prompt_template_by_id(template_id)
@@ -678,6 +692,27 @@ class DatabaseService:
             .execute()
         )
         return len(response.data) > 0
+
+    async def can_user_modify_template(self, template_id: UUID, user_id: UUID) -> bool:
+        """Check if user can modify a template (owns it or is admin modifying admin template)"""
+        template = await self.get_prompt_template_by_id(template_id)
+        if not template:
+            return False
+            
+        # Get user info to check admin status
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            return False
+            
+        # Users can modify their own user templates
+        if template.template_type == "user" and template.created_by == user_id:
+            return True
+            
+        # Admins can modify admin templates they created or any admin template
+        if template.template_type == "admin" and user.is_admin:
+            return True
+            
+        return False
 
     async def get_prompt_templates_by_tags(self, tags: list[str], active_only: bool = True) -> list[PromptTemplate]:
         """Get prompt templates that contain any of the specified tags"""

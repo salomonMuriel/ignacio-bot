@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
-import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate } from '@/types';
+import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate, TemplateType } from '@/types';
 
 export default function PromptTemplateManager() {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
+  const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'admin' | 'user' | 'all'>(user?.is_admin ? 'all' : 'user');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -23,14 +25,17 @@ export default function PromptTemplateManager() {
 
   // Load templates
   const loadTemplates = async () => {
+    if (!user) return;
+    
     try {
       setIsLoading(true);
       setError(null);
-      const [templatesData, tagsData] = await Promise.all([
-        api.promptTemplates.getPromptTemplates(false), // Get both active and inactive
+      const [templateData, tagsData] = await Promise.all([
+        api.promptTemplates.getTemplatesForUser(user.id, false), // Get both active and inactive
         api.promptTemplates.getAllTags()
       ]);
-      setTemplates(templatesData);
+      setAdminTemplates(templateData.adminTemplates);
+      setUserTemplates(templateData.userTemplates);
       setAvailableTags(tagsData);
     } catch (err) {
       console.error('Failed to load prompt templates:', err);
@@ -167,10 +172,13 @@ export default function PromptTemplateManager() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold" style={{ color: 'var(--ig-text-primary)' }}>
-            Prompt Templates
+            {user?.is_admin ? 'Template Management' : 'My Templates'}
           </h2>
           <p style={{ color: 'var(--ig-text-muted)' }}>
-            Manage pre-made prompts that users can select in chat
+            {user?.is_admin 
+              ? 'Manage prompt templates for all users'
+              : 'Create and manage your personal prompt templates'
+            }
           </p>
         </div>
         <button
@@ -212,9 +220,48 @@ export default function PromptTemplateManager() {
         </div>
       )}
 
+      {/* View mode selector for admins */}
+      {user?.is_admin && (
+        <div className="mb-6">
+          <div className="flex space-x-2">
+            {(['all', 'admin', 'user'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className="px-4 py-2 text-sm rounded-lg transition-all duration-300"
+                style={{
+                  background: viewMode === mode
+                    ? 'var(--ig-accent-gradient)'
+                    : 'var(--ig-surface-glass-light)',
+                  color: viewMode === mode
+                    ? 'var(--ig-dark-primary)'
+                    : 'var(--ig-text-primary)',
+                  border: '1px solid var(--ig-border-glass)'
+                }}
+              >
+                {mode === 'all' ? 'All Templates' : 
+                 mode === 'admin' ? 'Curated Templates' : 'User Templates'}
+                {mode === 'admin' && ` (${adminTemplates.length})`}
+                {mode === 'user' && ` (${userTemplates.length})`}
+                {mode === 'all' && ` (${adminTemplates.length + userTemplates.length})`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Templates list */}
       <div className="space-y-4">
-        {templates.length === 0 ? (
+        {(() => {
+          const templatesToShow = [];
+          if (viewMode === 'all' || viewMode === 'admin') {
+            templatesToShow.push(...adminTemplates.map(t => ({ ...t, isAdminTemplate: true })));
+          }
+          if (viewMode === 'all' || viewMode === 'user') {
+            templatesToShow.push(...userTemplates.map(t => ({ ...t, isAdminTemplate: false })));
+          }
+          return templatesToShow;
+        })().length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{
               background: 'var(--ig-surface-glass-light)',
@@ -232,7 +279,16 @@ export default function PromptTemplateManager() {
             </p>
           </div>
         ) : (
-          templates.map((template) => (
+          (() => {
+            const templatesToShow = [];
+            if (viewMode === 'all' || viewMode === 'admin') {
+              templatesToShow.push(...adminTemplates.map(t => ({ ...t, isAdminTemplate: true })));
+            }
+            if (viewMode === 'all' || viewMode === 'user') {
+              templatesToShow.push(...userTemplates.map(t => ({ ...t, isAdminTemplate: false })));
+            }
+            return templatesToShow;
+          })().map((template) => (
             <div
               key={template.id}
               className="p-6 rounded-xl glass-surface border transition-all duration-300"
@@ -248,6 +304,17 @@ export default function PromptTemplateManager() {
                       {template.title}
                     </h3>
                     <div className="flex items-center space-x-2">
+                      <span
+                        className="px-2 py-1 text-xs rounded-full"
+                        style={{
+                          background: template.isAdminTemplate
+                            ? 'rgba(99, 102, 241, 0.2)'
+                            : 'rgba(16, 185, 129, 0.2)',
+                          color: template.isAdminTemplate ? '#6366f1' : '#10b981'
+                        }}
+                      >
+                        {template.isAdminTemplate ? 'Curated' : 'Personal'}
+                      </span>
                       <span
                         className="px-2 py-1 text-xs rounded-full"
                         style={{
@@ -292,9 +359,12 @@ export default function PromptTemplateManager() {
                 </div>
                 
                 <div className="flex items-center space-x-2 ml-4">
-                  <button
-                    onClick={() => handleEdit(template)}
-                    className="p-2 rounded-lg transition-all duration-300"
+                  {/* Only show edit/delete for templates the user can modify */}
+                  {(user?.is_admin || (template.created_by === user?.id && !template.isAdminTemplate)) && (
+                    <>
+                      <button
+                        onClick={() => handleEdit(template)}
+                        className="p-2 rounded-lg transition-all duration-300"
                     style={{
                       background: 'var(--ig-surface-glass-light)',
                       border: '1px solid var(--ig-border-glass)',
@@ -342,6 +412,8 @@ export default function PromptTemplateManager() {
                       <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
                     </svg>
                   </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -49,6 +49,11 @@ class SyncStatus(str, Enum):
     REMOVED = "removed"
 
 
+class TemplateType(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
+
+
 # Base models for database tables
 class UserBase(BaseModel):
     phone_number: str
@@ -313,6 +318,7 @@ class PromptTemplateBase(BaseModel):
     content: str
     tags: List[str] = []
     is_active: bool = True
+    template_type: TemplateType = TemplateType.USER
 
 
 class PromptTemplate(PromptTemplateBase):
@@ -333,3 +339,4 @@ class PromptTemplateUpdate(BaseModel):
     content: str | None = None
     tags: List[str] | None = None
     is_active: bool | None = None
+    template_type: TemplateType | None = None

@@ -16,6 +16,7 @@ import type {
   PromptTemplate,
   PromptTemplateCreate,
   PromptTemplateUpdate,
+  TemplateType,
 } from '@/types';
 
 // Mock user ID from backend (Phase 2 - no authentication yet)
@@ -291,8 +292,13 @@ export const chatApi = {
 const promptTemplateClient = new ApiClient();
 
 const promptTemplateApi = {
-  // Get all prompt templates
-  async getPromptTemplates(activeOnly: boolean = true, tags?: string[]): Promise<PromptTemplate[]> {
+  // Get all prompt templates with optional filtering
+  async getPromptTemplates(
+    activeOnly: boolean = true, 
+    tags?: string[], 
+    templateType?: TemplateType, 
+    userId?: string
+  ): Promise<PromptTemplate[]> {
     const params = new URLSearchParams();
     params.append('active_only', activeOnly.toString());
     
@@ -300,7 +306,30 @@ const promptTemplateApi = {
       tags.forEach(tag => params.append('tags', tag));
     }
     
+    if (templateType) {
+      params.append('template_type', templateType);
+    }
+    
+    if (userId) {
+      params.append('user_id', userId);
+    }
+    
     return promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?${params}`);
+  },
+
+  // Get templates available to a specific user (admin + user's own templates)
+  async getTemplatesForUser(userId: string, activeOnly: boolean = true): Promise<{
+    adminTemplates: PromptTemplate[];
+    userTemplates: PromptTemplate[];
+  }> {
+    const [adminTemplates, userTemplates] = await Promise.all([
+      // Get admin templates (visible to all users)
+      promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?active_only=${activeOnly}&template_type=admin`),
+      // Get user's own templates
+      promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?active_only=${activeOnly}&template_type=user&user_id=${userId}`)
+    ]);
+    
+    return { adminTemplates, userTemplates };
   },
 
   // Get a specific prompt template
@@ -308,27 +337,27 @@ const promptTemplateApi = {
     return promptTemplateClient.get<PromptTemplate>(`/api/prompt-templates/${templateId}`);
   },
 
-  // Create a new prompt template (admin only)
+  // Create a new prompt template (type determined by user's admin status)
   async createPromptTemplate(templateData: PromptTemplateCreate): Promise<PromptTemplate> {
     return promptTemplateClient.post<PromptTemplate>('/api/prompt-templates', templateData);
   },
 
-  // Update a prompt template (admin only)
+  // Update a prompt template (with ownership validation)
   async updatePromptTemplate(
     templateId: string, 
     templateData: PromptTemplateUpdate, 
-    adminUserId: string
+    userId: string
   ): Promise<PromptTemplate> {
-    const params = new URLSearchParams({ admin_user_id: adminUserId });
+    const params = new URLSearchParams({ user_id: userId });
     return promptTemplateClient.put<PromptTemplate>(
       `/api/prompt-templates/${templateId}?${params}`, 
       templateData
     );
   },
 
-  // Delete a prompt template (admin only)
-  async deletePromptTemplate(templateId: string, adminUserId: string): Promise<{ message: string }> {
-    const params = new URLSearchParams({ admin_user_id: adminUserId });
+  // Delete a prompt template (with ownership validation)
+  async deletePromptTemplate(templateId: string, userId: string): Promise<{ message: string }> {
+    const params = new URLSearchParams({ user_id: userId });
     return promptTemplateClient.delete<{ message: string }>(
       `/api/prompt-templates/${templateId}?${params}`
     );
@@ -355,7 +384,7 @@ export const api = {
         phone_number: '+1234567890',
         name: 'Salomon',
         is_active: true,
-        is_admin: false,
+        is_admin: false, // Regular user for testing
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
