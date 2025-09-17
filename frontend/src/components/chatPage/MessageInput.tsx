@@ -29,6 +29,8 @@ export default function MessageInput({
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
   const [fileError, setFileError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileButtonRef = useRef<HTMLButtonElement>(null);
+  const templateButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleTemplateSelect = (template: PromptTemplate) => {
     setMessageInput(template.content);
@@ -69,20 +71,20 @@ export default function MessageInput({
     if (textarea) {
       // Reset height to auto to get the correct scrollHeight
       textarea.style.height = 'auto';
-      
+
       // Calculate the height based on scrollHeight
       const lineHeight = 24; // 1.5rem * 16px
       const minLines = 1;
       const maxLines = 12;
       const padding = 32; // 16px top + 16px bottom
-      
-      const scrollHeight = textarea.scrollHeight - padding;
-      const lines = Math.floor(scrollHeight / lineHeight);
+
+      // scrollHeight includes content + padding, so calculate lines from total height
+      const lines = Math.ceil((textarea.scrollHeight - padding) / lineHeight);
       const actualLines = Math.min(Math.max(lines, minLines), maxLines);
 
       const newHeight = actualLines * lineHeight + padding;
       textarea.style.height = `${newHeight}px`;
-      
+
       // Add scrolling if content exceeds max lines
       textarea.style.overflowY = lines > maxLines ? 'auto' : 'hidden';
     }
@@ -117,9 +119,19 @@ export default function MessageInput({
         <div className="flex gap-2" style={{ alignItems: 'flex-end' }}>
           {/* File Attachment Button */}
           <button
-            onClick={() => setIsFileModalOpen(true)}
+            ref={fileButtonRef}
+            onClick={() => {
+              setIsFileModalOpen(true);
+              // Reset hover styles when modal opens
+              if (fileButtonRef.current) {
+                fileButtonRef.current.style.background = 'var(--ig-surface-glass-light)';
+                fileButtonRef.current.style.borderColor = 'var(--ig-border-glass)';
+                fileButtonRef.current.style.color = 'var(--ig-text-muted)';
+                fileButtonRef.current.style.transform = 'translateY(0)';
+              }
+            }}
             disabled={isSending}
-            className="p-3 rounded-xl transition-all duration-300 flex-shrink-0 group"
+            className="p-3 mb-2 rounded-xl transition-all duration-300 flex-shrink-0 group"
             style={{
               background: 'var(--ig-surface-glass-light)',
               border: '1px solid var(--ig-border-glass)',
@@ -219,7 +231,7 @@ export default function MessageInput({
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyDown={onKeyPress}
             placeholder="Type your message to Ignacio..."
-            className="w-full p-4 rounded-xl resize-none transition-all duration-300"
+            className="w-full p-4 rounded-xl resize-none focus:outline-none"
             style={{
               background: 'var(--ig-surface-glass-dark)',
               border: '1px solid var(--ig-border-glass)',
@@ -232,11 +244,13 @@ export default function MessageInput({
             disabled={isSending}
             onFocus={(e) => {
               const target = e.target as HTMLTextAreaElement;
-              target.style.borderColor = 'var(--ig-border-accent)';
+              target.style.transition = 'border-color 0.2s ease, box-shadow 0.2s ease';
+              target.style.borderColor = 'white';
               target.style.boxShadow = 'var(--ig-shadow-md), var(--ig-shadow-glow)';
             }}
             onBlur={(e) => {
               const target = e.target as HTMLTextAreaElement;
+              target.style.transition = 'border-color 0.2s ease, box-shadow 0.2s ease';
               target.style.borderColor = 'var(--ig-border-glass)';
               target.style.boxShadow = 'var(--ig-shadow-sm)';
             }}
@@ -245,10 +259,24 @@ export default function MessageInput({
         </div>
 
         {/* Right side - Actions */}
-        <div className="flex gap-2" style={{ alignItems: 'flex-end' }}>
+        <div className="flex gap-2 mb-2" style={{ alignItems: 'flex-end' }}>
           {/* Unified Template Button */}
           <button
-            onClick={messageInput.trim() ? handleSaveTemplate : () => setIsTemplateSelectorOpen(true)}
+            ref={templateButtonRef}
+            onClick={() => {
+              if (messageInput.trim()) {
+                handleSaveTemplate();
+              } else {
+                setIsTemplateSelectorOpen(true);
+              }
+              // Reset hover styles when modal opens
+              if (templateButtonRef.current) {
+                templateButtonRef.current.style.background = 'var(--ig-surface-glass-light)';
+                templateButtonRef.current.style.borderColor = 'var(--ig-border-glass)';
+                templateButtonRef.current.style.color = 'var(--ig-text-muted)';
+                templateButtonRef.current.style.transform = 'translateY(0)';
+              }
+            }}
             className="p-3 rounded-xl transition-all duration-300 flex-shrink-0 group"
             style={{
               background: 'var(--ig-surface-glass-light)',

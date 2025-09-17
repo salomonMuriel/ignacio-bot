@@ -485,6 +485,8 @@ async def send_message_unified(
                             conversation_id=parsed_conversation_id,
                         )
                         print(f"[CHAT] File uploaded successfully: {uploaded_file.id}")
+                        # Add file-conversation relationship for new uploads to existing conversations
+                        await db_service.add_file_to_conversation(uploaded_file.id, parsed_conversation_id)
                     except Exception as e:
                         print(f"[CHAT] ERROR: File upload failed: {str(e)}")
                         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
@@ -545,6 +547,8 @@ async def send_message_unified(
                         uploaded_file.id,
                         {"conversation_id": str(agent_result.conversation_id)}
                     )
+                    # Add file-conversation relationship for new uploads
+                    await db_service.add_file_to_conversation(uploaded_file.id, agent_result.conversation_id)
                 elif existing_file_record:
                     # Link existing file to the new conversation
                     print(f"[CHAT] Adding existing file {existing_file_record.id} to new conversation {agent_result.conversation_id}")
