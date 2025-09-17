@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useNavigate } from 'react-router-dom';
-import type { Conversation, OptimisticMessage, MessageResponse } from '@/types';
+import type { Conversation, OptimisticMessage, MessageResponse, UserFileWithConversations } from '@/types';
 import { OptimisticMessageStatus, MessageType } from '@/types';
 import ChatLoadingScreen from '../components/ui/ChatLoadingScreen';
 import AuthRequiredScreen from '../components/ui/AuthRequiredScreen';
@@ -24,7 +24,7 @@ export default function ChatPage() {
   } = useConversations();
   const navigate = useNavigate();
   const [messageInput, setMessageInput] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | UserFileWithConversations | null>(null);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -108,15 +108,16 @@ export default function ChatPage() {
   const handleSendMessage = async () => {
     if ((!messageInput.trim() && !selectedFile) || !activeProject || isSending) return;
 
-    const messageContent = messageInput.trim() || (selectedFile ? `[File: ${selectedFile.name}]` : '');
+    const messageContent = messageInput.trim() || (selectedFile ? `[File: ${selectedFile instanceof File ? selectedFile.name : selectedFile.file_name}]` : '');
 
     console.log('[ChatPage] Starting message send:', {
       hasText: !!messageInput.trim(),
       hasFile: !!selectedFile,
       fileInfo: selectedFile ? {
-        name: selectedFile.name,
-        size: selectedFile.size,
-        type: selectedFile.type
+        name: selectedFile instanceof File ? selectedFile.name : selectedFile.file_name,
+        size: selectedFile instanceof File ? selectedFile.size : selectedFile.file_size,
+        type: selectedFile instanceof File ? selectedFile.type : selectedFile.file_type,
+        isExistingFile: !(selectedFile instanceof File)
       } : null,
       conversationId: activeConversation?.id,
       projectId: activeProject?.id
@@ -148,14 +149,29 @@ export default function ChatPage() {
         content: messageContent,
         conversationId: activeConversation?.id,
         hasFile: !!fileToSend,
-        fileSize: fileToSend?.size
+        fileSize: fileToSend ? (fileToSend instanceof File ? fileToSend.size : fileToSend.file_size) : null,
+        isExistingFile: fileToSend ? !(fileToSend instanceof File) : false
       });
 
-      const response = await sendMessage({
+      const sendParams: {
+        content: string;
+        conversationId?: string;
+        file?: File;
+        existingFileId?: string;
+      } = {
         content: messageContent,
         conversationId: activeConversation?.id,
-        file: fileToSend || undefined
-      });
+      };
+
+      if (fileToSend) {
+        if (fileToSend instanceof File) {
+          sendParams.file = fileToSend;
+        } else {
+          sendParams.existingFileId = fileToSend.id;
+        }
+      }
+
+      const response = await sendMessage(sendParams);
 
       console.log('[ChatPage] Message sent successfully:', {
         responseId: response.conversation_id,
@@ -173,9 +189,10 @@ export default function ChatPage() {
         error: error instanceof Error ? error.message : error,
         hasFile: !!fileToSend,
         fileInfo: fileToSend ? {
-          name: fileToSend.name,
-          size: fileToSend.size,
-          type: fileToSend.type
+          name: fileToSend instanceof File ? fileToSend.name : fileToSend.file_name,
+          size: fileToSend instanceof File ? fileToSend.size : fileToSend.file_size,
+          type: fileToSend instanceof File ? fileToSend.type : fileToSend.file_type,
+          isExistingFile: !(fileToSend instanceof File)
         } : null
       });
 

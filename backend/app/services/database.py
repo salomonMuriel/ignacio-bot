@@ -717,16 +717,75 @@ class DatabaseService:
     async def get_prompt_templates_by_tags(self, tags: list[str], active_only: bool = True) -> list[PromptTemplate]:
         """Get prompt templates that contain any of the specified tags"""
         query = self.client.table("prompt_templates").select("*")
-        
+
         if active_only:
             query = query.eq("is_active", True)
-            
+
         # Use overlap operator to find templates with any matching tags
         if tags:
             query = query.filter("tags", "ov", tags)
-            
+
         response = query.order("created_at", desc=True).execute()
         return [PromptTemplate(**item) for item in response.data]
+
+    # File-Conversation relationship operations
+    async def add_file_to_conversation(self, file_id: UUID, conversation_id: UUID) -> bool:
+        """Add a file to a conversation (creates file_conversations relationship)"""
+        try:
+            response = (
+                self.client.table("file_conversations")
+                .insert({
+                    "file_id": str(file_id),
+                    "conversation_id": str(conversation_id)
+                })
+                .execute()
+            )
+            return len(response.data) > 0
+        except Exception:
+            # Relationship might already exist due to UNIQUE constraint
+            return True
+
+    async def get_file_conversations(self, file_id: UUID) -> list[dict]:
+        """Get all conversations where a file has been used"""
+        response = (
+            self.client.table("file_conversations")
+            .select("conversation_id, created_at, conversations(id, title)")
+            .eq("file_id", str(file_id))
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        return [{
+            "conversation_id": item["conversation_id"],
+            "conversation_title": item["conversations"]["title"] if item["conversations"] else "Untitled",
+            "used_at": item["created_at"]
+        } for item in response.data]
+
+    async def get_user_files_with_conversations(self, user_id: UUID) -> list[dict]:
+        """Get all user files with their conversation usage data"""
+        # First get all user files
+        files_response = (
+            self.client.table("user_files")
+            .select("*")
+            .eq("user_id", str(user_id))
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        files_with_conversations = []
+        for file_data in files_response.data:
+            file_obj = UserFile(**file_data)
+
+            # Get conversation data for this file
+            conversations_data = await self.get_file_conversations(file_obj.id)
+
+            files_with_conversations.append({
+                **file_obj.model_dump(),
+                "conversations": conversations_data,
+                "usage_count": len(conversations_data)
+            })
+
+        return files_with_conversations
 
 
 # Global database service instance

@@ -317,3 +317,83 @@ async def delete_file(file_id: str, user_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+
+@router.get("/{file_id}/conversations")
+async def get_file_conversations(file_id: str, user_id: str):
+    """Get all conversations where a file has been used"""
+    try:
+        file_uuid = UUID(file_id)
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    try:
+        from app.services.database import db_service
+
+        # Verify user owns the file
+        file_record = await db_service.get_file_by_id(file_uuid)
+        if not file_record or file_record.user_id != user_uuid:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        conversations = await db_service.get_file_conversations(file_uuid)
+        return conversations
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get file conversations: {str(e)}")
+
+
+@router.post("/{file_id}/reuse")
+async def reuse_file(file_id: str, conversation_id: str, user_id: str):
+    """Reuse an existing file in a conversation"""
+    try:
+        file_uuid = UUID(file_id)
+        conv_uuid = UUID(conversation_id)
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    try:
+        from app.services.database import db_service
+
+        # Verify user owns the file
+        file_record = await db_service.get_file_by_id(file_uuid)
+        if not file_record or file_record.user_id != user_uuid:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # Verify user owns the conversation
+        conversation = await db_service.get_conversation_by_id(conv_uuid)
+        if not conversation or conversation.user_id != user_uuid:
+            raise HTTPException(status_code=403, detail="Access denied to conversation")
+
+        # Add file to conversation
+        success = await db_service.add_file_to_conversation(file_uuid, conv_uuid)
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to reuse file")
+
+        return {"message": "File reused successfully", "file_id": file_id, "conversation_id": conversation_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reuse file: {str(e)}")
+
+
+@router.get("/user/{user_id}/with-conversations")
+async def get_user_files_with_conversations(user_id: str):
+    """Get all files for a user with their conversation usage data"""
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    try:
+        from app.services.database import db_service
+        files_with_conversations = await db_service.get_user_files_with_conversations(user_uuid)
+        return files_with_conversations
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get user files with conversations: {str(e)}")

@@ -226,6 +226,23 @@ export interface UserFile {
   created_at: string;
 }
 
+// Extended UserFile with conversation data for file reuse
+export interface UserFileWithConversations extends UserFile {
+  conversations?: Array<{
+    conversation_id: string;
+    conversation_title: string;
+    used_at: string;
+  }>;
+  usage_count?: number;
+}
+
+// File selection type for modal
+export interface FileSelection {
+  type: 'new' | 'existing';
+  file?: File;
+  userFile?: UserFileWithConversations;
+}
+
 // API response types
 export interface ApiResponse<T> {
   data?: T;

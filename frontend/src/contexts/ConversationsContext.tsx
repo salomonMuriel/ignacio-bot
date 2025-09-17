@@ -55,6 +55,7 @@ interface ConversationsContextType extends ConversationsState {
     conversationId?: string;
     projectId?: string;
     file?: File;
+    existingFileId?: string;
     messageType?: MessageType;
   }) => Promise<AgentMessageResponse>;
   updateConversation: (conversationId: string, updates: { title?: string; project_id?: string }) => Promise<void>;
@@ -269,19 +270,21 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
     conversationId?: string;
     projectId?: string;
     file?: File;
+    existingFileId?: string;
     messageType?: MessageType;
   }): Promise<AgentMessageResponse> => {
     try {
       dispatch({ type: 'MESSAGE_SENDING' });
-      
+
       // Use active project if no project specified
       const projectId = params.projectId || activeProject?.id;
-      
+
       const response = await api.chat.sendMessage({
         content: params.content,
         conversationId: params.conversationId,
         projectId,
         file: params.file,
+        existingFileId: params.existingFileId,
       });
       
       dispatch({ type: 'MESSAGE_SENT', payload: response });

@@ -18,6 +18,7 @@ import type {
   PromptTemplateUpdate,
   TemplateType,
   UserFile,
+  UserFileWithConversations,
 } from '@/types';
 
 // Mock user ID from backend (Phase 2 - no authentication yet)
@@ -233,12 +234,14 @@ export const chatApi = {
     conversationId?: string;
     projectId?: string;
     file?: File;
+    existingFileId?: string; // NEW: Support for reusing existing files
   }): Promise<AgentMessageResponse> {
     console.log('[API] Preparing sendMessage request:', {
       hasContent: !!params.content,
       hasConversationId: !!params.conversationId,
       hasProjectId: !!params.projectId,
       hasFile: !!params.file,
+      hasExistingFileId: !!params.existingFileId,
       fileInfo: params.file ? {
         name: params.file.name,
         size: params.file.size,
@@ -263,6 +266,11 @@ export const chatApi = {
         name: params.file.name,
         size: params.file.size
       });
+    }
+
+    if (params.existingFileId) {
+      formData.append('existing_file_id', params.existingFileId);
+      console.log('[API] Existing file ID attached to FormData:', params.existingFileId);
     }
 
     console.log('[API] Sending request to /messages endpoint');
@@ -438,6 +446,31 @@ const fileApi = {
     }
 
     return response.blob();
+  },
+
+  // NEW: File reuse methods
+
+  // Get files with conversation usage data
+  async getUserFilesWithConversations(userId: string): Promise<UserFileWithConversations[]> {
+    return fileClient.get<UserFileWithConversations[]>(`/user/${userId}/with-conversations`);
+  },
+
+  // Get conversation history for a specific file
+  async getFileConversations(fileId: string, userId: string): Promise<Array<{
+    conversation_id: string;
+    conversation_title: string;
+    used_at: string;
+  }>> {
+    return fileClient.get(`/${fileId}/conversations?user_id=${userId}`);
+  },
+
+  // Reuse an existing file in a conversation
+  async reuseFile(fileId: string, conversationId: string, userId: string): Promise<{
+    message: string;
+    file_id: string;
+    conversation_id: string;
+  }> {
+    return fileClient.post(`/${fileId}/reuse?conversation_id=${conversationId}&user_id=${userId}`, {});
   },
 };
 

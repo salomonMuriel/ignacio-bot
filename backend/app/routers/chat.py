@@ -349,20 +349,23 @@ async def send_message_unified(
     content: str = Form(...),
     conversation_id: str = Form(None),
     project_id: str = Form(None),
-    file: UploadFile = File(None)
+    file: UploadFile = File(None),
+    existing_file_id: str = Form(None)
 ):
     """Unified endpoint for sending messages - handles both new conversations and continuing existing ones
 
     - If conversation_id is provided: continues existing conversation
     - If conversation_id is not provided: creates new conversation with auto-generated title
-    - Supports optional file attachment (single image or PDF)
+    - Supports optional file attachment (single image or PDF) OR existing file reuse
+    - File options: either 'file' (new upload) or 'existing_file_id' (reuse existing file)
     - For new conversations, project_id can be specified for project context
     """
     print(f"[CHAT] Received message request:")
     print(f"  - Content length: {len(content)}")
     print(f"  - Conversation ID: {conversation_id}")
     print(f"  - Project ID: {project_id}")
-    print(f"  - File attached: {file.filename if file and file.filename else 'None'}")
+    print(f"  - New file attached: {file.filename if file and file.filename else 'None'}")
+    print(f"  - Existing file ID: {existing_file_id}")
     if file and file.filename:
         print(f"  - File size: {file.size if hasattr(file, 'size') else 'Unknown'}")
         print(f"  - File type: {file.content_type}")
@@ -384,11 +387,46 @@ async def send_message_unified(
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid project_id format")
 
-        # Handle file upload if provided
+        # Validate file input - only one file method allowed
+        if file and file.filename and existing_file_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot provide both new file and existing_file_id. Choose one."
+            )
+
+        # Handle file upload or existing file reuse
         uploaded_file = None
         file_content_data = None
+        existing_file_record = None
 
-        if file and file.filename:
+        if existing_file_id:
+            print(f"[CHAT] Processing existing file reuse: {existing_file_id}")
+            try:
+                existing_file_uuid = UUID(existing_file_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid existing_file_id format")
+
+            # Get existing file record and verify ownership
+            existing_file_record = await db_service.get_file_by_id(existing_file_uuid)
+            if not existing_file_record:
+                raise HTTPException(status_code=404, detail="Existing file not found")
+
+            if existing_file_record.user_id != TEMP_USER_ID:
+                raise HTTPException(status_code=403, detail="Access denied to existing file")
+
+            # Prepare file content data from existing file
+            try:
+                file_content = await storage_service.download_file(existing_file_uuid, TEMP_USER_ID)
+                if file_content is None:
+                    raise HTTPException(status_code=404, detail="Existing file content not found")
+
+                file_content_data = [(file_content, existing_file_record.file_name, existing_file_record.file_type)]
+                print(f"[CHAT] Existing file loaded successfully: {existing_file_record.file_name}")
+            except Exception as e:
+                print(f"[CHAT] ERROR: Failed to load existing file: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Failed to load existing file: {str(e)}")
+
+        elif file and file.filename:
             print(f"[CHAT] Processing file upload: {file.filename}")
 
             # Validate file type - only accept PDFs and images
@@ -424,21 +462,32 @@ async def send_message_unified(
                     detail="Conversation not found"
                 )
 
-            # Upload file if provided and associate with conversation
+            # Handle file for conversation
             if file_content_data:
-                print(f"[CHAT] Uploading file to storage for conversation {parsed_conversation_id}")
-                try:
-                    uploaded_file = await storage_service.upload_file(
-                        user_id=TEMP_USER_ID,
-                        file_content=file_content_data[0][0],
-                        file_name=file_content_data[0][1],
-                        content_type=file_content_data[0][2],
-                        conversation_id=parsed_conversation_id,
-                    )
-                    print(f"[CHAT] File uploaded successfully: {uploaded_file.id}")
-                except Exception as e:
-                    print(f"[CHAT] ERROR: File upload failed: {str(e)}")
-                    raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+                if existing_file_record:
+                    # Reuse existing file - add to conversation relationship
+                    print(f"[CHAT] Adding existing file {existing_file_record.id} to conversation {parsed_conversation_id}")
+                    try:
+                        await db_service.add_file_to_conversation(existing_file_record.id, parsed_conversation_id)
+                        print(f"[CHAT] Existing file added to conversation successfully")
+                    except Exception as e:
+                        print(f"[CHAT] ERROR: Failed to add existing file to conversation: {str(e)}")
+                        raise HTTPException(status_code=500, detail=f"Failed to add existing file to conversation: {str(e)}")
+                else:
+                    # Upload new file and associate with conversation
+                    print(f"[CHAT] Uploading file to storage for conversation {parsed_conversation_id}")
+                    try:
+                        uploaded_file = await storage_service.upload_file(
+                            user_id=TEMP_USER_ID,
+                            file_content=file_content_data[0][0],
+                            file_name=file_content_data[0][1],
+                            content_type=file_content_data[0][2],
+                            conversation_id=parsed_conversation_id,
+                        )
+                        print(f"[CHAT] File uploaded successfully: {uploaded_file.id}")
+                    except Exception as e:
+                        print(f"[CHAT] ERROR: File upload failed: {str(e)}")
+                        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
             print(f"[CHAT] Calling Agent SDK to continue conversation...")
             # Process message with Agent SDK
@@ -456,8 +505,10 @@ async def send_message_unified(
         else:
             print(f"[CHAT] Starting new conversation with project {parsed_project_id}")
             # Start new conversation
-            # Upload file if provided (conversation_id will be set after creation)
-            if file_content_data:
+            # Handle file for new conversation
+            if file_content_data and not existing_file_record:
+                # Only upload new files for new conversations
+                # Existing files will be linked after conversation creation
                 print(f"[CHAT] Uploading file to storage for new conversation")
                 try:
                     uploaded_file = await storage_service.upload_file(
@@ -486,13 +537,24 @@ async def send_message_unified(
                 print(f"[CHAT] ERROR: Agent SDK conversation start failed: {str(e)}")
                 raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
             
-            # Update uploaded file with conversation_id if file was uploaded
-            if uploaded_file and hasattr(agent_result, 'conversation_id'):
-                # Update the file record with the conversation_id
-                await db_service.update_user_file(
-                    uploaded_file.id, 
-                    {"conversation_id": str(agent_result.conversation_id)}
-                )
+            # Handle file-conversation relationships after conversation creation
+            if hasattr(agent_result, 'conversation_id'):
+                if uploaded_file:
+                    # Update the uploaded file record with the conversation_id
+                    await db_service.update_user_file(
+                        uploaded_file.id,
+                        {"conversation_id": str(agent_result.conversation_id)}
+                    )
+                elif existing_file_record:
+                    # Link existing file to the new conversation
+                    print(f"[CHAT] Adding existing file {existing_file_record.id} to new conversation {agent_result.conversation_id}")
+                    try:
+                        await db_service.add_file_to_conversation(existing_file_record.id, agent_result.conversation_id)
+                        print(f"[CHAT] Existing file added to new conversation successfully")
+                    except Exception as e:
+                        print(f"[CHAT] ERROR: Failed to add existing file to new conversation: {str(e)}")
+                        # Don't fail the whole request if file linking fails
+                        pass
 
         # Handle the case where agent_result might be a dict due to an error
         conversation_id_result = None

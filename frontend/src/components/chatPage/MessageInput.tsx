@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import PromptTemplateSelector from './PromptTemplateSelector';
 import SaveTemplateModal from './SaveTemplateModal';
 import FileAttachmentModal from './FileAttachmentModal';
-import type { PromptTemplate, UserFile } from '@/types';
+import type { PromptTemplate, UserFile, UserFileWithConversations } from '@/types';
 
 interface MessageInputProps {
   messageInput: string;
@@ -10,8 +10,8 @@ interface MessageInputProps {
   isSending: boolean;
   onSendMessage: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
-  selectedFile?: File | UserFile | null;
-  onFileSelect: (file: File | UserFile | null) => void;
+  selectedFile?: File | UserFileWithConversations | null;
+  onFileSelect: (file: File | UserFileWithConversations | null) => void;
 }
 
 export default function MessageInput({
@@ -50,7 +50,7 @@ export default function MessageInput({
     setTemplateRefreshTrigger(prev => prev + 1); // Trigger template list refresh
   };
 
-  const handleFileModalSelect = (file: File | UserFile) => {
+  const handleFileModalSelect = (file: File | UserFileWithConversations) => {
     console.log('[MessageInput] File selected from modal:', file);
     setFileError(null);
     onFileSelect(file);
@@ -182,6 +182,9 @@ export default function MessageInput({
                     <span className="text-xs" style={{ color: 'var(--ig-text-muted)' }}>
                       {((selectedFile instanceof File ? selectedFile.size : selectedFile.file_size) / 1024 / 1024).toFixed(1)} MB
                       {selectedFile instanceof File ? '' : ' • Previous file'}
+                      {!(selectedFile instanceof File) && 'usage_count' in selectedFile && selectedFile.usage_count && selectedFile.usage_count > 0 && (
+                        ` • Used ${selectedFile.usage_count} time${selectedFile.usage_count > 1 ? 's' : ''}`
+                      )}
                     </span>
                   </div>
                 </div>

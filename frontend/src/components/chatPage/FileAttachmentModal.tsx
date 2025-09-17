@@ -1,17 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import type { UserFile } from '@/types';
+import { useConversations } from '../../contexts/ConversationsContext';
+import type { UserFile, UserFileWithConversations } from '@/types';
 
 interface FileAttachmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onFileSelect: (file: File | UserFile) => void;
+  onFileSelect: (file: File | UserFileWithConversations) => void;
 }
 
 interface FileSelectionState {
   newFile: File | null;
-  selectedExistingFile: UserFile | null;
+  selectedExistingFile: UserFileWithConversations | null;
 }
 
 export default function FileAttachmentModal({
@@ -20,16 +21,18 @@ export default function FileAttachmentModal({
   onFileSelect
 }: FileAttachmentModalProps) {
   const { user } = useAuth();
+  const { conversations } = useConversations();
   const [activeTab, setActiveTab] = useState<'upload' | 'existing'>('upload');
   const [fileSelection, setFileSelection] = useState<FileSelectionState>({
     newFile: null,
     selectedExistingFile: null
   });
-  const [userFiles, setUserFiles] = useState<UserFile[]>([]);
+  const [userFiles, setUserFiles] = useState<UserFileWithConversations[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [fileTypeFilter, setFileTypeFilter] = useState<'all' | 'images' | 'pdfs'>('all');
+  const [conversationFilter, setConversationFilter] = useState<'all' | string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'size'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -50,6 +53,7 @@ export default function FileAttachmentModal({
       setError(null);
       setSearchQuery('');
       setFileTypeFilter('all');
+      setConversationFilter('all');
       setSortBy('date');
       setSortOrder('desc');
     }
@@ -94,7 +98,7 @@ export default function FileAttachmentModal({
 
     setIsLoadingFiles(true);
     try {
-      const files = await api.files.getUserFiles(user.id);
+      const files = await api.files.getUserFilesWithConversations(user.id);
       setUserFiles(files);
     } catch (err) {
       setError('Failed to load your files');
@@ -160,7 +164,7 @@ export default function FileAttachmentModal({
     }
   };
 
-  const handleExistingFileSelect = (file: UserFile) => {
+  const handleExistingFileSelect = (file: UserFileWithConversations) => {
     setFileSelection({ newFile: null, selectedExistingFile: file });
   };
 
@@ -202,7 +206,13 @@ export default function FileAttachmentModal({
         matchesType = file.file_type === 'application/pdf';
       }
 
-      return matchesSearch && matchesType;
+      // Conversation filter
+      let matchesConversation = true;
+      if (conversationFilter !== 'all') {
+        matchesConversation = file.conversations?.some(conv => conv.conversation_id === conversationFilter) || false;
+      }
+
+      return matchesSearch && matchesType && matchesConversation;
     })
     .sort((a, b) => {
       let aVal: any, bVal: any;
@@ -461,6 +471,23 @@ export default function FileAttachmentModal({
                   <option value="pdfs">PDFs</option>
                 </select>
                 <select
+                  value={conversationFilter}
+                  onChange={(e) => setConversationFilter(e.target.value)}
+                  className="px-3 py-2 rounded-lg text-sm transition-all duration-200"
+                  style={{
+                    background: 'var(--ig-surface-glass-light)',
+                    border: '1px solid var(--ig-border-glass)',
+                    color: 'var(--ig-text-primary)'
+                  }}
+                >
+                  <option value="all">All Conversations</option>
+                  {conversations.map(conv => (
+                    <option key={conv.id} value={conv.id}>
+                      {conv.title || `Conversation ${conv.id.slice(0, 8)}`}
+                    </option>
+                  ))}
+                </select>
+                <select
                   value={`${sortBy}-${sortOrder}`}
                   onChange={(e) => {
                     const [sort, order] = e.target.value.split('-');
@@ -604,7 +631,48 @@ export default function FileAttachmentModal({
                               <span>{formatFileSize(file.file_size)}</span>
                               <span>•</span>
                               <span>{formatDate(file.created_at)}</span>
+                              {file.usage_count && file.usage_count > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span title={`Used in ${file.usage_count} conversation${file.usage_count > 1 ? 's' : ''}`}>
+                                    {file.usage_count} use{file.usage_count > 1 ? 's' : ''}
+                                  </span>
+                                </>
+                              )}
                             </div>
+                            {file.conversations && file.conversations.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {file.conversations.slice(0, 3).map((conv, index) => (
+                                  <span
+                                    key={conv.conversation_id}
+                                    className="inline-block px-2 py-0.5 rounded text-xs"
+                                    style={{
+                                      background: 'var(--ig-surface-glass-dark)',
+                                      color: 'var(--ig-text-muted)',
+                                      border: '1px solid var(--ig-border-glass)'
+                                    }}
+                                    title={`Used in: ${conv.conversation_title}`}
+                                  >
+                                    {conv.conversation_title.length > 15
+                                      ? `${conv.conversation_title.slice(0, 15)}...`
+                                      : conv.conversation_title}
+                                  </span>
+                                ))}
+                                {file.conversations.length > 3 && (
+                                  <span
+                                    className="inline-block px-2 py-0.5 rounded text-xs"
+                                    style={{
+                                      background: 'var(--ig-surface-glass-dark)',
+                                      color: 'var(--ig-text-muted)',
+                                      border: '1px solid var(--ig-border-glass)'
+                                    }}
+                                    title={`+${file.conversations.length - 3} more conversations`}
+                                  >
+                                    +{file.conversations.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                           {fileSelection.selectedExistingFile?.id === file.id && (
                             <div className="p-1 rounded-full" style={{ background: 'var(--ig-accent-primary)' }}>
