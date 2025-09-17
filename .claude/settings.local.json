@@ -25,7 +25,9 @@
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
       "Bash(npm create:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebSearch",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

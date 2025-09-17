@@ -14,7 +14,7 @@
 1. **Web Frontend** - React 19.1 application with global state management
 2. **REST API Backend** - FastAPI Python application
 3. **WhatsApp Service** - Integration service for WhatsApp Business API
-4. **AI Processing Service** - OpenAI Agent SDK with 8 specialized agents
+4. **AI Processing Service** - OpenAI Agent SDK with 8 specialized domain experts and handoff monitoring
 5. **File Processing Service** - Media, document handling, and vector store integration
 6. **Authentication Service** - OTP and session management
 7. **Project Management Service** - Multi-project context management
@@ -99,3 +99,40 @@
 - **Conversation Linking**: Many-to-many relationship between files and conversations
 - **Usage Tracking**: Track file reuse patterns and conversation associations
 - **Database Schema**: Junction table `file_conversations` for many-to-many relationships
+
+## 6. AI Agent System Architecture (REFACTORED - September 2025)
+
+### Multi-Agent Framework
+- **Main Coordinator**: Ignacio agent orchestrates specialist handoffs
+- **8 Domain Experts**: Specialized agents with domain-specific instructions and tool knowledge
+- **Project Context Integration**: All agents receive user project context automatically
+- **Lifecycle Monitoring**: Comprehensive hooks track agent interactions and handoffs
+
+### Domain Specialists
+1. **Marketing Expert** - Customer acquisition, growth strategies, digital marketing tools
+2. **Technology Expert** - Tech stack selection, development workflows, infrastructure
+3. **Finance Expert** - Business models, funding strategies, financial planning tools
+4. **Sustainability Expert** - ESG strategies, impact measurement, environmental tools
+5. **Legal/Compliance Expert** - Business formation, contracts, regulatory compliance
+6. **Operations Expert** - Process optimization, supply chain, workflow automation
+7. **Product/Design Expert** - UX/UI design, product development, user research
+8. **Sales Expert** - Sales strategy, pipeline management, CRM tools
+
+### Agent Instruction System
+- **Base Personality**: Shared entrepreneurial mentor characteristics across all agents
+- **Domain-Specific Instructions**: Researched tool recommendations and specialized knowledge
+- **Project Diversity Support**: NGOs, foundations, traditional companies, not just tech startups
+- **Tech-Optimization Focus**: All agents suggest appropriate tools for automation and efficiency
+- **Adaptive Mentoring**: Balance between Socratic questioning and direct assistance
+
+### Monitoring and Logging
+- **[PROJECT_CONTEXT]** - Agent creation and instruction generation
+- **[AI_SERVICE]** - Service operations and agent setup
+- **[AGENT_LIFECYCLE]** - Agent start/end events
+- **[AGENT_HANDOFF]** - Inter-agent handoffs with context information
+- **[AGENT_TOOL]** - Specialist tool usage and results
+
+### Testing Infrastructure
+- **Quick Test**: `uv run python quick_test.py` - 30-second system validation
+- **Comprehensive Test**: `uv run python test_agent_system.py` - Full system validation
+- **Handoff Test**: `uv run python test_handoff_hooks.py` - Lifecycle hooks validation

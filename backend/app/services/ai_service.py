@@ -11,7 +11,7 @@ import time
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from agents import Agent, Runner
+from agents import Agent, Runner, RunHooks, RunContextWrapper, Tool
 from openai import OpenAI
 from app.models.database import ConversationResult, MessageCreate, MessageType, UserFile
 from app.services.database import db_service
@@ -23,6 +23,73 @@ from app.services.project_context_service import (
 from app.services.storage import storage_service
 
 
+class IgnacioRunHooks(RunHooks[ProjectContext]):
+    """Custom lifecycle hooks for monitoring agent handoffs and operations"""
+
+    async def on_agent_start(
+        self,
+        context: RunContextWrapper[ProjectContext],
+        agent: Agent[ProjectContext]
+    ) -> None:
+        """Called when an agent starts processing"""
+        print(f"[AGENT_LIFECYCLE] 🚀 Agent started: {agent.name}")
+
+    async def on_agent_end(
+        self,
+        context: RunContextWrapper[ProjectContext],
+        agent: Agent[ProjectContext],
+        output: str
+    ) -> None:
+        """Called when an agent finishes processing"""
+        print(f"[AGENT_LIFECYCLE] ✅ Agent completed: {agent.name} (output: {len(output)} chars)")
+
+    async def on_handoff(
+        self,
+        context: RunContextWrapper[ProjectContext],
+        from_agent: Agent[ProjectContext],
+        to_agent: Agent[ProjectContext]
+    ) -> None:
+        """Called when a handoff occurs between agents"""
+        user_info = f"User: {context.context.user_name or context.context.user_id}"
+        project_info = f"Project: {context.context.project_name or 'No project'}"
+
+        print(f"[AGENT_HANDOFF] 🔄 Handoff detected!")
+        print(f"[AGENT_HANDOFF]   From: {from_agent.name}")
+        print(f"[AGENT_HANDOFF]   To: {to_agent.name}")
+        print(f"[AGENT_HANDOFF]   Context: {user_info}, {project_info}")
+
+    async def on_tool_start(
+        self,
+        context: RunContextWrapper[ProjectContext],
+        agent: Agent[ProjectContext],
+        tool: Tool
+    ) -> None:
+        """Called when a tool starts executing"""
+        # Get tool name for logging
+        tool_name = getattr(tool, 'name', str(tool))
+
+        # Only log specialist agent tools (handoffs), not internal tools
+        if tool_name.endswith('_expert'):
+            print(f"[AGENT_TOOL] 🔧 {agent.name} calling specialist: {tool_name}")
+
+    async def on_tool_end(
+        self,
+        context: RunContextWrapper[ProjectContext],
+        agent: Agent[ProjectContext],
+        tool: Tool,
+        result: str
+    ) -> None:
+        """Called when a tool finishes executing"""
+        # Get tool name for logging
+        tool_name = getattr(tool, 'name', str(tool))
+
+        # Only log specialist agent tools (handoffs), not internal tools
+        if tool_name.endswith('_expert'):
+            output_preview = result[:100] + "..." if len(result) > 100 else result
+            print(f"[AGENT_TOOL] ✅ {tool_name} completed for {agent.name}")
+            print(f"[AGENT_TOOL]   Output preview: {output_preview}")
+
+
 class IgnacioAgentService:
     """Simple OpenAI Agent SDK-based service for Ignacio Bot"""
 
@@ -32,32 +99,70 @@ class IgnacioAgentService:
 
     def _setup_agents(self):
         """Create the main agent and sub-agents with project context awareness"""
+        print("[AI_SERVICE] Setting up agents with new domain-specific system...")
 
-        # Specialist sub-agents with project context
+        # Specialist sub-agents with project context and domain-specific instructions
+        print("[AI_SERVICE] Creating Marketing Expert agent...")
         self.marketing_agent = project_context_service.create_project_aware_agent(
             agent_name="Marketing Expert",
-            base_instructions="You are a marketing specialist for Action Lab participants. Focus on practical, actionable marketing advice tailored to their specific project context.",
+            domain="marketing"
         )
         self.marketing_agent.handoff_description = "Marketing expert for market research, customer acquisition, and growth strategies"
 
+        print("[AI_SERVICE] Creating Technology Expert agent...")
         self.tech_agent = project_context_service.create_project_aware_agent(
             agent_name="Technology Expert",
-            base_instructions="You are a technology specialist for Action Lab participants. Provide practical technical guidance tailored to their specific project and stage.",
+            domain="technology"
         )
         self.tech_agent.handoff_description = "Technology expert for tech stack selection, development, and architecture decisions"
 
+        print("[AI_SERVICE] Creating Finance Expert agent...")
         self.finance_agent = project_context_service.create_project_aware_agent(
             agent_name="Finance Expert",
-            base_instructions="You are a finance specialist for Action Lab participants. Help with business models, funding, and financial planning based on their specific project context.",
+            domain="finance"
         )
         self.finance_agent.handoff_description = "Finance expert for business models, funding strategies, and financial planning"
 
+        # New specialist agents
+        print("[AI_SERVICE] Creating Sustainability Expert agent...")
+        self.sustainability_agent = project_context_service.create_project_aware_agent(
+            agent_name="Sustainability Expert",
+            domain="sustainability"
+        )
+        self.sustainability_agent.handoff_description = "Sustainability expert for ESG strategies, impact measurement, and environmental considerations"
+
+        print("[AI_SERVICE] Creating Legal & Compliance Expert agent...")
+        self.legal_agent = project_context_service.create_project_aware_agent(
+            agent_name="Legal & Compliance Expert",
+            domain="legal"
+        )
+        self.legal_agent.handoff_description = "Legal and compliance expert for business formation, contracts, and regulatory requirements"
+
+        print("[AI_SERVICE] Creating Operations Expert agent...")
+        self.operations_agent = project_context_service.create_project_aware_agent(
+            agent_name="Operations Expert",
+            domain="operations"
+        )
+        self.operations_agent.handoff_description = "Operations expert for process optimization, supply chain, and workflow automation"
+
+        print("[AI_SERVICE] Creating Product & Design Expert agent...")
+        self.product_agent = project_context_service.create_project_aware_agent(
+            agent_name="Product & Design Expert",
+            domain="product"
+        )
+        self.product_agent.handoff_description = "Product and design expert for UX/UI design, product development, and user research"
+
+        print("[AI_SERVICE] Creating Sales Expert agent...")
+        self.sales_agent = project_context_service.create_project_aware_agent(
+            agent_name="Sales Expert",
+            domain="sales"
+        )
+        self.sales_agent.handoff_description = "Sales expert for sales strategy, pipeline management, and customer relationships"
+
         # Main entry agent with sub-agents as tools and project context awareness
+        print("[AI_SERVICE] Creating main Ignacio agent with all 8 specialists...")
         context_tools = project_context_service.get_context_tools()
-        self.ignacio_agent = Agent[ProjectContext](
-            name="Ignacio",
-            instructions=create_project_aware_instructions,
-            tools=[
+        specialist_tools = [
                 self.marketing_agent.as_tool(
                     tool_name="marketing_expert",
                     tool_description="Consult marketing specialist for market research, customer acquisition, and growth strategies"
@@ -69,9 +174,39 @@ class IgnacioAgentService:
                 self.finance_agent.as_tool(
                     tool_name="finance_expert",
                     tool_description="Consult finance specialist for business models, funding, and financial planning"
+                ),
+                self.sustainability_agent.as_tool(
+                    tool_name="sustainability_expert",
+                    tool_description="Consult sustainability specialist for ESG strategies, impact measurement, and environmental considerations"
+                ),
+                self.legal_agent.as_tool(
+                    tool_name="legal_expert",
+                    tool_description="Consult legal and compliance specialist for business formation, contracts, and regulatory requirements"
+                ),
+                self.operations_agent.as_tool(
+                    tool_name="operations_expert",
+                    tool_description="Consult operations specialist for process optimization, supply chain, and workflow automation"
+                ),
+                self.product_agent.as_tool(
+                    tool_name="product_expert",
+                    tool_description="Consult product and design specialist for UX/UI design, product development, and user research"
+                ),
+                self.sales_agent.as_tool(
+                    tool_name="sales_expert",
+                    tool_description="Consult sales specialist for sales strategy, pipeline management, and customer relationships"
                 )
-            ] + context_tools
+            ]
+
+        all_tools = specialist_tools + context_tools
+        print(f"[AI_SERVICE] Main agent configured with {len(specialist_tools)} specialist tools and {len(context_tools)} context tools")
+
+        self.ignacio_agent = Agent[ProjectContext](
+            name="Ignacio",
+            instructions=create_project_aware_instructions,
+            tools=all_tools
         )
+
+        print(f"[AI_SERVICE] Agent setup complete! Main agent '{self.ignacio_agent.name}' ready with {len(all_tools)} total tools")
 
     async def generate_conversation_title(self, initial_message: str) -> str:
         """Generate a conversation title using OpenAI's gpt-4o-mini model"""
@@ -231,11 +366,17 @@ class IgnacioAgentService:
             ]
 
             print(f"[AI_SERVICE] Calling Agent SDK with {len(agent_messages)} message(s)")
-            # Run the main agent with context and file attachments
+
+            # Create lifecycle hooks for monitoring handoffs
+            hooks = IgnacioRunHooks()
+            print(f"[AI_SERVICE] Lifecycle hooks enabled for handoff monitoring")
+
+            # Run the main agent with context, file attachments, and lifecycle hooks
             result = await Runner.run(
                 self.ignacio_agent,
                 agent_messages,
-                context=project_context
+                context=project_context,
+                hooks=hooks
             )
             print(f"[AI_SERVICE] Agent SDK completed successfully")
 

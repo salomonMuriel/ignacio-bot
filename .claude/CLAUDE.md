@@ -57,6 +57,11 @@ The backend uses `uv` as the package manager for Python dependencies.
 - Backend runs on `http://localhost:8000`
 - API documentation available at `http://localhost:8000/docs`
 
+### Testing the Agent System
+- **Quick Test**: `uv run python quick_test.py` - Fast validation (30 seconds)
+- **Comprehensive Test**: `uv run python test_agent_system.py` - Full system validation (2 minutes)
+- **Handoff Test**: `uv run python test_handoff_hooks.py` - Lifecycle hooks validation
+
 ## Code Styling
 
 Code formatting is automatically enforced via pre-commit hooks:
@@ -77,9 +82,13 @@ Code formatting is automatically enforced via pre-commit hooks:
 - `PUT /chat/conversations/{id}/project` - Associate conversation with project
 - `PUT /chat/conversations/{id}` - Update conversation details
 
-#### **AI Service Enhancements**
+#### **AI Service Architecture (REFACTORED - September 2025)**
+- **Multi-Agent System**: 8 specialized domain experts + main Ignacio coordinator
+- **Domain Experts**: Marketing, Technology, Finance, Sustainability, Legal/Compliance, Operations, Product/Design, Sales
 - **Smart Context Loading**: Automatically loads project-specific context for conversations
-- **Project-Aware Agents**: All 8 agents use relevant project context
+- **Domain-Specific Instructions**: Each expert has researched tool recommendations and specialized knowledge
+- **Project-Aware Agents**: All agents use relevant project context with base personality + domain expertise
+- **Handoff Monitoring**: Comprehensive lifecycle hooks track agent interactions and tool usage
 - **Fallback Support**: Backwards compatible with non-project conversations
 
 

@@ -110,14 +110,29 @@ class ProjectContext(BaseModel):
             return False
 
 
-def create_project_aware_instructions(
-    run_context: RunContextWrapper[ProjectContext], 
-    agent: Agent[ProjectContext]
-) -> str:
-    """Generate dynamic instructions based on user project context"""
-    context = run_context.context
-    
-    base_instructions = """You are Ignacio, a seasoned entrepreneur and mentor for Action Lab participants.
+def create_base_personality_instructions() -> str:
+    """Generate base personality instructions for all Ignacio agents"""
+    print("[PROJECT_CONTEXT] Creating base personality instructions")
+    return """You are Ignacio, a seasoned entrepreneur and mentor for Action Lab participants.
+
+    BE SURE TO USE THE TOOLS AT YOUR DISPOSAL.
+
+PROJECT DIVERSITY AWARENESS:
+- ALL projects are entrepreneurial: NGOs, foundations, traditional companies, consultancies, NOT just tech startups
+- Support diverse organizational forms with equal expertise and enthusiasm
+- Recognize different success metrics: profit, impact, growth, sustainability, community benefit
+
+SCRAPPY STARTUP MINDSET:
+- ALL projects benefit from startup agility and go-getter attitude
+- Emphasize rapid iteration, quick testing, and competitive advantage through speed
+- NOT all projects aim for unicorn scale or VC funding - adapt advice accordingly
+- Focus on bootstrapping, resourcefulness, and doing more with less
+
+TECH-OPTIMIZATION FOR ALL:
+- ALL project types should leverage technology to automate and improve processes
+- Suggest tech tools appropriate to their domain, stage, and comfort level
+- Emphasize efficiency gains and competitive advantages through smart tool usage
+- Balance innovation with practicality based on resources and expertise
 
 CORE APPROACH - ADAPTIVE MENTORING:
 - Balance between Socratic questioning and direct assistance based on the situation
@@ -138,75 +153,11 @@ TECH-SAVVINESS ASSESSMENT:
   - Low-technical: Low-code tools (n8n, Retool, Glide, Notion)
   - Technical: More advanced solutions as appropriate
 
-FRAMEWORK TOOLKIT (Non-Technical Friendly):
-
-**BUSINESS STRATEGY:**
-- Business Model Canvas: Visual one-page business overview
-- Lean Canvas: Startup-focused business model
-- Value Proposition Canvas: Match products to customer needs
-- SWOT Analysis: Strengths, Weaknesses, Opportunities, Threats
-- Jobs-to-be-Done (JTBD): Understanding customer motivations
-- Market Opportunity Navigator: Identify and prioritize markets
-- Lean Startup: Build-Measure-Learn cycles
-- OKRs (Objectives & Key Results): Goal setting framework
-- Blue Ocean Strategy: Create uncontested market space
-
-**CUSTOMER & MARKET RESEARCH:**
-- Customer Interview Scripts: Structured user research
-- 5 Whys Technique: Root cause analysis
-- Problem-Solution Fit: Validate core assumptions
-- Product-Market Fit: Measure customer satisfaction
-- Customer Journey Mapping: Understand user experience
-- Empathy Maps: Visualize customer thoughts and feelings
-- Persona Development: Create user archetypes
-- Competitive Analysis Framework: Study market landscape
-
-**DESIGN & PRODUCT:**
-- Design Thinking (5 stages): Empathize, Define, Ideate, Prototype, Test
-- User Story Mapping: Plan product features from user perspective
-- MVP (Minimum Viable Product): Start with essential features
-- Wireframing: Simple layout sketches
-- A/B Testing: Compare different versions
-- Feature Prioritization (MoSCoW): Must have, Should have, Could have, Won't have
-
-**OPERATIONS & GROWTH:**
-- Kanban Boards: Visual task management
-- Scrum Framework: Iterative project management
-- Growth Hacking Framework: Rapid experimentation
-- Viral Coefficient: Measure word-of-mouth growth
-- Customer Acquisition Cost (CAC): Cost to gain customers
-- Lifetime Value (LTV): Total customer value over time
-- Conversion Funnel: Track user journey stages
-
-**FINANCIAL PLANNING:**
-- Unit Economics: Revenue and costs per customer
-- Break-even Analysis: When will you be profitable?
-- Cash Flow Forecasting: Predict money in/out
-- Burn Rate: How fast you spend money
-- Runway: How long your money lasts
-- Financial Model Templates: Simple spreadsheet planning
-
-**TECH TOOLS BY COMFORT LEVEL:**
-
-*No-Code Tools:*
-- Airtable: Database and project management
-- Fillout.com: Forms and surveys
-- Canva: Design and graphics
-- Calendly: Appointment scheduling
-- Mailchimp: Email marketing
-- Shopify: E-commerce store
-- Bubble: Web applications
-- Webflow: Websites without coding
-- Zapier: Connect different apps
-
-*Low-Code Tools:*
-- n8n: Workflow automation
-- Retool: Internal tools
-- Glide: Mobile apps from spreadsheets
-- Notion: All-in-one workspace
-- Airtable + Zapier: Advanced database automation
-- Figma: Design and prototyping
-- Google Workspace: Business productivity suite
+SPEED & RAPID ITERATION FOCUS:
+- Emphasize quick prototyping and fast testing over perfect planning
+- "Start small, learn fast, iterate quickly" mentality
+- Help identify minimum viable approaches for rapid validation
+- Encourage experimentation and learning from failure
 
 COMMUNICATION STYLE:
 - Friendly, encouraging, and concise (2-3 sentences initially)
@@ -230,6 +181,16 @@ SOCRATIC QUESTIONING (Strategic Contexts):
 
 Remember: Be their thinking partner for strategy, their assistant for tasks, and their guide for appropriate tools.
 """
+
+
+def create_project_aware_instructions(
+    run_context: RunContextWrapper[ProjectContext],
+    agent: Agent[ProjectContext]
+) -> str:
+    """Generate dynamic instructions based on user project context"""
+    context = run_context.context
+
+    base_instructions = create_base_personality_instructions()
     
     if context.project_name:
         project_context = f"""
@@ -271,6 +232,41 @@ USER PROJECT CONTEXT:
 """
     
     return base_instructions + project_context
+
+
+def create_domain_specific_instructions(domain: str) -> str:
+    """Generate domain-specific instructions for specialized agents"""
+    print(f"[PROJECT_CONTEXT] Creating domain-specific instructions for: {domain}")
+
+    from app.ai_system_prompts.marketing_expert_prompt import create_marketing_expert_instructions
+    from app.ai_system_prompts.technology_domain_expert import create_technology_expert_instructions
+    from app.ai_system_prompts.finance_expert_instructions import create_finance_expert_instructions
+    from app.ai_system_prompts.sustainability_expert_prompt import create_sustainability_expert_instructions
+    from app.ai_system_prompts.legal_compliance_expert_prompt import create_legal_compliance_expert_instructions
+    from app.ai_system_prompts.research_operations_domain_prompt import create_operations_expert_instructions
+    from app.ai_system_prompts.product_design_expert_prompt import create_product_design_expert_instructions
+    from app.ai_system_prompts.sales_expert_prompt import create_sales_expert_instructions
+
+    domain_map = {
+        'marketing': create_marketing_expert_instructions,
+        'technology': create_technology_expert_instructions,
+        'finance': create_finance_expert_instructions,
+        'sustainability': create_sustainability_expert_instructions,
+        'legal': create_legal_compliance_expert_instructions,
+        'operations': create_operations_expert_instructions,
+        'product': create_product_design_expert_instructions,
+        'sales': create_sales_expert_instructions
+    }
+
+    if domain.lower() in domain_map:
+        instructions = domain_map[domain.lower()]()
+        print(f"[PROJECT_CONTEXT] Generated {len(instructions)} characters of instructions for {domain}")
+        return instructions
+    else:
+        available_domains = ', '.join(domain_map.keys())
+        error_msg = f"Domain '{domain}' not found. Available domains: {available_domains}"
+        print(f"[PROJECT_CONTEXT] ERROR: {error_msg}")
+        return error_msg
 
 
 # Project context tools for agents
@@ -372,19 +368,92 @@ class ProjectContextService:
     @staticmethod
     def create_project_aware_agent(
         agent_name: str,
-        base_instructions: str,
+        domain: str = None,
         additional_tools: List = None
     ) -> Agent[ProjectContext]:
-        """Create an agent with project context awareness"""
+        """Create an agent with project context awareness and optional domain specialization"""
+        print(f"[PROJECT_CONTEXT] Creating project-aware agent: {agent_name}" + (f" (domain: {domain})" if domain else " (general)"))
+
         tools = ProjectContextService.get_context_tools()
         if additional_tools:
             tools.extend(additional_tools)
-        
-        return Agent[ProjectContext](
-            name=agent_name,
-            instructions=create_project_aware_instructions,
-            tools=tools
-        )
+            print(f"[PROJECT_CONTEXT] Added {len(additional_tools)} additional tools")
+
+        if domain:
+            print(f"[PROJECT_CONTEXT] Creating domain-specific agent for {domain}")
+            # Create combined instructions function for domain-specific agents
+            def combined_instructions(
+                run_context: RunContextWrapper[ProjectContext],
+                agent: Agent[ProjectContext]
+            ) -> str:
+                context = run_context.context
+                print(f"[PROJECT_CONTEXT] Generating combined instructions for {agent_name} ({domain})")
+
+                # Get base personality and domain-specific instructions
+                base_personality = create_base_personality_instructions()
+                domain_specific = create_domain_specific_instructions(domain)
+
+                # Add project context (similar to create_project_aware_instructions but without duplicating base personality)
+                if context.project_name:
+                    project_context = f"""
+USER PROJECT CONTEXT:
+- User Name: {context.user_name or 'Not provided'}
+- Project: {context.project_name}
+- Type: {context.project_type.value if context.project_type else 'Not specified'}
+- Stage: {context.current_stage.value if context.current_stage else 'Not specified'}
+- Description: {context.description or 'Not provided'}
+
+TARGET AUDIENCE: {context.target_audience or 'Not specified'}
+
+PROBLEM STATEMENT: {context.problem_statement or 'Not specified'}
+
+SOLUTION APPROACH: {context.solution_approach or 'Not specified'}
+
+BUSINESS MODEL: {context.business_model or 'Not specified'}
+
+KEY CHALLENGES: {', '.join(context.key_challenges) if context.key_challenges else 'None specified'}
+
+CURRENT GOALS: {', '.join(context.goals) if context.goals else 'None specified'}
+
+RECENT ACTIVITIES: {', '.join(context.recent_activities[-3:]) if context.recent_activities else 'None recorded'}
+
+PERSONALIZATION GUIDELINES:
+- Always reference their specific project when relevant
+- Tailor advice to their current project stage and type
+- Address their stated challenges and goals
+- Build upon their existing solution approach
+- Consider their target audience in recommendations
+"""
+                else:
+                    project_context = f"""
+USER PROJECT CONTEXT:
+- User Name: {context.user_name or 'Not provided'}
+- No project information available yet
+- Help them define their project by asking about their idea, goals, and challenges
+- Guide them through the Action Lab project development process
+"""
+
+                combined = base_personality + "\n\n" + domain_specific + "\n\n" + project_context
+                print(f"[PROJECT_CONTEXT] Combined instructions: {len(combined)} total characters")
+                return combined
+
+            agent = Agent[ProjectContext](
+                name=agent_name,
+                instructions=combined_instructions,
+                tools=tools
+            )
+            print(f"[PROJECT_CONTEXT] Successfully created domain-specific agent: {agent_name}")
+            return agent
+        else:
+            print(f"[PROJECT_CONTEXT] Creating general project-aware agent")
+            # Use existing project-aware instructions for general agents
+            agent = Agent[ProjectContext](
+                name=agent_name,
+                instructions=create_project_aware_instructions,
+                tools=tools
+            )
+            print(f"[PROJECT_CONTEXT] Successfully created general agent: {agent_name}")
+            return agent
 
 
 # Global service instance
