@@ -6,11 +6,15 @@ interface ProjectLogoProps {
   className?: string;
 }
 
-export function ProjectLogo({ project, size = 'md', className = '' }: ProjectLogoProps) {
+export function ProjectLogo({
+  project,
+  size = 'md',
+  className = '',
+}: ProjectLogoProps) {
   const sizeClasses = {
     sm: 'w-8 h-8 text-sm',
     md: 'w-12 h-12 text-lg',
-    lg: 'w-16 h-16 text-xl'
+    lg: 'w-16 h-16 text-xl',
   };
 
   const getProjectTypeIcon = (type?: ProjectType) => {
@@ -52,7 +56,9 @@ export function ProjectLogo({ project, size = 'md', className = '' }: ProjectLog
   };
 
   return (
-    <div className={`${sizeClasses[size]} ${className} flex items-center justify-center rounded-lg ${getProjectTypeColor(project.project_type)} text-white font-bold`}>
+    <div
+      className={`${sizeClasses[size]} ${className} flex items-center justify-center rounded-lg ${getProjectTypeColor(project.project_type)} text-white font-bold`}
+    >
       <span>{getProjectTypeIcon(project.project_type)}</span>
     </div>
   );

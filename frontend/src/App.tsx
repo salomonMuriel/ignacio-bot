@@ -32,7 +32,7 @@ function App() {
                   <Routes>
                     {/* Public Route - Landing Page */}
                     <Route path="/" element={<LandingPage />} />
-                    
+
                     {/* Protected Routes */}
                     <Route
                       path="/create-project"
@@ -42,7 +42,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    
+
                     <Route
                       path="/projects"
                       element={
@@ -53,7 +53,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    
+
                     <Route
                       path="/chat"
                       element={
@@ -87,7 +87,7 @@ function App() {
                     <Route path="*" element={<LandingPage />} />
                   </Routes>
                 </div>
-                
+
                 {/* Global Toast Notifications */}
                 <Toaster
                   position="top-right"

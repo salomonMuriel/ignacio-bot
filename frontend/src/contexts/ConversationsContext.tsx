@@ -5,13 +5,12 @@
  */
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { 
-  Conversation, 
+import type {
+  Conversation,
   ConversationDetailResponse,
-  Message, 
+  Message,
   AgentMessageResponse,
   MessageType,
- 
 } from '@/types';
 import { api } from '@/services/api';
 import { useAuth } from './AuthContext';
@@ -41,7 +40,10 @@ type ConversationAction =
   | { type: 'CONVERSATION_CREATED'; payload: Conversation }
   | { type: 'CONVERSATION_UPDATED'; payload: Conversation }
   | { type: 'CONVERSATION_DELETED'; payload: string }
-  | { type: 'SET_ACTIVE_CONVERSATION'; payload: ConversationDetailResponse | null }
+  | {
+      type: 'SET_ACTIVE_CONVERSATION';
+      payload: ConversationDetailResponse | null;
+    }
   | { type: 'ADD_MESSAGE_TO_ACTIVE'; payload: Message }
   | { type: 'CLEAR_ERROR' };
 
@@ -58,15 +60,23 @@ interface ConversationsContextType extends ConversationsState {
     existingFileId?: string;
     messageType?: MessageType;
   }) => Promise<AgentMessageResponse>;
-  updateConversation: (conversationId: string, updates: { title?: string; project_id?: string }) => Promise<void>;
+  updateConversation: (
+    conversationId: string,
+    updates: { title?: string; project_id?: string }
+  ) => Promise<void>;
   deleteConversation: (conversationId: string) => Promise<void>;
-  setActiveConversation: (conversation: ConversationDetailResponse | null) => void;
+  setActiveConversation: (
+    conversation: ConversationDetailResponse | null
+  ) => void;
   clearError: () => void;
-  
+
   // Utility methods
   getConversationById: (conversationId: string) => Conversation | undefined;
   getConversationSummary: (conversationId: string) => Promise<unknown>;
-  associateConversationWithProject: (conversationId: string, projectId: string) => Promise<void>;
+  associateConversationWithProject: (
+    conversationId: string,
+    projectId: string
+  ) => Promise<void>;
 }
 
 // Initial state
@@ -80,7 +90,10 @@ const initialState: ConversationsState = {
 };
 
 // Conversations reducer
-function conversationsReducer(state: ConversationsState, action: ConversationAction): ConversationsState {
+function conversationsReducer(
+  state: ConversationsState,
+  action: ConversationAction
+): ConversationsState {
   switch (action.type) {
     case 'CONVERSATIONS_LOADING':
       return {
@@ -164,9 +177,10 @@ function conversationsReducer(state: ConversationsState, action: ConversationAct
         ...state,
         conversations: updatedConversations,
         // Update active conversation if it was the one updated
-        activeConversation: state.activeConversation?.id === action.payload.id 
-          ? { ...state.activeConversation, ...action.payload }
-          : state.activeConversation,
+        activeConversation:
+          state.activeConversation?.id === action.payload.id
+            ? { ...state.activeConversation, ...action.payload }
+            : state.activeConversation,
         error: null,
       };
     }
@@ -174,11 +188,14 @@ function conversationsReducer(state: ConversationsState, action: ConversationAct
     case 'CONVERSATION_DELETED':
       return {
         ...state,
-        conversations: state.conversations.filter(conv => conv.id !== action.payload),
+        conversations: state.conversations.filter(
+          conv => conv.id !== action.payload
+        ),
         // Clear active conversation if it was deleted
-        activeConversation: state.activeConversation?.id === action.payload 
-          ? null 
-          : state.activeConversation,
+        activeConversation:
+          state.activeConversation?.id === action.payload
+            ? null
+            : state.activeConversation,
         error: null,
       };
 
@@ -191,7 +208,7 @@ function conversationsReducer(state: ConversationsState, action: ConversationAct
 
     case 'ADD_MESSAGE_TO_ACTIVE': {
       if (!state.activeConversation) return state;
-      
+
       return {
         ...state,
         activeConversation: {
@@ -214,14 +231,18 @@ function conversationsReducer(state: ConversationsState, action: ConversationAct
 }
 
 // Create context
-const ConversationsContext = createContext<ConversationsContextType | undefined>(undefined);
+const ConversationsContext = createContext<
+  ConversationsContextType | undefined
+>(undefined);
 
 // ConversationsProvider component
 interface ConversationsProviderProps {
   children: React.ReactNode;
 }
 
-export function ConversationsProvider({ children }: ConversationsProviderProps) {
+export function ConversationsProvider({
+  children,
+}: ConversationsProviderProps) {
   const [state, dispatch] = useReducer(conversationsReducer, initialState);
   const { isAuthenticated, user } = useAuth();
   const { activeProject } = useProjects();
@@ -236,15 +257,17 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
   const loadConversations = async () => {
     try {
       dispatch({ type: 'CONVERSATIONS_LOADING' });
-      
+
       const conversations = await api.chat.getConversations();
       dispatch({ type: 'CONVERSATIONS_SUCCESS', payload: conversations });
-      
     } catch (error) {
       console.error('Failed to load conversations:', error);
-      dispatch({ 
-        type: 'CONVERSATIONS_ERROR', 
-        payload: error instanceof Error ? error.message : 'Failed to load conversations' 
+      dispatch({
+        type: 'CONVERSATIONS_ERROR',
+        payload:
+          error instanceof Error
+            ? error.message
+            : 'Failed to load conversations',
       });
     }
   };
@@ -252,15 +275,17 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
   const loadConversation = async (conversationId: string) => {
     try {
       dispatch({ type: 'ACTIVE_CONVERSATION_LOADING' });
-      
+
       const conversation = await api.chat.getConversation(conversationId);
       dispatch({ type: 'ACTIVE_CONVERSATION_SUCCESS', payload: conversation });
-      
     } catch (error) {
       console.error('Failed to load conversation:', error);
-      dispatch({ 
-        type: 'ACTIVE_CONVERSATION_ERROR', 
-        payload: error instanceof Error ? error.message : 'Failed to load conversation' 
+      dispatch({
+        type: 'ACTIVE_CONVERSATION_ERROR',
+        payload:
+          error instanceof Error
+            ? error.message
+            : 'Failed to load conversation',
       });
     }
   };
@@ -286,40 +311,48 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
         file: params.file,
         existingFileId: params.existingFileId,
       });
-      
+
       dispatch({ type: 'MESSAGE_SENT', payload: response });
-      
+
       // If this created a new conversation, reload conversations list and set as active
       if (!params.conversationId && response.conversation_id) {
         await loadConversations();
         // Load the new conversation and set it as active
         await loadConversation(response.conversation_id);
       }
-      
+
       // If there's an active conversation, reload it to get the latest messages
-      else if (state.activeConversation && params.conversationId === state.activeConversation.id) {
+      else if (
+        state.activeConversation &&
+        params.conversationId === state.activeConversation.id
+      ) {
         await loadConversation(state.activeConversation.id);
       }
-      
+
       return response;
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to send message';
       dispatch({ type: 'MESSAGE_SEND_ERROR', payload: errorMessage });
       throw error;
     }
   };
 
-
   const updateConversation = async (
-    conversationId: string, 
+    conversationId: string,
     updates: { title?: string; project_id?: string }
   ): Promise<void> => {
     try {
-      const updatedConversation = await api.chat.updateConversation(conversationId, updates);
+      const updatedConversation = await api.chat.updateConversation(
+        conversationId,
+        updates
+      );
       dispatch({ type: 'CONVERSATION_UPDATED', payload: updatedConversation });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update conversation';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to update conversation';
       dispatch({ type: 'CONVERSATIONS_ERROR', payload: errorMessage });
       throw error;
     }
@@ -330,13 +363,18 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
       await api.chat.deleteConversation(conversationId);
       dispatch({ type: 'CONVERSATION_DELETED', payload: conversationId });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete conversation';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to delete conversation';
       dispatch({ type: 'CONVERSATIONS_ERROR', payload: errorMessage });
       throw error;
     }
   };
 
-  const setActiveConversation = (conversation: ConversationDetailResponse | null) => {
+  const setActiveConversation = (
+    conversation: ConversationDetailResponse | null
+  ) => {
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: conversation });
   };
 
@@ -345,7 +383,9 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
   };
 
   // Utility methods
-  const getConversationById = (conversationId: string): Conversation | undefined => {
+  const getConversationById = (
+    conversationId: string
+  ): Conversation | undefined => {
     return state.conversations.find(conv => conv.id === conversationId);
   };
 
@@ -358,9 +398,15 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
     }
   };
 
-  const associateConversationWithProject = async (conversationId: string, projectId: string) => {
+  const associateConversationWithProject = async (
+    conversationId: string,
+    projectId: string
+  ) => {
     try {
-      await api.chat.associateConversationWithProject(conversationId, projectId);
+      await api.chat.associateConversationWithProject(
+        conversationId,
+        projectId
+      );
       // Reload conversation to reflect the association
       if (state.activeConversation?.id === conversationId) {
         loadConversation(conversationId);
@@ -398,7 +444,9 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
 export function useConversations(): ConversationsContextType {
   const context = useContext(ConversationsContext);
   if (context === undefined) {
-    throw new Error('useConversations must be used within a ConversationsProvider');
+    throw new Error(
+      'useConversations must be used within a ConversationsProvider'
+    );
   }
   return context;
 }

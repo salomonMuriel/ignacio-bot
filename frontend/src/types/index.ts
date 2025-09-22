@@ -1,46 +1,46 @@
 // TypeScript types matching backend Pydantic models
 
 export enum MessageType {
-  TEXT = "text",
-  IMAGE = "image",
-  AUDIO = "audio",
-  VIDEO = "video",
-  DOCUMENT = "document",
+  TEXT = 'text',
+  IMAGE = 'image',
+  AUDIO = 'audio',
+  VIDEO = 'video',
+  DOCUMENT = 'document',
 }
 
 export enum ProjectType {
-  STARTUP = "startup",
-  COMPANY = "company",
-  NGO = "ngo",
-  FOUNDATION = "foundation",
-  SPINOFF = "spinoff",
-  INTERNAL = "internal",
-  OTHER = "other",
+  STARTUP = 'startup',
+  COMPANY = 'company',
+  NGO = 'ngo',
+  FOUNDATION = 'foundation',
+  SPINOFF = 'spinoff',
+  INTERNAL = 'internal',
+  OTHER = 'other',
 }
 
 export enum ProjectStage {
-  IDEATION = "ideation",
-  RESEARCH = "research",
-  VALIDATION = "validation",
-  DEVELOPMENT = "development",
-  TESTING = "testing",
-  LAUNCH = "launch",
-  GROWTH = "growth",
-  MATURE = "mature",
+  IDEATION = 'ideation',
+  RESEARCH = 'research',
+  VALIDATION = 'validation',
+  DEVELOPMENT = 'development',
+  TESTING = 'testing',
+  LAUNCH = 'launch',
+  GROWTH = 'growth',
+  MATURE = 'mature',
 }
 
 export enum SyncStatus {
-  PENDING = "pending",
-  SYNCING = "syncing",
-  SYNCED = "synced",
-  FAILED = "failed",
-  EXPIRED = "expired",
-  REMOVED = "removed",
+  PENDING = 'pending',
+  SYNCING = 'syncing',
+  SYNCED = 'synced',
+  FAILED = 'failed',
+  EXPIRED = 'expired',
+  REMOVED = 'removed',
 }
 
 export enum TemplateType {
-  ADMIN = "admin",
-  USER = "user",
+  ADMIN = 'admin',
+  USER = 'user',
 }
 
 // User types
@@ -165,9 +165,9 @@ export interface Message {
 
 // Optimistic message status for UI
 export enum OptimisticMessageStatus {
-  PENDING = "pending",
-  SENT = "sent",
-  FAILED = "failed",
+  PENDING = 'pending',
+  SENT = 'sent',
+  FAILED = 'failed',
 }
 
 // Optimistic message for immediate UI feedback
@@ -300,11 +300,15 @@ export interface ConversationsContextType {
   error: string | null;
   fetchConversations: () => Promise<void>;
   fetchConversation: (id: string) => Promise<void>;
-  createConversation: (data: ConversationCreate) => Promise<ConversationResponse>;
+  createConversation: (
+    data: ConversationCreate
+  ) => Promise<ConversationResponse>;
   updateConversation: (id: string, data: ConversationUpdate) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
   sendMessage: (content: string, file?: File) => Promise<void>;
-  setActiveConversation: (conversation: ConversationDetailResponse | null) => void;
+  setActiveConversation: (
+    conversation: ConversationDetailResponse | null
+  ) => void;
 }
 
 export interface GlobalContextType {

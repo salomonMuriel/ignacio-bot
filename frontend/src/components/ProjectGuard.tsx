@@ -8,13 +8,14 @@ interface ProjectGuardProps {
   requiresProject?: boolean;
 }
 
-export default function ProjectGuard({ children, requiresProject = true }: ProjectGuardProps) {
+export default function ProjectGuard({
+  children,
+  requiresProject = true,
+}: ProjectGuardProps) {
   const { projects, isLoading } = useProjects();
 
   if (isLoading) {
-    return (
-      <LoadingScreen/>
-    );
+    return <LoadingScreen />;
   }
 
   if (requiresProject && projects.length === 0) {

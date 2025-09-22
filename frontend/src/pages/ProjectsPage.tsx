@@ -9,14 +9,14 @@ import LoadingScreen from '@/components/ui/LoadingScreen';
 
 export default function ProjectsPage() {
   const { user } = useAuth();
-  const { 
-    projects, 
-    activeProject, 
-    setActiveProject, 
-    createProject, 
-    updateProject, 
+  const {
+    projects,
+    activeProject,
+    setActiveProject,
+    createProject,
+    updateProject,
     deleteProject,
-    isLoading 
+    isLoading,
   } = useProjects();
   const navigate = useNavigate();
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -24,28 +24,40 @@ export default function ProjectsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--ig-bg-gradient)' }}>
-        <div className="text-lg" style={{ color: 'var(--ig-text-primary)' }}>Please log in to manage projects.</div>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'var(--ig-bg-gradient)' }}
+      >
+        <div className="text-lg" style={{ color: 'var(--ig-text-primary)' }}>
+          Please log in to manage projects.
+        </div>
       </div>
     );
   }
 
   if (isLoading) {
-    return (
-      <LoadingScreen/>
-    );
+    return <LoadingScreen />;
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--ig-bg-gradient)' }}>
+    <div
+      className="min-h-screen"
+      style={{ background: 'var(--ig-bg-gradient)' }}
+    >
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold" style={{ color: 'var(--ig-text-primary)' }}>My Projects</h1>
+              <h1
+                className="text-3xl font-bold"
+                style={{ color: 'var(--ig-text-primary)' }}
+              >
+                My Projects
+              </h1>
               <p className="mt-2" style={{ color: 'var(--ig-text-secondary)' }}>
-                Manage your projects and continue your conversations with Ignacio
+                Manage your projects and continue your conversations with
+                Ignacio
               </p>
             </div>
             <div className="flex space-x-4">
@@ -61,16 +73,18 @@ export default function ProjectsPage() {
                     ? 'var(--ig-text-muted)'
                     : 'var(--ig-text-primary)',
                   border: '1px solid var(--ig-border-primary)',
-                  cursor: !activeProject ? 'not-allowed' : 'pointer'
+                  cursor: !activeProject ? 'not-allowed' : 'pointer',
                 }}
-                onMouseEnter={(e) => {
+                onMouseEnter={e => {
                   if (activeProject) {
-                    (e.target as HTMLButtonElement).style.background = 'var(--ig-surface-glass)';
+                    (e.target as HTMLButtonElement).style.background =
+                      'var(--ig-surface-glass)';
                   }
                 }}
-                onMouseLeave={(e) => {
+                onMouseLeave={e => {
                   if (activeProject) {
-                    (e.target as HTMLButtonElement).style.background = 'var(--ig-surface-secondary)';
+                    (e.target as HTMLButtonElement).style.background =
+                      'var(--ig-surface-secondary)';
                   }
                 }}
               >
@@ -81,10 +95,16 @@ export default function ProjectsPage() {
                 className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
                 style={{
                   background: 'var(--ig-accent-gradient)',
-                  color: 'var(--ig-dark-primary)'
+                  color: 'var(--ig-dark-primary)',
                 }}
-                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient-hover)'}
-                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient)'}
+                onMouseEnter={e =>
+                  ((e.target as HTMLButtonElement).style.background =
+                    'var(--ig-accent-gradient-hover)')
+                }
+                onMouseLeave={e =>
+                  ((e.target as HTMLButtonElement).style.background =
+                    'var(--ig-accent-gradient)')
+                }
               >
                 New Project
               </button>
@@ -94,15 +114,30 @@ export default function ProjectsPage() {
 
         {/* Active Project Banner */}
         {activeProject && (
-          <div className="rounded-lg p-4 mb-8" style={{
-            background: 'var(--ig-surface-glass)',
-            border: '1px solid var(--ig-border-accent)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <h2 className="font-semibold mb-2" style={{ color: 'var(--ig-text-accent)' }}>Active Project</h2>
-            <p style={{ color: 'var(--ig-text-primary)' }}>{activeProject.project_name}</p>
+          <div
+            className="rounded-lg p-4 mb-8"
+            style={{
+              background: 'var(--ig-surface-glass)',
+              border: '1px solid var(--ig-border-accent)',
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <h2
+              className="font-semibold mb-2"
+              style={{ color: 'var(--ig-text-accent)' }}
+            >
+              Active Project
+            </h2>
+            <p style={{ color: 'var(--ig-text-primary)' }}>
+              {activeProject.project_name}
+            </p>
             {activeProject.description && (
-              <p className="text-sm mt-1" style={{ color: 'var(--ig-text-secondary)' }}>{activeProject.description}</p>
+              <p
+                className="text-sm mt-1"
+                style={{ color: 'var(--ig-text-secondary)' }}
+              >
+                {activeProject.description}
+              </p>
             )}
           </div>
         )}
@@ -110,22 +145,31 @@ export default function ProjectsPage() {
         {/* Projects Grid */}
         {projects.length === 0 ? (
           <div className="text-center py-16">
-            <div className="rounded-lg p-8 max-w-md mx-auto" style={{
-              background: 'var(--ig-surface-glass)',
-              border: '1px solid var(--ig-border-glass)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-            }}>
-              <h3 className="text-lg font-medium mb-4" style={{ color: 'var(--ig-text-primary)' }}>No Projects Yet</h3>
+            <div
+              className="rounded-lg p-8 max-w-md mx-auto"
+              style={{
+                background: 'var(--ig-surface-glass)',
+                border: '1px solid var(--ig-border-glass)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              <h3
+                className="text-lg font-medium mb-4"
+                style={{ color: 'var(--ig-text-primary)' }}
+              >
+                No Projects Yet
+              </h3>
               <p className="mb-6" style={{ color: 'var(--ig-text-secondary)' }}>
-                Create your first project to start working with Ignacio on your ideas.
+                Create your first project to start working with Ignacio on your
+                ideas.
               </p>
               <button
                 onClick={() => setShowCreateForm(true)}
                 className="px-6 py-3 rounded-lg font-medium transition-all duration-200"
                 style={{
                   background: 'var(--ig-accent-gradient)',
-                  color: 'var(--ig-dark-primary)'
+                  color: 'var(--ig-dark-primary)',
                 }}
               >
                 Create Your First Project
@@ -134,7 +178,7 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
+            {projects.map(project => (
               <ProjectCard
                 key={project.id}
                 project={project}
@@ -155,7 +199,7 @@ export default function ProjectsPage() {
               setShowCreateForm(false);
               setEditingProject(null);
             }}
-            onSave={async (projectData) => {
+            onSave={async projectData => {
               if (editingProject) {
                 await updateProject(editingProject.id, projectData);
               } else {
@@ -175,6 +219,3 @@ export default function ProjectsPage() {
     </div>
   );
 }
-
-
-

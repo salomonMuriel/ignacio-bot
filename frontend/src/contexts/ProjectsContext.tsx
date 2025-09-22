@@ -33,16 +33,24 @@ type ProjectAction =
 interface ProjectsContextType extends ProjectsState {
   // Actions
   loadProjects: () => Promise<void>;
-  createProject: (projectData: Omit<ProjectCreate, 'user_id'>) => Promise<Project>;
-  updateProject: (projectId: string, updates: ProjectUpdate) => Promise<Project>;
+  createProject: (
+    projectData: Omit<ProjectCreate, 'user_id'>
+  ) => Promise<Project>;
+  updateProject: (
+    projectId: string,
+    updates: ProjectUpdate
+  ) => Promise<Project>;
   deleteProject: (projectId: string) => Promise<void>;
   setActiveProject: (project: Project | null) => void;
   getProjectById: (projectId: string) => Project | undefined;
   clearError: () => void;
-  
+
   // Utility methods
   getProjectContext: (projectId: string) => Promise<unknown>;
-  updateProjectContext: (projectId: string, context: Record<string, unknown>) => Promise<void>;
+  updateProjectContext: (
+    projectId: string,
+    context: Record<string, unknown>
+  ) => Promise<void>;
   getProjectConversations: (projectId: string) => Promise<unknown[]>;
 }
 
@@ -56,7 +64,10 @@ const initialState: ProjectsState = {
 };
 
 // Projects reducer
-function projectsReducer(state: ProjectsState, action: ProjectAction): ProjectsState {
+function projectsReducer(
+  state: ProjectsState,
+  action: ProjectAction
+): ProjectsState {
   switch (action.type) {
     case 'PROJECTS_LOADING':
       return {
@@ -73,7 +84,9 @@ function projectsReducer(state: ProjectsState, action: ProjectAction): ProjectsS
         isLoading: false,
         error: null,
         // Set active project to first one if none is set and projects exist
-        activeProject: state.activeProject || (action.payload.length > 0 ? action.payload[0] : null),
+        activeProject:
+          state.activeProject ||
+          (action.payload.length > 0 ? action.payload[0] : null),
       };
 
     case 'PROJECTS_ERROR':
@@ -90,7 +103,8 @@ function projectsReducer(state: ProjectsState, action: ProjectAction): ProjectsS
         projects: newProjects,
         hasProjects: true,
         // Set new project as active if it's the first one
-        activeProject: state.projects.length === 0 ? action.payload : state.activeProject,
+        activeProject:
+          state.projects.length === 0 ? action.payload : state.activeProject,
         error: null,
       };
     }
@@ -103,23 +117,29 @@ function projectsReducer(state: ProjectsState, action: ProjectAction): ProjectsS
         ...state,
         projects: updatedProjects,
         // Update active project if it was the one updated
-        activeProject: state.activeProject?.id === action.payload.id 
-          ? action.payload 
-          : state.activeProject,
+        activeProject:
+          state.activeProject?.id === action.payload.id
+            ? action.payload
+            : state.activeProject,
         error: null,
       };
     }
 
     case 'PROJECT_DELETED': {
-      const filteredProjects = state.projects.filter(project => project.id !== action.payload);
+      const filteredProjects = state.projects.filter(
+        project => project.id !== action.payload
+      );
       return {
         ...state,
         projects: filteredProjects,
         hasProjects: filteredProjects.length > 0,
         // Clear active project if it was deleted, or set to first available
-        activeProject: state.activeProject?.id === action.payload 
-          ? (filteredProjects.length > 0 ? filteredProjects[0] : null)
-          : state.activeProject,
+        activeProject:
+          state.activeProject?.id === action.payload
+            ? filteredProjects.length > 0
+              ? filteredProjects[0]
+              : null
+            : state.activeProject,
         error: null,
       };
     }
@@ -143,7 +163,9 @@ function projectsReducer(state: ProjectsState, action: ProjectAction): ProjectsS
 }
 
 // Create context
-const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
+const ProjectsContext = createContext<ProjectsContextType | undefined>(
+  undefined
+);
 
 // Local storage key for active project persistence
 const ACTIVE_PROJECT_KEY = 'ignacio_active_project_id';
@@ -176,10 +198,10 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
   const loadProjects = async () => {
     try {
       dispatch({ type: 'PROJECTS_LOADING' });
-      
+
       const projects = await api.projects.getProjects();
       dispatch({ type: 'PROJECTS_SUCCESS', payload: projects });
-      
+
       // Try to restore active project from localStorage
       const savedProjectId = localStorage.getItem(ACTIVE_PROJECT_KEY);
       if (savedProjectId && projects.length > 0) {
@@ -188,35 +210,45 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
           dispatch({ type: 'SET_ACTIVE_PROJECT', payload: savedProject });
         }
       }
-      
     } catch (error) {
       console.error('Failed to load projects:', error);
-      dispatch({ 
-        type: 'PROJECTS_ERROR', 
-        payload: error instanceof Error ? error.message : 'Failed to load projects' 
+      dispatch({
+        type: 'PROJECTS_ERROR',
+        payload:
+          error instanceof Error ? error.message : 'Failed to load projects',
       });
     }
   };
 
-  const createProject = async (projectData: Omit<ProjectCreate, 'user_id'>): Promise<Project> => {
+  const createProject = async (
+    projectData: Omit<ProjectCreate, 'user_id'>
+  ): Promise<Project> => {
     try {
       const newProject = await api.projects.createProject(projectData);
       dispatch({ type: 'PROJECT_CREATED', payload: newProject });
       return newProject;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create project';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to create project';
       dispatch({ type: 'PROJECTS_ERROR', payload: errorMessage });
       throw error;
     }
   };
 
-  const updateProject = async (projectId: string, updates: ProjectUpdate): Promise<Project> => {
+  const updateProject = async (
+    projectId: string,
+    updates: ProjectUpdate
+  ): Promise<Project> => {
     try {
-      const updatedProject = await api.projects.updateProject(projectId, updates);
+      const updatedProject = await api.projects.updateProject(
+        projectId,
+        updates
+      );
       dispatch({ type: 'PROJECT_UPDATED', payload: updatedProject });
       return updatedProject;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update project';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to update project';
       dispatch({ type: 'PROJECTS_ERROR', payload: errorMessage });
       throw error;
     }
@@ -227,7 +259,8 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
       await api.projects.deleteProject(projectId);
       dispatch({ type: 'PROJECT_DELETED', payload: projectId });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete project';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to delete project';
       dispatch({ type: 'PROJECTS_ERROR', payload: errorMessage });
       throw error;
     }
@@ -255,7 +288,10 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
     }
   };
 
-  const updateProjectContext = async (projectId: string, context: Record<string, unknown>) => {
+  const updateProjectContext = async (
+    projectId: string,
+    context: Record<string, unknown>
+  ) => {
     try {
       await api.projects.updateProjectContext(projectId, context);
     } catch (error) {

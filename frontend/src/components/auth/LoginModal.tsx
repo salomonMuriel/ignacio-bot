@@ -63,7 +63,10 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setShowCountryDropdown(false);
       }
     };
@@ -185,8 +188,18 @@ export default function LoginModal({ onClose }: LoginModalProps) {
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -207,7 +220,10 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                 </p>
 
                 <div className="space-y-2">
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-medium text-gray-300"
+                  >
                     Phone Number
                   </label>
                   <div className="flex">
@@ -215,20 +231,36 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                     <div className="relative" ref={dropdownRef}>
                       <button
                         type="button"
-                        onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                        onClick={() =>
+                          setShowCountryDropdown(!showCountryDropdown)
+                        }
                         className="inline-flex items-center justify-center px-4 py-3 rounded-l-lg border border-r-0 border-slate-600 bg-slate-700 text-gray-300 text-sm hover:bg-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent h-[50px] min-w-[120px]"
                       >
-                        <span className="text-lg mr-2">{selectedCountry.flag}</span>
-                        <span className="font-medium mr-2 text-white">{selectedCountry.dialCode}</span>
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <span className="text-lg mr-2">
+                          {selectedCountry.flag}
+                        </span>
+                        <span className="font-medium mr-2 text-white">
+                          {selectedCountry.dialCode}
+                        </span>
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </button>
 
                       {/* Country Dropdown */}
                       {showCountryDropdown && (
                         <div className="absolute top-full left-0 mt-1 w-80 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-10 max-h-60 overflow-y-auto">
-                          {countries.map((country) => (
+                          {countries.map(country => (
                             <button
                               key={country.code}
                               type="button"
@@ -239,9 +271,15 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                               }}
                               className="w-full px-4 py-3 text-left hover:bg-slate-600 flex items-center text-gray-300 hover:text-white transition-colors first:rounded-t-lg last:rounded-b-lg"
                             >
-                              <span className="text-xl mr-3 flex-shrink-0">{country.flag}</span>
-                              <span className="text-sm font-medium text-white min-w-[50px] mr-3">{country.dialCode}</span>
-                              <span className="text-sm flex-1 text-left">{country.name}</span>
+                              <span className="text-xl mr-3 flex-shrink-0">
+                                {country.flag}
+                              </span>
+                              <span className="text-sm font-medium text-white min-w-[50px] mr-3">
+                                {country.dialCode}
+                              </span>
+                              <span className="text-sm flex-1 text-left">
+                                {country.name}
+                              </span>
                             </button>
                           ))}
                         </div>
@@ -273,18 +311,26 @@ export default function LoginModal({ onClose }: LoginModalProps) {
             <div className="space-y-6">
               <div>
                 <p className="text-gray-300 mb-4">
-                  We sent a verification code to <span className="font-medium text-white">{selectedCountry.dialCode} {phoneNumber}</span>
+                  We sent a verification code to{' '}
+                  <span className="font-medium text-white">
+                    {selectedCountry.dialCode} {phoneNumber}
+                  </span>
                 </p>
 
                 <div className="space-y-2">
-                  <label htmlFor="otp" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="otp"
+                    className="block text-sm font-medium text-gray-300"
+                  >
                     Verification Code
                   </label>
                   <input
                     id="otp"
                     type="text"
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={e =>
+                      setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
+                    }
                     placeholder="123456"
                     className="block w-full px-3 py-3 border border-slate-600 bg-slate-700 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-xl tracking-widest"
                     maxLength={6}
@@ -325,7 +371,8 @@ export default function LoginModal({ onClose }: LoginModalProps) {
         {/* Footer */}
         <div className="px-6 py-4 bg-slate-750 rounded-b-2xl border-t border-slate-700">
           <p className="text-xs text-gray-400 text-center">
-            By continuing, you agree to receive messages from Ignacio on WhatsApp.
+            By continuing, you agree to receive messages from Ignacio on
+            WhatsApp.
           </p>
         </div>
       </div>

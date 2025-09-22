@@ -38,19 +38,22 @@ class ErrorBoundary extends Component<Props, State> {
                 Something went wrong
               </h1>
               <p className="text-gray-600 mb-6">
-                We encountered an unexpected error. Please try refreshing the page.
+                We encountered an unexpected error. Please try refreshing the
+                page.
               </p>
             </div>
-            
+
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
-                <h3 className="font-medium text-red-800 mb-2">Error Details:</h3>
+                <h3 className="font-medium text-red-800 mb-2">
+                  Error Details:
+                </h3>
                 <pre className="text-xs text-red-700 overflow-auto">
                   {this.state.error.message}
                 </pre>
               </div>
             )}
-            
+
             <button
               onClick={() => window.location.reload()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"

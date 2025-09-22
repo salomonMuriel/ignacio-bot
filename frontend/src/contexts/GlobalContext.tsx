@@ -31,16 +31,16 @@ export type Language = 'en' | 'es';
 interface GlobalState {
   // Notifications
   notifications: Notification[];
-  
+
   // UI Preferences
   theme: Theme;
   language: Language;
   sidebarCollapsed: boolean;
-  
+
   // App State
   isOnline: boolean;
   lastSync: Date | null;
-  
+
   // Feature Flags
   features: {
     fileUpload: boolean;
@@ -52,7 +52,10 @@ interface GlobalState {
 
 // Global Actions
 type GlobalAction =
-  | { type: 'ADD_NOTIFICATION'; payload: Omit<Notification, 'id' | 'createdAt'> }
+  | {
+      type: 'ADD_NOTIFICATION';
+      payload: Omit<Notification, 'id' | 'createdAt'>;
+    }
   | { type: 'REMOVE_NOTIFICATION'; payload: string }
   | { type: 'CLEAR_NOTIFICATIONS' }
   | { type: 'SET_THEME'; payload: Theme }
@@ -61,26 +64,34 @@ type GlobalAction =
   | { type: 'SET_SIDEBAR_COLLAPSED'; payload: boolean }
   | { type: 'SET_ONLINE_STATUS'; payload: boolean }
   | { type: 'UPDATE_LAST_SYNC'; payload: Date }
-  | { type: 'UPDATE_FEATURE_FLAG'; payload: { feature: keyof GlobalState['features']; enabled: boolean } };
+  | {
+      type: 'UPDATE_FEATURE_FLAG';
+      payload: { feature: keyof GlobalState['features']; enabled: boolean };
+    };
 
 // Global Context Interface
 interface GlobalContextType extends GlobalState {
   // Notification actions
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => string;
+  addNotification: (
+    notification: Omit<Notification, 'id' | 'createdAt'>
+  ) => string;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
-  
+
   // UI actions
   setTheme: (theme: Theme) => void;
   setLanguage: (language: Language) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
-  
+
   // App state actions
   setOnlineStatus: (isOnline: boolean) => void;
   updateLastSync: () => void;
-  updateFeatureFlag: (feature: keyof GlobalState['features'], enabled: boolean) => void;
-  
+  updateFeatureFlag: (
+    feature: keyof GlobalState['features'],
+    enabled: boolean
+  ) => void;
+
   // Utility methods
   showSuccessNotification: (title: string, message?: string) => string;
   showErrorNotification: (title: string, message?: string) => string;
@@ -113,7 +124,8 @@ const loadPersistedState = (): Partial<GlobalState> => {
       return {
         theme: parsed.theme || initialState.theme,
         language: parsed.language || initialState.language,
-        sidebarCollapsed: parsed.sidebarCollapsed || initialState.sidebarCollapsed,
+        sidebarCollapsed:
+          parsed.sidebarCollapsed || initialState.sidebarCollapsed,
         features: { ...initialState.features, ...parsed.features },
       };
     }
@@ -223,7 +235,10 @@ export function GlobalProvider({ children }: GlobalProviderProps) {
         sidebarCollapsed: state.sidebarCollapsed,
         features: state.features,
       };
-      localStorage.setItem('ignacio_global_state', JSON.stringify(stateToPersist));
+      localStorage.setItem(
+        'ignacio_global_state',
+        JSON.stringify(stateToPersist)
+      );
     } catch (error) {
       console.error('Failed to persist global state:', error);
     }
@@ -264,7 +279,7 @@ export function GlobalProvider({ children }: GlobalProviderProps) {
   // Apply theme changes to document
   useEffect(() => {
     const root = document.documentElement;
-    
+
     if (state.theme === 'dark') {
       root.classList.add('dark');
     } else if (state.theme === 'light') {
@@ -281,10 +296,15 @@ export function GlobalProvider({ children }: GlobalProviderProps) {
   }, [state.theme]);
 
   // Notification actions
-  const addNotification = (notification: Omit<Notification, 'id' | 'createdAt'>): string => {
-    const action: GlobalAction = { type: 'ADD_NOTIFICATION', payload: notification };
+  const addNotification = (
+    notification: Omit<Notification, 'id' | 'createdAt'>
+  ): string => {
+    const action: GlobalAction = {
+      type: 'ADD_NOTIFICATION',
+      payload: notification,
+    };
     dispatch(action);
-    
+
     // Return the ID that will be generated
     return Date.now().toString() + Math.random().toString(36).substr(2, 9);
   };
@@ -323,7 +343,10 @@ export function GlobalProvider({ children }: GlobalProviderProps) {
     dispatch({ type: 'UPDATE_LAST_SYNC', payload: new Date() });
   };
 
-  const updateFeatureFlag = (feature: keyof GlobalState['features'], enabled: boolean) => {
+  const updateFeatureFlag = (
+    feature: keyof GlobalState['features'],
+    enabled: boolean
+  ) => {
     dispatch({ type: 'UPDATE_FEATURE_FLAG', payload: { feature, enabled } });
   };
 

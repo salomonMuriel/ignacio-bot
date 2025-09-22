@@ -28,14 +28,20 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export const auth = {
   // Get current session
   async getSession() {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
     if (error) throw error;
     return session;
   },
 
   // Get current user
   async getUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
     if (error) throw error;
     return user;
   },
@@ -47,7 +53,7 @@ export const auth = {
       options: {
         // Customize SMS template if needed
         // data: { app_name: 'Ignacio Bot' }
-      }
+      },
     });
 
     if (error) throw error;

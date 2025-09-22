@@ -22,10 +22,10 @@ export default function LandingPage() {
         </button>
       )}
 
-      <HeroSection/>
-      <AboutActionLab/>
-      <Features/>
-      <FinalCTA/>
+      <HeroSection />
+      <AboutActionLab />
+      <Features />
+      <FinalCTA />
 
       {/* Login Modal */}
       {showLoginModal && (

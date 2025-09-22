@@ -107,7 +107,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = api.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = api.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
 
       if (event === 'SIGNED_IN' && session) {
@@ -158,11 +160,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Don't dispatch success here - wait for OTP verification
       dispatch({ type: 'AUTH_CLEAR_ERROR' });
-
     } catch (error) {
       dispatch({
         type: 'AUTH_ERROR',
-        payload: error instanceof Error ? error.message : 'Failed to send OTP'
+        payload: error instanceof Error ? error.message : 'Failed to send OTP',
       });
       throw error;
     }
@@ -176,11 +177,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { user } = await api.auth.verifyOTP(whatsappNumber, otp);
 
       dispatch({ type: 'AUTH_SUCCESS', payload: user });
-
     } catch (error) {
       dispatch({
         type: 'AUTH_ERROR',
-        payload: error instanceof Error ? error.message : 'OTP verification failed'
+        payload:
+          error instanceof Error ? error.message : 'OTP verification failed',
       });
       throw error;
     }
@@ -190,7 +191,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await api.auth.logout();
       dispatch({ type: 'AUTH_LOGOUT' });
-
     } catch (error) {
       console.error('Logout failed:', error);
       // Still logout locally even if API call fails
@@ -208,9 +208,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const user = await api.auth.getCurrentUser();
       dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error) {
-      dispatch({ 
-        type: 'AUTH_ERROR', 
-        payload: error instanceof Error ? error.message : 'Failed to refresh user data' 
+      dispatch({
+        type: 'AUTH_ERROR',
+        payload:
+          error instanceof Error
+            ? error.message
+            : 'Failed to refresh user data',
       });
     }
   };
@@ -225,9 +228,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 }
 
@@ -250,23 +251,21 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <LoadingScreen/>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
-    return fallback || (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Authentication Required
-          </h2>
-          <p className="text-gray-600">
-            Please log in to access this page.
-          </p>
+    return (
+      fallback || (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Authentication Required
+            </h2>
+            <p className="text-gray-600">Please log in to access this page.</p>
+          </div>
         </div>
-      </div>
+      )
     );
   }
 

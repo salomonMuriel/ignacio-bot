@@ -7,10 +7,7 @@ import { useState, useCallback, useTransition } from 'react';
 import type { ActionState, FormState } from '@/types/utils';
 
 // Action function type
-type ActionFunction<T, P> = (
-  prevState: T,
-  formData: P
-) => Promise<T> | T;
+type ActionFunction<T, P> = (prevState: T, formData: P) => Promise<T> | T;
 
 // useActionState hook implementation
 export function useActionState<T, P = FormData>(
@@ -63,7 +60,7 @@ export function useFormAction<T extends Record<string, any>>(
     (formData: FormData) => {
       startTransition(async () => {
         setState(prev => ({ ...prev, pending: true, error: null }));
-        
+
         try {
           const result = await action(formData);
           setState(result);

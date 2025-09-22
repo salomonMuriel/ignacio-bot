@@ -3,7 +3,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useNavigate } from 'react-router-dom';
-import type { Conversation, OptimisticMessage, MessageResponse, UserFileWithConversations } from '@/types';
+import type {
+  Conversation,
+  OptimisticMessage,
+  MessageResponse,
+  UserFileWithConversations,
+} from '@/types';
 import { OptimisticMessageStatus, MessageType } from '@/types';
 import ChatLoadingScreen from '../components/ui/ChatLoadingScreen';
 import AuthRequiredScreen from '../components/ui/AuthRequiredScreen';
@@ -14,22 +19,32 @@ import MessageInput from '../components/chatPage/MessageInput';
 
 export default function ChatPage() {
   const { user } = useAuth();
-  const { projects, activeProject, setActiveProject, isLoading: projectsLoading } = useProjects();
+  const {
+    projects,
+    activeProject,
+    setActiveProject,
+    isLoading: projectsLoading,
+  } = useProjects();
   const {
     conversations,
     activeConversation,
     sendMessage,
     loadConversation,
-    setActiveConversation
+    setActiveConversation,
   } = useConversations();
   const navigate = useNavigate();
   const [messageInput, setMessageInput] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | UserFileWithConversations | null>(null);
+  const [selectedFile, setSelectedFile] = useState<
+    File | UserFileWithConversations | null
+  >(null);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Helper function to convert MessageResponse to OptimisticMessage
-  const messageToOptimistic = (message: MessageResponse, status: OptimisticMessageStatus = OptimisticMessageStatus.SENT): OptimisticMessage => ({
+  const messageToOptimistic = (
+    message: MessageResponse,
+    status: OptimisticMessageStatus = OptimisticMessageStatus.SENT
+  ): OptimisticMessage => ({
     id: message.id,
     content: message.content || '',
     is_from_user: message.is_from_user,
@@ -41,11 +56,15 @@ export default function ChatPage() {
   });
 
   // Manual optimistic state management
-  const [pendingMessages, setPendingMessages] = useState<OptimisticMessage[]>([]);
+  const [pendingMessages, setPendingMessages] = useState<OptimisticMessage[]>(
+    []
+  );
 
   // Combine real messages with pending optimistic messages
   const realMessages = useMemo(() => {
-    return activeConversation?.messages?.map(msg => messageToOptimistic(msg)) || [];
+    return (
+      activeConversation?.messages?.map(msg => messageToOptimistic(msg)) || []
+    );
   }, [activeConversation?.messages]);
 
   const optimisticMessages = useMemo(() => {
@@ -106,21 +125,37 @@ export default function ChatPage() {
   }, [isSending]);
 
   const handleSendMessage = async () => {
-    if ((!messageInput.trim() && !selectedFile) || !activeProject || isSending) return;
+    if ((!messageInput.trim() && !selectedFile) || !activeProject || isSending)
+      return;
 
-    const messageContent = messageInput.trim() || (selectedFile ? `[File: ${selectedFile instanceof File ? selectedFile.name : selectedFile.file_name}]` : '');
+    const messageContent =
+      messageInput.trim() ||
+      (selectedFile
+        ? `[File: ${selectedFile instanceof File ? selectedFile.name : selectedFile.file_name}]`
+        : '');
 
     console.log('[ChatPage] Starting message send:', {
       hasText: !!messageInput.trim(),
       hasFile: !!selectedFile,
-      fileInfo: selectedFile ? {
-        name: selectedFile instanceof File ? selectedFile.name : selectedFile.file_name,
-        size: selectedFile instanceof File ? selectedFile.size : selectedFile.file_size,
-        type: selectedFile instanceof File ? selectedFile.type : selectedFile.file_type,
-        isExistingFile: !(selectedFile instanceof File)
-      } : null,
+      fileInfo: selectedFile
+        ? {
+            name:
+              selectedFile instanceof File
+                ? selectedFile.name
+                : selectedFile.file_name,
+            size:
+              selectedFile instanceof File
+                ? selectedFile.size
+                : selectedFile.file_size,
+            type:
+              selectedFile instanceof File
+                ? selectedFile.type
+                : selectedFile.file_type,
+            isExistingFile: !(selectedFile instanceof File),
+          }
+        : null,
       conversationId: activeConversation?.id,
-      projectId: activeProject?.id
+      projectId: activeProject?.id,
     });
 
     // Clear input and file immediately
@@ -149,8 +184,12 @@ export default function ChatPage() {
         content: messageContent,
         conversationId: activeConversation?.id,
         hasFile: !!fileToSend,
-        fileSize: fileToSend ? (fileToSend instanceof File ? fileToSend.size : fileToSend.file_size) : null,
-        isExistingFile: fileToSend ? !(fileToSend instanceof File) : false
+        fileSize: fileToSend
+          ? fileToSend instanceof File
+            ? fileToSend.size
+            : fileToSend.file_size
+          : null,
+        isExistingFile: fileToSend ? !(fileToSend instanceof File) : false,
       });
 
       const sendParams: {
@@ -176,31 +215,42 @@ export default function ChatPage() {
       console.log('[ChatPage] Message sent successfully:', {
         responseId: response.conversation_id,
         agentUsed: response.agent_used,
-        executionTime: response.execution_time_ms
+        executionTime: response.execution_time_ms,
       });
 
       // Clear all pending messages since the real messages will come from the conversation reload
       setPendingMessages([]);
 
       // The conversation context will reload and show the real messages
-
     } catch (error) {
       console.error('[ChatPage] Failed to send message:', {
         error: error instanceof Error ? error.message : error,
         hasFile: !!fileToSend,
-        fileInfo: fileToSend ? {
-          name: fileToSend instanceof File ? fileToSend.name : fileToSend.file_name,
-          size: fileToSend instanceof File ? fileToSend.size : fileToSend.file_size,
-          type: fileToSend instanceof File ? fileToSend.type : fileToSend.file_type,
-          isExistingFile: !(fileToSend instanceof File)
-        } : null
+        fileInfo: fileToSend
+          ? {
+              name:
+                fileToSend instanceof File
+                  ? fileToSend.name
+                  : fileToSend.file_name,
+              size:
+                fileToSend instanceof File
+                  ? fileToSend.size
+                  : fileToSend.file_size,
+              type:
+                fileToSend instanceof File
+                  ? fileToSend.type
+                  : fileToSend.file_type,
+              isExistingFile: !(fileToSend instanceof File),
+            }
+          : null,
       });
 
       // Update optimistic message to failed status
       const failedMessage: OptimisticMessage = {
         ...optimisticUserMessage,
         status: OptimisticMessageStatus.FAILED,
-        error: error instanceof Error ? error.message : 'Failed to send message',
+        error:
+          error instanceof Error ? error.message : 'Failed to send message',
       };
       addOptimisticMessage(failedMessage);
     } finally {
@@ -230,12 +280,11 @@ export default function ChatPage() {
     try {
       const response = await sendMessage({
         content: failedMessage.content,
-        conversationId: activeConversation?.id
+        conversationId: activeConversation?.id,
       });
 
       // Clear all pending messages since the real messages will come from the conversation reload
       setPendingMessages([]);
-
     } catch (error) {
       console.error('Failed to retry message:', error);
 
@@ -243,7 +292,8 @@ export default function ChatPage() {
       const reFailedMessage: OptimisticMessage = {
         ...retryingMessage,
         status: OptimisticMessageStatus.FAILED,
-        error: error instanceof Error ? error.message : 'Failed to send message',
+        error:
+          error instanceof Error ? error.message : 'Failed to send message',
       };
       addOptimisticMessage(reFailedMessage);
     } finally {
@@ -279,7 +329,10 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-screen flex" style={{ background: 'var(--ig-bg-gradient)' }}>
+    <div
+      className="h-screen flex"
+      style={{ background: 'var(--ig-bg-gradient)' }}
+    >
       <ConversationSidebar
         conversations={projectConversations}
         activeConversation={activeConversation}

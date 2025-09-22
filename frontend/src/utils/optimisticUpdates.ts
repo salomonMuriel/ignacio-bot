@@ -3,7 +3,12 @@
  * Provides comprehensive optimistic update patterns for better UX
  */
 
-import type { Message, Conversation, Project, AgentMessageResponse } from '@/types';
+import type {
+  Message,
+  Conversation,
+  Project,
+  AgentMessageResponse,
+} from '@/types';
 import { api } from '@/services/api';
 
 // Optimistic update types
@@ -19,7 +24,11 @@ export class OptimisticUpdateManager<T extends { id: string }> {
   private updates: Map<string, OptimisticUpdate<T>> = new Map();
   private rollbackCallbacks: Map<string, () => void> = new Map();
 
-  addOptimistic(tempId: string, data: T, type: OptimisticUpdate<T>['type'] = 'add'): void {
+  addOptimistic(
+    tempId: string,
+    data: T,
+    type: OptimisticUpdate<T>['type'] = 'add'
+  ): void {
     const update: OptimisticUpdate<T> = {
       tempId,
       data,
@@ -107,7 +116,7 @@ export class MessageOptimisticUpdates {
 
       // Remove optimistic update after success
       this.manager.removeOptimistic(tempId);
-      
+
       return response;
     } catch (error) {
       // Remove optimistic update on error
@@ -146,14 +155,21 @@ export class ConversationOptimisticUpdates {
     return tempId;
   }
 
-  updateOptimisticConversation(conversationId: string, updates: Partial<Conversation>): void {
+  updateOptimisticConversation(
+    conversationId: string,
+    updates: Partial<Conversation>
+  ): void {
     const optimisticUpdate = {
       id: conversationId,
       ...updates,
       updated_at: new Date().toISOString(),
     } as Conversation;
 
-    this.manager.addOptimistic(`update-${conversationId}`, optimisticUpdate, 'update');
+    this.manager.addOptimistic(
+      `update-${conversationId}`,
+      optimisticUpdate,
+      'update'
+    );
   }
 
   async updateConversationWithOptimistic(
@@ -165,11 +181,14 @@ export class ConversationOptimisticUpdates {
 
     try {
       // Send actual update
-      const response = await api.chat.updateConversation(conversationId, updates);
-      
+      const response = await api.chat.updateConversation(
+        conversationId,
+        updates
+      );
+
       // Remove optimistic update after success
       this.manager.removeOptimistic(`update-${conversationId}`);
-      
+
       return response;
     } catch (error) {
       // Remove optimistic update on error
@@ -178,7 +197,9 @@ export class ConversationOptimisticUpdates {
     }
   }
 
-  getOptimisticConversations(originalConversations: Conversation[]): Conversation[] {
+  getOptimisticConversations(
+    originalConversations: Conversation[]
+  ): Conversation[] {
     return this.manager.getOptimisticData(originalConversations);
   }
 
@@ -191,7 +212,9 @@ export class ConversationOptimisticUpdates {
 export class ProjectOptimisticUpdates {
   private manager = new OptimisticUpdateManager<Project>();
 
-  addOptimisticProject(projectData: Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at'>): string {
+  addOptimisticProject(
+    projectData: Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+  ): string {
     const tempId = `temp-proj-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const optimisticProject: Project = {
       id: tempId,
@@ -222,10 +245,10 @@ export class ProjectOptimisticUpdates {
     try {
       // Create actual project
       const response = await api.projects.createProject(projectData);
-      
+
       // Remove optimistic update after success
       this.manager.removeOptimistic(tempId);
-      
+
       return response;
     } catch (error) {
       // Remove optimistic update on error
@@ -241,7 +264,11 @@ export class ProjectOptimisticUpdates {
       updated_at: new Date().toISOString(),
     } as Project;
 
-    this.manager.addOptimistic(`update-${projectId}`, optimisticUpdate, 'update');
+    this.manager.addOptimistic(
+      `update-${projectId}`,
+      optimisticUpdate,
+      'update'
+    );
   }
 
   async updateProjectWithOptimistic(
@@ -254,10 +281,10 @@ export class ProjectOptimisticUpdates {
     try {
       // Send actual update
       const response = await api.projects.updateProject(projectId, updates);
-      
+
       // Remove optimistic update after success
       this.manager.removeOptimistic(`update-${projectId}`);
-      
+
       return response;
     } catch (error) {
       // Remove optimistic update on error

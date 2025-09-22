@@ -23,7 +23,8 @@ import type {
 import { supabase, auth as supabaseAuth } from './supabase';
 
 // API Base Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const CHAT_BASE_URL = `${API_BASE_URL}/chat`;
 const PROJECT_BASE_URL = `${API_BASE_URL}/project`;
 const FILES_BASE_URL = `${API_BASE_URL}/files`;
@@ -120,7 +121,7 @@ class ApiClient {
         headers,
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
@@ -148,7 +149,9 @@ export const projectApi = {
   },
 
   // Create new project
-  async createProject(projectData: Omit<ProjectCreate, 'user_id'>): Promise<Project> {
+  async createProject(
+    projectData: Omit<ProjectCreate, 'user_id'>
+  ): Promise<Project> {
     const data: ProjectCreate = {
       ...projectData,
       user_id: MOCK_USER_ID,
@@ -162,7 +165,10 @@ export const projectApi = {
   },
 
   // Update project
-  async updateProject(projectId: string, updates: ProjectUpdate): Promise<Project> {
+  async updateProject(
+    projectId: string,
+    updates: ProjectUpdate
+  ): Promise<Project> {
     return projectClient.put<Project>(`/${projectId}`, updates);
   },
 
@@ -189,7 +195,7 @@ export const projectApi = {
 
   // Update project context
   async updateProjectContext(
-    projectId: string, 
+    projectId: string,
     contextData: Record<string, unknown>
   ): Promise<{ message: string }> {
     return projectClient.put(`/${projectId}/context`, contextData);
@@ -207,7 +213,9 @@ export const projectApi = {
 
   // Get available project stages
   async getProjectStages(): Promise<Array<{ value: string; label: string }>> {
-    return projectClient.get<Array<{ value: string; label: string }>>('/stages');
+    return projectClient.get<Array<{ value: string; label: string }>>(
+      '/stages'
+    );
   },
 };
 
@@ -219,34 +227,47 @@ export const chatApi = {
   },
 
   // Get conversation with messages
-  async getConversation(conversationId: string): Promise<ConversationDetailResponse> {
-    return chatClient.get<ConversationDetailResponse>(`/conversations/${conversationId}`);
+  async getConversation(
+    conversationId: string
+  ): Promise<ConversationDetailResponse> {
+    return chatClient.get<ConversationDetailResponse>(
+      `/conversations/${conversationId}`
+    );
   },
 
   // Update conversation (title, project association)
   async updateConversation(
-    conversationId: string, 
+    conversationId: string,
     updates: { title?: string; project_id?: string }
   ): Promise<Conversation> {
-    return chatClient.put<Conversation>(`/conversations/${conversationId}`, updates);
+    return chatClient.put<Conversation>(
+      `/conversations/${conversationId}`,
+      updates
+    );
   },
 
   // Delete conversation
-  async deleteConversation(conversationId: string): Promise<{ message: string }> {
-    return chatClient.delete<{ message: string }>(`/conversations/${conversationId}`);
+  async deleteConversation(
+    conversationId: string
+  ): Promise<{ message: string }> {
+    return chatClient.delete<{ message: string }>(
+      `/conversations/${conversationId}`
+    );
   },
 
   // Get messages for a conversation
   async getMessages(
-    conversationId: string, 
-    limit: number = 50, 
+    conversationId: string,
+    limit: number = 50,
     offset: number = 0
   ): Promise<Message[]> {
     const params = new URLSearchParams({
       limit: limit.toString(),
       offset: offset.toString(),
     });
-    return chatClient.get<Message[]>(`/conversations/${conversationId}/messages?${params}`);
+    return chatClient.get<Message[]>(
+      `/conversations/${conversationId}/messages?${params}`
+    );
   },
 
   // Send message (unified endpoint - handles both new and existing conversations)
@@ -263,11 +284,13 @@ export const chatApi = {
       hasProjectId: !!params.projectId,
       hasFile: !!params.file,
       hasExistingFileId: !!params.existingFileId,
-      fileInfo: params.file ? {
-        name: params.file.name,
-        size: params.file.size,
-        type: params.file.type
-      } : null
+      fileInfo: params.file
+        ? {
+            name: params.file.name,
+            size: params.file.size,
+            type: params.file.type,
+          }
+        : null,
     });
 
     const formData = new FormData();
@@ -285,21 +308,27 @@ export const chatApi = {
       formData.append('file', params.file);
       console.log('[API] File attached to FormData:', {
         name: params.file.name,
-        size: params.file.size
+        size: params.file.size,
       });
     }
 
     if (params.existingFileId) {
       formData.append('existing_file_id', params.existingFileId);
-      console.log('[API] Existing file ID attached to FormData:', params.existingFileId);
+      console.log(
+        '[API] Existing file ID attached to FormData:',
+        params.existingFileId
+      );
     }
 
     console.log('[API] Sending request to /messages endpoint');
     try {
-      const response = await chatClient.postFormData<AgentMessageResponse>('/messages', formData);
+      const response = await chatClient.postFormData<AgentMessageResponse>(
+        '/messages',
+        formData
+      );
       console.log('[API] Request successful:', {
         conversationId: response.conversation_id,
-        agentUsed: response.agent_used
+        agentUsed: response.agent_used,
       });
       return response;
     } catch (error) {
@@ -310,11 +339,11 @@ export const chatApi = {
 
   // Associate conversation with project
   async associateConversationWithProject(
-    conversationId: string, 
+    conversationId: string,
     projectId: string
   ): Promise<{ message: string }> {
     return chatClient.put<{ message: string }>(
-      `/conversations/${conversationId}/project`, 
+      `/conversations/${conversationId}/project`,
       { project_id: projectId }
     );
   },
@@ -333,15 +362,17 @@ export const chatApi = {
   },
 
   // Get conversation interactions
-  async getConversationInteractions(conversationId: string): Promise<Array<{
-    id: string;
-    agent_name: string;
-    input_text: string;
-    output_text: string;
-    tools_used: string[];
-    execution_time_ms: number;
-    created_at: string;
-  }>> {
+  async getConversationInteractions(conversationId: string): Promise<
+    Array<{
+      id: string;
+      agent_name: string;
+      input_text: string;
+      output_text: string;
+      tools_used: string[];
+      execution_time_ms: number;
+      created_at: string;
+    }>
+  > {
     return chatClient.get(`/conversations/${conversationId}/interactions`);
   },
 };
@@ -352,69 +383,88 @@ const promptTemplateClient = new ApiClient();
 const promptTemplateApi = {
   // Get all prompt templates with optional filtering
   async getPromptTemplates(
-    activeOnly: boolean = true, 
-    tags?: string[], 
-    templateType?: TemplateType, 
+    activeOnly: boolean = true,
+    tags?: string[],
+    templateType?: TemplateType,
     userId?: string
   ): Promise<PromptTemplate[]> {
     const params = new URLSearchParams();
     params.append('active_only', activeOnly.toString());
-    
+
     if (tags && tags.length > 0) {
       tags.forEach(tag => params.append('tags', tag));
     }
-    
+
     if (templateType) {
       params.append('template_type', templateType);
     }
-    
+
     if (userId) {
       params.append('user_id', userId);
     }
-    
-    return promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?${params}`);
+
+    return promptTemplateClient.get<PromptTemplate[]>(
+      `/api/prompt-templates?${params}`
+    );
   },
 
   // Get templates available to a specific user (admin + user's own templates)
-  async getTemplatesForUser(userId: string, activeOnly: boolean = true): Promise<{
+  async getTemplatesForUser(
+    userId: string,
+    activeOnly: boolean = true
+  ): Promise<{
     adminTemplates: PromptTemplate[];
     userTemplates: PromptTemplate[];
   }> {
     const [adminTemplates, userTemplates] = await Promise.all([
       // Get admin templates (visible to all users)
-      promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?active_only=${activeOnly}&template_type=admin`),
+      promptTemplateClient.get<PromptTemplate[]>(
+        `/api/prompt-templates?active_only=${activeOnly}&template_type=admin`
+      ),
       // Get user's own templates
-      promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?active_only=${activeOnly}&template_type=user&user_id=${userId}`)
+      promptTemplateClient.get<PromptTemplate[]>(
+        `/api/prompt-templates?active_only=${activeOnly}&template_type=user&user_id=${userId}`
+      ),
     ]);
-    
+
     return { adminTemplates, userTemplates };
   },
 
   // Get a specific prompt template
   async getPromptTemplate(templateId: string): Promise<PromptTemplate> {
-    return promptTemplateClient.get<PromptTemplate>(`/api/prompt-templates/${templateId}`);
+    return promptTemplateClient.get<PromptTemplate>(
+      `/api/prompt-templates/${templateId}`
+    );
   },
 
   // Create a new prompt template (type determined by user's admin status)
-  async createPromptTemplate(templateData: PromptTemplateCreate): Promise<PromptTemplate> {
-    return promptTemplateClient.post<PromptTemplate>('/api/prompt-templates', templateData);
+  async createPromptTemplate(
+    templateData: PromptTemplateCreate
+  ): Promise<PromptTemplate> {
+    return promptTemplateClient.post<PromptTemplate>(
+      '/api/prompt-templates',
+      templateData
+    );
   },
 
   // Update a prompt template (with ownership validation)
   async updatePromptTemplate(
-    templateId: string, 
-    templateData: PromptTemplateUpdate, 
+    templateId: string,
+    templateData: PromptTemplateUpdate,
     userId: string
   ): Promise<PromptTemplate> {
     const params = new URLSearchParams({ user_id: userId });
     return promptTemplateClient.put<PromptTemplate>(
-      `/api/prompt-templates/${templateId}?${params}`, 
+      `/api/prompt-templates/${templateId}?${params}`,
       templateData
     );
   },
 
   // Delete a prompt template (with ownership validation)
-  async deletePromptTemplate(templateId: string, userId: string): Promise<{ message: string }> {
+  async deletePromptTemplate(
+    templateId: string,
+    userId: string
+  ): Promise<{ message: string }> {
     const params = new URLSearchParams({ user_id: userId });
     return promptTemplateClient.delete<{ message: string }>(
       `/api/prompt-templates/${templateId}?${params}`
@@ -443,8 +493,14 @@ const fileApi = {
   },
 
   // Get a signed URL for file access/preview
-  async getFileUrl(fileId: string, userId: string, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> {
-    return fileClient.get<{ url: string; expires_in: number }>(`/${fileId}/url?user_id=${userId}&expires_in=${expiresIn}`);
+  async getFileUrl(
+    fileId: string,
+    userId: string,
+    expiresIn: number = 3600
+  ): Promise<{ url: string; expires_in: number }> {
+    return fileClient.get<{ url: string; expires_in: number }>(
+      `/${fileId}/url?user_id=${userId}&expires_in=${expiresIn}`
+    );
   },
 
   // Get files for a specific conversation
@@ -453,8 +509,13 @@ const fileApi = {
   },
 
   // Delete a file
-  async deleteFile(fileId: string, userId: string): Promise<{ message: string }> {
-    return fileClient.delete<{ message: string }>(`/${fileId}?user_id=${userId}`);
+  async deleteFile(
+    fileId: string,
+    userId: string
+  ): Promise<{ message: string }> {
+    return fileClient.delete<{ message: string }>(
+      `/${fileId}?user_id=${userId}`
+    );
   },
 
   // Download file content
@@ -472,26 +533,42 @@ const fileApi = {
   // NEW: File reuse methods
 
   // Get files with conversation usage data
-  async getUserFilesWithConversations(userId: string): Promise<UserFileWithConversations[]> {
-    return fileClient.get<UserFileWithConversations[]>(`/user/${userId}/with-conversations`);
+  async getUserFilesWithConversations(
+    userId: string
+  ): Promise<UserFileWithConversations[]> {
+    return fileClient.get<UserFileWithConversations[]>(
+      `/user/${userId}/with-conversations`
+    );
   },
 
   // Get conversation history for a specific file
-  async getFileConversations(fileId: string, userId: string): Promise<Array<{
-    conversation_id: string;
-    conversation_title: string;
-    used_at: string;
-  }>> {
+  async getFileConversations(
+    fileId: string,
+    userId: string
+  ): Promise<
+    Array<{
+      conversation_id: string;
+      conversation_title: string;
+      used_at: string;
+    }>
+  > {
     return fileClient.get(`/${fileId}/conversations?user_id=${userId}`);
   },
 
   // Reuse an existing file in a conversation
-  async reuseFile(fileId: string, conversationId: string, userId: string): Promise<{
+  async reuseFile(
+    fileId: string,
+    conversationId: string,
+    userId: string
+  ): Promise<{
     message: string;
     file_id: string;
     conversation_id: string;
   }> {
-    return fileClient.post(`/${fileId}/reuse?conversation_id=${conversationId}&user_id=${userId}`, {});
+    return fileClient.post(
+      `/${fileId}/reuse?conversation_id=${conversationId}&user_id=${userId}`,
+      {}
+    );
   },
 };
 
@@ -501,7 +578,7 @@ export const api = {
   chat: chatApi,
   promptTemplates: promptTemplateApi,
   files: fileApi,
-  
+
   // Supabase authentication service
   auth: {
     // Get current authenticated user from backend
@@ -518,8 +595,14 @@ export const api = {
     },
 
     // Verify OTP and complete login
-    async verifyOTP(whatsappNumber: string, otp: string): Promise<{ token: string; user: User }> {
-      const { session, user: authUser } = await supabaseAuth.verifyOTP(whatsappNumber, otp);
+    async verifyOTP(
+      whatsappNumber: string,
+      otp: string
+    ): Promise<{ token: string; user: User }> {
+      const { session, user: authUser } = await supabaseAuth.verifyOTP(
+        whatsappNumber,
+        otp
+      );
 
       if (!session || !authUser) {
         throw new Error('Invalid OTP');
@@ -530,7 +613,7 @@ export const api = {
 
       return {
         token: session.access_token,
-        user
+        user,
       };
     },
 

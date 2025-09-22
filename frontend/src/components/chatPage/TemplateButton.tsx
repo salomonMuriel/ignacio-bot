@@ -11,7 +11,7 @@ export default function TemplateButton({
   messageInput,
   onSaveTemplate,
   onLoadTemplate,
-  buttonRef
+  buttonRef,
 }: TemplateButtonProps) {
   const handleClick = () => {
     if (messageInput.trim()) {
@@ -36,16 +36,16 @@ export default function TemplateButton({
       style={{
         background: 'var(--ig-surface-glass-light)',
         border: '1px solid var(--ig-border-glass)',
-        color: 'var(--ig-text-muted)'
+        color: 'var(--ig-text-muted)',
       }}
-      onMouseEnter={(e) => {
+      onMouseEnter={e => {
         const target = e.target as HTMLButtonElement;
         target.style.background = 'var(--ig-surface-glass-dark)';
         target.style.borderColor = 'var(--ig-border-accent)';
         target.style.color = 'var(--ig-text-accent)';
         target.style.transform = 'translateY(-1px)';
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={e => {
         const target = e.target as HTMLButtonElement;
         target.style.background = 'var(--ig-surface-glass-light)';
         target.style.borderColor = 'var(--ig-border-glass)';
@@ -72,7 +72,9 @@ export default function TemplateButton({
         {/* Speech bubble with 3 dots icon for load templates */}
         <svg
           className={`absolute inset-0 w-5 h-5 transition-all duration-300 group-hover:scale-110 ${
-            !messageInput.trim() ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+            !messageInput.trim()
+              ? 'opacity-100 scale-100'
+              : 'opacity-0 scale-95'
           }`}
           fill="none"
           stroke="currentColor"

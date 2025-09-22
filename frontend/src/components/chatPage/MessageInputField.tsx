@@ -13,7 +13,7 @@ export default function MessageInputField({
   onChange,
   onKeyDown,
   isSending,
-  textareaRef
+  textareaRef,
 }: MessageInputFieldProps) {
   // Auto-resize textarea
   useEffect(() => {
@@ -58,15 +58,17 @@ export default function MessageInputField({
         lineHeight: '1.5',
       }}
       disabled={isSending}
-      onFocus={(e) => {
+      onFocus={e => {
         const target = e.target as HTMLTextAreaElement;
-        target.style.transition = 'border-color 0.2s ease, box-shadow 0.2s ease';
+        target.style.transition =
+          'border-color 0.2s ease, box-shadow 0.2s ease';
         target.style.borderColor = 'white';
         target.style.boxShadow = 'var(--ig-shadow-md), var(--ig-shadow-glow)';
       }}
-      onBlur={(e) => {
+      onBlur={e => {
         const target = e.target as HTMLTextAreaElement;
-        target.style.transition = 'border-color 0.2s ease, box-shadow 0.2s ease';
+        target.style.transition =
+          'border-color 0.2s ease, box-shadow 0.2s ease';
         target.style.borderColor = 'var(--ig-border-glass)';
         target.style.boxShadow = 'var(--ig-shadow-sm)';
       }}

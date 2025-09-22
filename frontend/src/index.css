@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Ignacio Brand Color System */
 :root {
@@ -9,8 +9,16 @@
   --ig-accent-yellow: #eec75d;
 
   /* Gradient Definitions */
-  --ig-bg-gradient: linear-gradient(135deg, var(--ig-dark-primary) 0%, var(--ig-dark-secondary) 100%);
-  --ig-accent-gradient: linear-gradient(135deg, var(--ig-accent-orange) 0%, var(--ig-accent-yellow) 100%);
+  --ig-bg-gradient: linear-gradient(
+    135deg,
+    var(--ig-dark-primary) 0%,
+    var(--ig-dark-secondary) 100%
+  );
+  --ig-accent-gradient: linear-gradient(
+    135deg,
+    var(--ig-accent-orange) 0%,
+    var(--ig-accent-yellow) 100%
+  );
   --ig-accent-gradient-hover: linear-gradient(135deg, #e07742 0%, #f0d170 100%);
 
   /* Text Colors for Dark Theme */
@@ -94,7 +102,9 @@
 }
 
 @keyframes typingDots {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
   }
   30% {
@@ -103,7 +113,8 @@
 }
 
 @keyframes pulseGlow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: var(--ig-shadow-md);
     transform: scale(1);
   }

@@ -17,7 +17,12 @@ export function use<T>(promise: Promise<T>): T {
 // Enhanced async state hook
 export function useAsyncState<T>(
   initialData?: T
-): [AsyncState<T>, (data: T) => void, (error: string) => void, (loading: boolean) => void] {
+): [
+  AsyncState<T>,
+  (data: T) => void,
+  (error: string) => void,
+  (loading: boolean) => void,
+] {
   const [state, setState] = useState<AsyncState<T>>({
     data: initialData || null,
     loading: false,
@@ -66,7 +71,8 @@ export function useAsync<T, P extends any[] = []>(
         setData(result);
         return result;
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+        const errorMessage =
+          err instanceof Error ? err.message : 'An error occurred';
         setError(errorMessage);
         throw err;
       }
@@ -121,7 +127,8 @@ export function useApiData<T>(
       setLastFetch(Date.now());
       onSuccess?.(result);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch data';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to fetch data';
       setError(errorMessage);
       onError?.(errorMessage);
     }
@@ -181,14 +188,23 @@ export function useMutation<T, P extends any[] = []>(
         onSettled?.(result, null, args);
         return result;
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Mutation failed';
+        const errorMessage =
+          err instanceof Error ? err.message : 'Mutation failed';
         setError(errorMessage);
         onError?.(errorMessage, args);
         onSettled?.(null, errorMessage, args);
         throw err;
       }
     },
-    [mutationFunction, setData, setError, setLoading, onSuccess, onError, onSettled]
+    [
+      mutationFunction,
+      setData,
+      setError,
+      setLoading,
+      onSuccess,
+      onError,
+      onSettled,
+    ]
   );
 
   const reset = useCallback(() => {
@@ -222,7 +238,8 @@ export function useDebouncedAsync<T, P extends any[] = []>(
           const result = await asyncFunction(...args);
           setData(result);
         } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+          const errorMessage =
+            err instanceof Error ? err.message : 'An error occurred';
           setError(errorMessage);
         }
       }, delay);

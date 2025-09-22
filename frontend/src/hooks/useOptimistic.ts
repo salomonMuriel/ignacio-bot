@@ -105,7 +105,10 @@ export function useOptimisticConversations(conversations: Conversation[]) {
 export function useOptimisticProjects(projects: Project[]) {
   const [optimisticProjects, addOptimisticProject] = useOptimistic(
     projects,
-    (currentProjects, action: { type: 'add' | 'update' | 'delete'; project: Partial<Project> }) => {
+    (
+      currentProjects,
+      action: { type: 'add' | 'update' | 'delete'; project: Partial<Project> }
+    ) => {
       switch (action.type) {
         case 'add':
           return [
@@ -127,17 +130,23 @@ export function useOptimisticProjects(projects: Project[]) {
               ...action.project,
             } as Project,
           ];
-        
+
         case 'update':
           return currentProjects.map(project =>
             project.id === action.project.id
-              ? { ...project, ...action.project, updated_at: new Date().toISOString() }
+              ? {
+                  ...project,
+                  ...action.project,
+                  updated_at: new Date().toISOString(),
+                }
               : project
           );
-        
+
         case 'delete':
-          return currentProjects.filter(project => project.id !== action.project.id);
-        
+          return currentProjects.filter(
+            project => project.id !== action.project.id
+          );
+
         default:
           return currentProjects;
       }
@@ -153,7 +162,10 @@ export function useOptimisticProjects(projects: Project[]) {
 
   const updateOptimisticProject = useCallback(
     (projectId: string, updates: Partial<Project>) => {
-      addOptimisticProject({ type: 'update', project: { id: projectId, ...updates } });
+      addOptimisticProject({
+        type: 'update',
+        project: { id: projectId, ...updates },
+      });
     },
     [addOptimisticProject]
   );
@@ -182,22 +194,24 @@ export function useOptimisticAction<T, P>(
   const [data, setData] = useState<T>(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const [optimisticData, addOptimistic] = useOptimistic(data, optimisticUpdateFn);
+
+  const [optimisticData, addOptimistic] = useOptimistic(
+    data,
+    optimisticUpdateFn
+  );
 
   const execute = useCallback(
     async (payload: P) => {
       try {
         setIsLoading(true);
         setError(null);
-        
+
         // Apply optimistic update immediately
         addOptimistic(payload);
-        
+
         // Execute actual action
         const result = await action(payload);
         setData(result);
-        
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
         // Revert optimistic update on error

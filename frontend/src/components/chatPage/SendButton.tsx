@@ -12,7 +12,7 @@ export default function SendButton({
   messageInput,
   selectedFile,
   isSending,
-  onSendMessage
+  onSendMessage,
 }: SendButtonProps) {
   const isDisabled = (!messageInput.trim() && !selectedFile) || isSending;
 
@@ -25,14 +25,12 @@ export default function SendButton({
         background: isDisabled
           ? 'var(--ig-surface-glass-light)'
           : 'var(--ig-accent-gradient)',
-        color: isDisabled
-          ? 'var(--ig-text-muted)'
-          : 'var(--ig-dark-primary)',
+        color: isDisabled ? 'var(--ig-text-muted)' : 'var(--ig-dark-primary)',
         cursor: isDisabled ? 'not-allowed' : 'pointer',
         border: '1px solid transparent',
-        boxShadow: isDisabled ? 'none' : 'var(--ig-shadow-md)'
+        boxShadow: isDisabled ? 'none' : 'var(--ig-shadow-md)',
       }}
-      onMouseEnter={(e) => {
+      onMouseEnter={e => {
         if (!isDisabled) {
           const target = e.target as HTMLButtonElement;
           target.style.background = 'var(--ig-accent-gradient-hover)';
@@ -40,7 +38,7 @@ export default function SendButton({
           target.style.boxShadow = 'var(--ig-shadow-lg), var(--ig-shadow-glow)';
         }
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={e => {
         if (!isDisabled) {
           const target = e.target as HTMLButtonElement;
           target.style.background = 'var(--ig-accent-gradient)';
@@ -52,7 +50,11 @@ export default function SendButton({
       {isSending ? (
         <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
       ) : (
-        <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-0.5"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
         </svg>
       )}

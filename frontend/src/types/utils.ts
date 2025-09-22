@@ -32,7 +32,11 @@ export interface OptimisticAction<T> {
 }
 
 // Generic CRUD operations
-export interface CrudOperations<T, CreateType = Partial<T>, UpdateType = Partial<T>> {
+export interface CrudOperations<
+  T,
+  CreateType = Partial<T>,
+  UpdateType = Partial<T>,
+> {
   items: T[];
   create: (data: CreateType) => Promise<T>;
   update: (id: string, data: UpdateType) => Promise<T>;
