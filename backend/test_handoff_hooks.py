@@ -8,7 +8,8 @@ import os
 import unittest.mock
 
 # Add the app directory to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
+sys.path.append(os.path.join(os.path.dirname(__file__), "app"))
+
 
 def test_hooks_integration():
     """Test that lifecycle hooks are properly integrated"""
@@ -18,6 +19,7 @@ def test_hooks_integration():
     try:
         # Test importing the hooks class
         from app.services.ai_service import IgnacioRunHooks
+
         print("✓ IgnacioRunHooks class imported successfully")
 
         # Test hook creation
@@ -25,7 +27,7 @@ def test_hooks_integration():
         print("✓ IgnacioRunHooks instance created")
 
         # Test service integration (mocked)
-        with unittest.mock.patch('app.services.ai_service.OpenAI'):
+        with unittest.mock.patch("app.services.ai_service.OpenAI"):
             from app.services.ai_service import IgnacioAgentService
 
             print("\n📋 Testing AI Service Integration:")
@@ -35,11 +37,11 @@ def test_hooks_integration():
         # Test hook methods exist
         print("\n📋 Testing Hook Methods:")
         hook_methods = [
-            'on_agent_start',
-            'on_agent_end',
-            'on_handoff',
-            'on_tool_start',
-            'on_tool_end'
+            "on_agent_start",
+            "on_agent_end",
+            "on_handoff",
+            "on_tool_start",
+            "on_tool_end",
         ]
 
         for method_name in hook_methods:
@@ -59,8 +61,10 @@ def test_hooks_integration():
     except Exception as e:
         print(f"❌ Error testing hooks: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     test_hooks_integration()

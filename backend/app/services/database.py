@@ -136,14 +136,18 @@ class DatabaseService:
         return len(response.data) > 0
 
     # Conversation operations
-    async def create_conversation(self, conv_data: ConversationCreate | dict) -> Conversation:
+    async def create_conversation(
+        self, conv_data: ConversationCreate | dict
+    ) -> Conversation:
         """Create a new conversation with Agent SDK support"""
         if isinstance(conv_data, dict):
             # Handle dict input from Agent SDK
             insert_data = {
                 "user_id": str(conv_data["user_id"]),
                 "title": conv_data.get("title", "New Conversation"),
-                "project_id": str(conv_data["project_id"]) if conv_data.get("project_id") else None,
+                "project_id": str(conv_data["project_id"])
+                if conv_data.get("project_id")
+                else None,
                 "language_preference": conv_data.get("language_preference", "es"),
                 "agent_state": conv_data.get("agent_state", {}),
                 "project_context": conv_data.get("project_context", {}),
@@ -153,17 +157,15 @@ class DatabaseService:
             insert_data = {
                 "user_id": str(conv_data.user_id),
                 "title": conv_data.title,
-                "project_id": str(conv_data.project_id) if conv_data.project_id else None,
-                "language_preference": getattr(conv_data, 'language_preference', "es"),
-                "agent_state": getattr(conv_data, 'agent_state', {}),
-                "project_context": getattr(conv_data, 'project_context', {}),
+                "project_id": str(conv_data.project_id)
+                if conv_data.project_id
+                else None,
+                "language_preference": getattr(conv_data, "language_preference", "es"),
+                "agent_state": getattr(conv_data, "agent_state", {}),
+                "project_context": getattr(conv_data, "project_context", {}),
             }
 
-        response = (
-            self.client.table("conversations")
-            .insert(insert_data)
-            .execute()
-        )
+        response = self.client.table("conversations").insert(insert_data).execute()
 
         if response.data:
             return Conversation(**response.data[0])
@@ -235,16 +237,14 @@ class DatabaseService:
             "is_from_user": msg_data.is_from_user,
             "whatsapp_message_id": msg_data.whatsapp_message_id,
         }
-        
+
         # Add attachments if provided
-        if hasattr(msg_data, 'attachments') and msg_data.attachments:
-            insert_data["attachments"] = [str(file_id) for file_id in msg_data.attachments]
-        
-        response = (
-            self.client.table("messages")
-            .insert(insert_data)
-            .execute()
-        )
+        if hasattr(msg_data, "attachments") and msg_data.attachments:
+            insert_data["attachments"] = [
+                str(file_id) for file_id in msg_data.attachments
+            ]
+
+        response = self.client.table("messages").insert(insert_data).execute()
 
         if response.data:
             return Message(**response.data[0])
@@ -265,7 +265,9 @@ class DatabaseService:
 
         return [Message(**row) for row in response.data]
 
-    async def get_message_with_attachments(self, message_id: UUID) -> MessageWithAttachments | None:
+    async def get_message_with_attachments(
+        self, message_id: UUID
+    ) -> MessageWithAttachments | None:
         """Get a message with its attached files"""
         # Get the message
         message_response = (
@@ -274,24 +276,23 @@ class DatabaseService:
             .eq("id", str(message_id))
             .execute()
         )
-        
+
         if not message_response.data:
             return None
-            
+
         message_data = message_response.data[0]
-        
+
         # Get attached files if any
         attachment_files = []
-        if message_data.get('attachments'):
-            for file_id in message_data['attachments']:
+        if message_data.get("attachments"):
+            for file_id in message_data["attachments"]:
                 file_record = await self.get_file_by_id(UUID(file_id))
                 if file_record:
                     attachment_files.append(file_record)
-        
+
         message = Message(**message_data)
         return MessageWithAttachments(
-            **message.model_dump(),
-            attachment_files=attachment_files
+            **message.model_dump(), attachment_files=attachment_files
         )
 
     # OTP operations
@@ -394,16 +395,12 @@ class DatabaseService:
             "file_type": file_data.file_type,
             "file_size": file_data.file_size,
         }
-        
+
         # Add conversation_id if provided
         if file_data.conversation_id:
             insert_data["conversation_id"] = str(file_data.conversation_id)
-            
-        response = (
-            self.client.table("user_files")
-            .insert(insert_data)
-            .execute()
-        )
+
+        response = self.client.table("user_files").insert(insert_data).execute()
 
         if response.data:
             return UserFile(**response.data[0])
@@ -478,10 +475,7 @@ class DatabaseService:
     async def delete_user_file(self, file_id: UUID) -> bool:
         """Delete a user file record"""
         response = (
-            self.client.table("user_files")
-            .delete()
-            .eq("id", str(file_id))
-            .execute()
+            self.client.table("user_files").delete().eq("id", str(file_id)).execute()
         )
         return len(response.data) > 0
 
@@ -502,18 +496,22 @@ class DatabaseService:
         return len(response.data) > 0
 
     # Agent Interaction operations
-    async def create_agent_interaction(self, interaction_data: AgentInteractionCreate) -> AgentInteraction:
+    async def create_agent_interaction(
+        self, interaction_data: AgentInteractionCreate
+    ) -> AgentInteraction:
         """Create a new agent interaction"""
         response = (
             self.client.table("agent_interactions")
-            .insert({
-                "conversation_id": str(interaction_data.conversation_id),
-                "agent_name": interaction_data.agent_name,
-                "input_text": interaction_data.input_text,
-                "output_text": interaction_data.output_text,
-                "tools_used": interaction_data.tools_used,
-                "execution_time_ms": interaction_data.execution_time_ms,
-            })
+            .insert(
+                {
+                    "conversation_id": str(interaction_data.conversation_id),
+                    "agent_name": interaction_data.agent_name,
+                    "input_text": interaction_data.input_text,
+                    "output_text": interaction_data.output_text,
+                    "tools_used": interaction_data.tools_used,
+                    "execution_time_ms": interaction_data.execution_time_ms,
+                }
+            )
             .execute()
         )
 
@@ -522,7 +520,9 @@ class DatabaseService:
         else:
             raise Exception("Failed to create agent interaction")
 
-    async def get_conversation_interactions(self, conversation_id: UUID) -> list[AgentInteraction]:
+    async def get_conversation_interactions(
+        self, conversation_id: UUID
+    ) -> list[AgentInteraction]:
         """Get all agent interactions for a conversation"""
         response = (
             self.client.table("agent_interactions")
@@ -551,21 +551,19 @@ class DatabaseService:
     async def create_user_project(self, project_data: dict) -> Project:
         """Create a new user project"""
         # Convert UUID to string if needed
-        if 'user_id' in project_data:
-            project_data['user_id'] = str(project_data['user_id'])
+        if "user_id" in project_data:
+            project_data["user_id"] = str(project_data["user_id"])
 
-        response = (
-            self.client.table("user_projects")
-            .insert(project_data)
-            .execute()
-        )
+        response = self.client.table("user_projects").insert(project_data).execute()
 
         if response.data:
             return Project(**response.data[0])
         else:
             raise Exception("Failed to create user project")
 
-    async def update_project(self, project_id: UUID, update_data: dict) -> Project | None:
+    async def update_project(
+        self, project_id: UUID, update_data: dict
+    ) -> Project | None:
         """Update a user project"""
         response = (
             self.client.table("user_projects")
@@ -611,7 +609,9 @@ class DatabaseService:
         return [Conversation(**item) for item in response.data]
 
     # Prompt Template operations
-    async def create_prompt_template(self, template_data: PromptTemplateCreate) -> PromptTemplate:
+    async def create_prompt_template(
+        self, template_data: PromptTemplateCreate
+    ) -> PromptTemplate:
         """Create a new prompt template"""
         response = (
             self.client.table("prompt_templates")
@@ -633,27 +633,29 @@ class DatabaseService:
         raise Exception("Failed to create prompt template")
 
     async def get_prompt_templates(
-        self, 
-        active_only: bool = True, 
+        self,
+        active_only: bool = True,
         template_type: str | None = None,
-        user_id: UUID | None = None
+        user_id: UUID | None = None,
     ) -> list[PromptTemplate]:
         """Get prompt templates with optional filtering by type and user"""
         query = self.client.table("prompt_templates").select("*")
-        
+
         if active_only:
             query = query.eq("is_active", True)
-            
+
         if template_type:
             query = query.eq("template_type", template_type)
-            
+
         if user_id:
             query = query.eq("created_by", str(user_id))
-            
+
         response = query.order("created_at", desc=True).execute()
         return [PromptTemplate(**item) for item in response.data]
 
-    async def get_prompt_template_by_id(self, template_id: UUID) -> PromptTemplate | None:
+    async def get_prompt_template_by_id(
+        self, template_id: UUID
+    ) -> PromptTemplate | None:
         """Get a specific prompt template by ID"""
         response = (
             self.client.table("prompt_templates")
@@ -711,23 +713,25 @@ class DatabaseService:
         template = await self.get_prompt_template_by_id(template_id)
         if not template:
             return False
-            
+
         # Get user info to check admin status
         user = await self.get_user_by_id(user_id)
         if not user:
             return False
-            
+
         # Users can modify their own user templates
         if template.template_type == "user" and template.created_by == user_id:
             return True
-            
+
         # Admins can modify admin templates they created or any admin template
         if template.template_type == "admin" and user.is_admin:
             return True
-            
+
         return False
 
-    async def get_prompt_templates_by_tags(self, tags: list[str], active_only: bool = True) -> list[PromptTemplate]:
+    async def get_prompt_templates_by_tags(
+        self, tags: list[str], active_only: bool = True
+    ) -> list[PromptTemplate]:
         """Get prompt templates that contain any of the specified tags"""
         query = self.client.table("prompt_templates").select("*")
 
@@ -742,15 +746,16 @@ class DatabaseService:
         return [PromptTemplate(**item) for item in response.data]
 
     # File-Conversation relationship operations
-    async def add_file_to_conversation(self, file_id: UUID, conversation_id: UUID) -> bool:
+    async def add_file_to_conversation(
+        self, file_id: UUID, conversation_id: UUID
+    ) -> bool:
         """Add a file to a conversation (creates file_conversations relationship)"""
         try:
             response = (
                 self.client.table("file_conversations")
-                .insert({
-                    "file_id": str(file_id),
-                    "conversation_id": str(conversation_id)
-                })
+                .insert(
+                    {"file_id": str(file_id), "conversation_id": str(conversation_id)}
+                )
                 .execute()
             )
             return len(response.data) > 0
@@ -768,11 +773,16 @@ class DatabaseService:
             .execute()
         )
 
-        return [{
-            "conversation_id": item["conversation_id"],
-            "conversation_title": item["conversations"]["title"] if item["conversations"] else "Untitled",
-            "used_at": item["created_at"]
-        } for item in response.data]
+        return [
+            {
+                "conversation_id": item["conversation_id"],
+                "conversation_title": item["conversations"]["title"]
+                if item["conversations"]
+                else "Untitled",
+                "used_at": item["created_at"],
+            }
+            for item in response.data
+        ]
 
     async def get_user_files_with_conversations(self, user_id: UUID) -> list[dict]:
         """Get all user files with their conversation usage data"""
@@ -792,11 +802,13 @@ class DatabaseService:
             # Get conversation data for this file
             conversations_data = await self.get_file_conversations(file_obj.id)
 
-            files_with_conversations.append({
-                **file_obj.model_dump(),
-                "conversations": conversations_data,
-                "usage_count": len(conversations_data)
-            })
+            files_with_conversations.append(
+                {
+                    **file_obj.model_dump(),
+                    "conversations": conversations_data,
+                    "usage_count": len(conversations_data),
+                }
+            )
 
         return files_with_conversations
 

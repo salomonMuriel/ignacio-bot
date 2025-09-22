@@ -272,6 +272,7 @@ class UserWithProjects(User):
 class MessageWithFiles(Message):
     files: list[UserFile] = []
 
+
 class MessageWithAttachments(Message):
     attachment_files: list[UserFile] = []  # Files attached to this message
 
@@ -283,6 +284,7 @@ class UserProjectWithFiles(Project):
 # Agent SDK specific response models
 class ConversationResult(BaseModel):
     """Result of agent conversation processing"""
+
     conversation_id: UUID
     response_text: str
     agent_used: str
@@ -295,6 +297,7 @@ class ConversationResult(BaseModel):
 
 class FileIntegrationResult(BaseModel):
     """Result of file integration with vector stores"""
+
     success: bool
     openai_file_id: str | None = None
     vector_store_updated: bool = False
@@ -304,6 +307,7 @@ class FileIntegrationResult(BaseModel):
 
 class ConversationSummary(BaseModel):
     """Summary of conversation for context management"""
+
     conversation_id: UUID
     total_messages: int
     agent_interactions: int

@@ -24,7 +24,7 @@ async def database_health():
     """Check database connectivity"""
     try:
         # Simple query to test Supabase connection
-        result = supabase.from_('users').select('id').limit(1).execute()
+        result = supabase.from_("users").select("id").limit(1).execute()
 
         return {
             "status": "healthy",

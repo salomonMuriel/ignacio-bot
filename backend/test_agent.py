@@ -8,12 +8,13 @@ import sys
 from dotenv import load_dotenv
 
 # Load environment variables first before importing app modules
-load_dotenv('.env.local')
+load_dotenv(".env.local")
 
 from app.services.ai_service import IgnacioAgentService
 from app.services.database import db_service
 from app.models.database import UserCreate
 from uuid import uuid4
+
 
 async def test_basic_functionality():
     """Test basic agent functionality"""
@@ -24,11 +25,7 @@ async def test_basic_functionality():
 
     # Create a test user first
     test_phone = f"+1555{str(uuid4())[:8]}"  # Generate unique phone number
-    user_create = UserCreate(
-        phone_number=test_phone,
-        name="Test User",
-        is_admin=False
-    )
+    user_create = UserCreate(phone_number=test_phone, name="Test User", is_admin=False)
     user = await db_service.create_user(user_create)
     user_id = user.id
     print(f"Created test user: {user_id}")
@@ -38,17 +35,17 @@ async def test_basic_functionality():
     try:
         result = await service.start_conversation(
             user_id=user_id,
-            initial_message="Hello, can you help me with my startup idea?"
+            initial_message="Hello, can you help me with my startup idea?",
         )
 
         print(f"Response type: {type(result)}")
         print(f"Response content: {result}")
 
         # Handle different response formats
-        if hasattr(result, 'conversation_id'):
+        if hasattr(result, "conversation_id"):
             conversation_id = result.conversation_id
-        elif isinstance(result, dict) and 'conversation_id' in result:
-            conversation_id = result['conversation_id']
+        elif isinstance(result, dict) and "conversation_id" in result:
+            conversation_id = result["conversation_id"]
         else:
             print(f"❌ Unexpected response format: {result}")
             return
@@ -59,6 +56,7 @@ async def test_basic_functionality():
     except Exception as e:
         print(f"❌ Simple conversation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return
 
@@ -67,7 +65,7 @@ async def test_basic_functionality():
     try:
         result = await service.continue_conversation(
             conversation_id=conversation_id,
-            message="What marketing strategy should I use for my tech startup?"
+            message="What marketing strategy should I use for my tech startup?",
         )
         print(f"✅ Marketing question works!")
         print(f"Response type: {type(result)}")
@@ -81,7 +79,7 @@ async def test_basic_functionality():
     try:
         result = await service.continue_conversation(
             conversation_id=conversation_id,
-            message="Should I use React or Vue for my web app?"
+            message="Should I use React or Vue for my web app?",
         )
         print(f"✅ Tech question works!")
         print(f"Response type: {type(result)}")
@@ -99,9 +97,10 @@ async def test_basic_functionality():
     except Exception as e:
         print(f"Failed to clean up test user: {e}")
 
+
 if __name__ == "__main__":
     # Check if required environment variables are set
-    if not os.getenv('OPENAI_API_KEY'):
+    if not os.getenv("OPENAI_API_KEY"):
         print("❌ OPENAI_API_KEY not found in environment variables")
         sys.exit(1)
 

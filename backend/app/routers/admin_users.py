@@ -17,7 +17,9 @@ from supabase import create_client, Client
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 
 # Supabase Admin Client for user management
-admin_supabase: Client = create_client(settings.supabase_url, settings.supabase_service_role_key)
+admin_supabase: Client = create_client(
+    settings.supabase_url, settings.supabase_service_role_key
+)
 
 
 class AdminUserCreate(BaseModel):
@@ -25,14 +27,14 @@ class AdminUserCreate(BaseModel):
     name: Optional[str] = None
     is_admin: bool = False
 
-    @field_validator('phone_number')
+    @field_validator("phone_number")
     @classmethod
     def validate_phone_number(cls, v: str) -> str:
         # Basic phone number validation
         if not v or len(v) < 10:
-            raise ValueError('Phone number must be at least 10 characters')
-        if not v.startswith('+'):
-            v = f'+{v}'
+            raise ValueError("Phone number must be at least 10 characters")
+        if not v.startswith("+"):
+            v = f"+{v}"
         return v
 
 
@@ -55,7 +57,7 @@ class AdminUserResponse(BaseModel):
 
 @router.get("/me", response_model=AdminUserResponse)
 async def get_current_user_profile(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> AdminUserResponse:
     """Get current authenticated user's profile"""
     return AdminUserResponse(
@@ -74,7 +76,7 @@ async def get_current_user_profile(
 async def get_all_users(
     limit: int = 100,
     offset: int = 0,
-    admin_user: User = Depends(get_current_admin_user)
+    admin_user: User = Depends(get_current_admin_user),
 ) -> List[AdminUserResponse]:
     """Get all users (admin only)"""
     try:
@@ -98,26 +100,29 @@ async def get_all_users(
 
 @router.post("/", response_model=AdminUserResponse)
 async def create_user(
-    user_data: AdminUserCreate,
-    admin_user: User = Depends(get_current_admin_user)
+    user_data: AdminUserCreate, admin_user: User = Depends(get_current_admin_user)
 ) -> AdminUserResponse:
     """Create a new user (admin only) - uses Supabase Auth Admin API"""
     try:
         # Check if user already exists
         existing_user = await db_service.get_user_by_phone(user_data.phone_number)
         if existing_user:
-            raise HTTPException(status_code=400, detail="User with this phone number already exists")
+            raise HTTPException(
+                status_code=400, detail="User with this phone number already exists"
+            )
 
         # Create user in Supabase Auth using Admin API
-        auth_response = admin_supabase.auth.admin.create_user({
-            "phone": user_data.phone_number,
-            "phone_confirmed": True,  # Auto-confirm admin-created users
-            "user_metadata": {
-                "name": user_data.name or "User",
-                "is_admin": user_data.is_admin,
-                "created_by_admin": str(admin_user.id)
+        auth_response = admin_supabase.auth.admin.create_user(
+            {
+                "phone": user_data.phone_number,
+                "phone_confirmed": True,  # Auto-confirm admin-created users
+                "user_metadata": {
+                    "name": user_data.name or "User",
+                    "is_admin": user_data.is_admin,
+                    "created_by_admin": str(admin_user.id),
+                },
             }
-        })
+        )
 
         if not auth_response.user:
             raise HTTPException(status_code=500, detail="Failed to create auth user")
@@ -125,6 +130,7 @@ async def create_user(
         # The database trigger should automatically create the public.users record
         # Wait a moment and then fetch it
         import asyncio
+
         await asyncio.sleep(0.1)
 
         # Get the created user from our database
@@ -132,16 +138,19 @@ async def create_user(
         if not new_user:
             # If trigger didn't work, create manually
             from app.models.database import UserCreate
+
             user_create_data = UserCreate(
                 phone_number=user_data.phone_number,
                 name=user_data.name or "User",
                 is_admin=user_data.is_admin,
-                is_active=True
+                is_active=True,
             )
             new_user = await db_service.create_user(user_create_data)
 
             # Link to auth user
-            await db_service.update_user(new_user.id, {"auth_user_id": auth_response.user.id})
+            await db_service.update_user(
+                new_user.id, {"auth_user_id": auth_response.user.id}
+            )
             new_user = await db_service.get_user_by_id(new_user.id)
 
         return AdminUserResponse(
@@ -163,8 +172,7 @@ async def create_user(
 
 @router.get("/{user_id}", response_model=AdminUserResponse)
 async def get_user(
-    user_id: UUID,
-    admin_user: User = Depends(get_current_admin_user)
+    user_id: UUID, admin_user: User = Depends(get_current_admin_user)
 ) -> AdminUserResponse:
     """Get a specific user (admin only)"""
     try:
@@ -192,7 +200,7 @@ async def get_user(
 async def update_user(
     user_id: UUID,
     user_data: AdminUserUpdate,
-    admin_user: User = Depends(get_current_admin_user)
+    admin_user: User = Depends(get_current_admin_user),
 ) -> AdminUserResponse:
     """Update a user (admin only)"""
     try:
@@ -202,16 +210,24 @@ async def update_user(
             raise HTTPException(status_code=404, detail="User not found")
 
         # Prevent admin from removing their own admin status
-        if (user_id == admin_user.id and
-            user_data.is_admin is not None and
-            not user_data.is_admin):
-            raise HTTPException(status_code=400, detail="Cannot remove your own admin privileges")
+        if (
+            user_id == admin_user.id
+            and user_data.is_admin is not None
+            and not user_data.is_admin
+        ):
+            raise HTTPException(
+                status_code=400, detail="Cannot remove your own admin privileges"
+            )
 
         # Prevent admin from deactivating themselves
-        if (user_id == admin_user.id and
-            user_data.is_active is not None and
-            not user_data.is_active):
-            raise HTTPException(status_code=400, detail="Cannot deactivate your own account")
+        if (
+            user_id == admin_user.id
+            and user_data.is_active is not None
+            and not user_data.is_active
+        ):
+            raise HTTPException(
+                status_code=400, detail="Cannot deactivate your own account"
+            )
 
         # Update user in database
         update_data = {}
@@ -251,14 +267,15 @@ async def update_user(
 
 @router.delete("/{user_id}")
 async def delete_user(
-    user_id: UUID,
-    admin_user: User = Depends(get_current_admin_user)
+    user_id: UUID, admin_user: User = Depends(get_current_admin_user)
 ):
     """Deactivate a user (admin only) - soft delete"""
     try:
         # Prevent admin from deleting themselves
         if user_id == admin_user.id:
-            raise HTTPException(status_code=400, detail="Cannot delete your own account")
+            raise HTTPException(
+                status_code=400, detail="Cannot delete your own account"
+            )
 
         # Get existing user
         existing_user = await db_service.get_user_by_id(user_id)
@@ -282,8 +299,7 @@ async def delete_user(
 
 @router.post("/{user_id}/invite")
 async def send_invite(
-    user_id: UUID,
-    admin_user: User = Depends(get_current_admin_user)
+    user_id: UUID, admin_user: User = Depends(get_current_admin_user)
 ):
     """Send OTP invite to a user (admin only) - triggers Supabase Auth OTP"""
     try:

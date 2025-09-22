@@ -253,21 +253,29 @@ class TestMessageEndpoints:
             response_text="This is a test AI response from Agent SDK",
             agent_name="ignacio",
             tools_called=["web_search"],
-            confidence_score=0.95
+            confidence_score=0.95,
         )
 
         # Mock the message retrieval after agent processing
-        mock_message = type('Message', (), {
-            'id': uuid4(),
-            'content': "This is a test AI response from Agent SDK",
-            'message_type': 'text',
-            'is_from_user': False,
-            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-            'file_path': None
-        })
+        mock_message = type(
+            "Message",
+            (),
+            {
+                "id": uuid4(),
+                "content": "This is a test AI response from Agent SDK",
+                "message_type": "text",
+                "is_from_user": False,
+                "created_at": type(
+                    "datetime", (), {"isoformat": lambda: "2023-01-01T00:00:00"}
+                )(),
+                "file_path": None,
+            },
+        )
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     mock_db.get_conversation_by_id.return_value = test_conversation
                     mock_db.get_conversation_messages.return_value = [mock_message]
@@ -305,7 +313,7 @@ class TestMessageEndpoints:
                     # Verify agent service was called
                     mock_agent_service.continue_conversation.assert_called_once_with(
                         conversation_id=test_conversation.id,
-                        message="Hello Ignacio, how can you help me?"
+                        message="Hello Ignacio, how can you help me?",
                     )
 
     @pytest.mark.asyncio
@@ -376,7 +384,9 @@ class TestMessageEndpoints:
         )
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     mock_db.get_conversation_by_id.return_value = test_conversation
 
@@ -403,33 +413,40 @@ class TestAgentSDKEndpoints:
             response_text="Hello! I'm Ignacio, ready to help with your project.",
             agent_name="ignacio",
             tools_called=["file_search"],
-            confidence_score=0.9
+            confidence_score=0.9,
         )
 
         # Mock the message retrieval
-        mock_message = type('Message', (), {
-            'id': uuid4(),
-            'content': "Hello! I'm Ignacio, ready to help with your project.",
-            'message_type': 'text',
-            'is_from_user': False,
-            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-            'file_path': None
-        })
+        mock_message = type(
+            "Message",
+            (),
+            {
+                "id": uuid4(),
+                "content": "Hello! I'm Ignacio, ready to help with your project.",
+                "message_type": "text",
+                "is_from_user": False,
+                "created_at": type(
+                    "datetime", (), {"isoformat": lambda: "2023-01-01T00:00:00"}
+                )(),
+                "file_path": None,
+            },
+        )
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     mock_db.update_conversation.return_value = None
                     mock_db.get_conversation_messages.return_value = [mock_message]
 
                     request_data = {
                         "initial_message": "Hi Ignacio, I need help with my startup",
-                        "title": "Startup Help Session"
+                        "title": "Startup Help Session",
                     }
 
                     response = await async_client.post(
-                        "/api/chat/conversations/start",
-                        json=request_data
+                        "/api/chat/conversations/start", json=request_data
                     )
 
                     assert response.status_code == 200
@@ -450,11 +467,13 @@ class TestAgentSDKEndpoints:
         mock_agent_service.set_file_integration_result(
             success=True,
             openai_file_id="file-business-plan-123",
-            content_preview="Business Plan - Executive Summary..."
+            content_preview="Business Plan - Executive Summary...",
         )
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     mock_db.get_user_files.return_value = [test_user_file]
 
@@ -471,9 +490,7 @@ class TestAgentSDKEndpoints:
                     assert "Business Plan" in data["content_preview"]
 
     @pytest.mark.asyncio
-    async def test_integrate_file_not_found(
-        self, async_client: AsyncClient, test_user
-    ):
+    async def test_integrate_file_not_found(self, async_client: AsyncClient, test_user):
         """Test integrating non-existent file"""
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
             with patch("app.services.database.db_service") as mock_db:
@@ -494,19 +511,25 @@ class TestAgentSDKEndpoints:
         mock_agent_service = MockIgnacioAgentService()
 
         # Mock conversation summary
-        mock_summary = type('ConversationSummary', (), {
-            'conversation_id': test_conversation.id,
-            'total_messages': 5,
-            'agent_interactions': 3,
-            'tools_used': ['web_search', 'file_search'],
-            'key_topics': ['marketing', 'strategy'],
-            'project_context': {'project_type': 'startup'},
-            'last_activity': type('datetime', (), {
-                'isoformat': lambda: '2023-01-01T00:00:00'
-            })()
-        })
+        mock_summary = type(
+            "ConversationSummary",
+            (),
+            {
+                "conversation_id": test_conversation.id,
+                "total_messages": 5,
+                "agent_interactions": 3,
+                "tools_used": ["web_search", "file_search"],
+                "key_topics": ["marketing", "strategy"],
+                "project_context": {"project_type": "startup"},
+                "last_activity": type(
+                    "datetime", (), {"isoformat": lambda: "2023-01-01T00:00:00"}
+                )(),
+            },
+        )
 
-        with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+        with patch(
+            "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+        ):
             mock_agent_service.get_conversation_summary.return_value = mock_summary
 
             response = await async_client.get(
@@ -528,7 +551,9 @@ class TestAgentSDKEndpoints:
     ):
         """Test getting conversation interactions"""
         with patch("app.services.database.db_service") as mock_db:
-            mock_db.get_conversation_interactions.return_value = [test_agent_interaction]
+            mock_db.get_conversation_interactions.return_value = [
+                test_agent_interaction
+            ]
 
             response = await async_client.get(
                 f"/api/chat/conversations/{test_conversation.id}/interactions"
@@ -545,24 +570,23 @@ class TestAgentSDKEndpoints:
             assert interaction["tools_used"] == test_agent_interaction.tools_used
 
     @pytest.mark.asyncio
-    async def test_update_project_context(
-        self, async_client: AsyncClient, test_user
-    ):
+    async def test_update_project_context(self, async_client: AsyncClient, test_user):
         """Test updating project context"""
         mock_agent_service = MockIgnacioAgentService()
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 project_data = {
                     "project_name": "My Startup",
                     "project_type": "startup",
                     "current_stage": "ideation",
-                    "problem_statement": "Solving efficiency problems"
+                    "problem_statement": "Solving efficiency problems",
                 }
 
                 response = await async_client.post(
-                    "/api/chat/project/context",
-                    json=project_data
+                    "/api/chat/project/context", json=project_data
                 )
 
                 assert response.status_code == 200
@@ -591,49 +615,81 @@ class TestChatAPIIntegration:
             response_text="Welcome! I'm Ignacio, here to help with your project development.",
             agent_name="ignacio",
             tools_called=["file_search"],
-            confidence_score=0.9
+            confidence_score=0.9,
         )
 
         marketing_result = mock_agent_service.set_conversation_result(
             response_text="For marketing, let's focus on understanding your target audience first. What type of customers are you trying to reach?",
             agent_name="marketing",
             tools_called=["web_search", "file_search"],
-            confidence_score=0.92
+            confidence_score=0.92,
         )
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     # Mock database responses
-                    mock_conv = type('Conversation', (), {
-                        'id': uuid4(),
-                        'title': 'Project Help',
-                        'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-                        'updated_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-                        'user_id': test_user.id
-                    })
+                    mock_conv = type(
+                        "Conversation",
+                        (),
+                        {
+                            "id": uuid4(),
+                            "title": "Project Help",
+                            "created_at": type(
+                                "datetime",
+                                (),
+                                {"isoformat": lambda: "2023-01-01T00:00:00"},
+                            )(),
+                            "updated_at": type(
+                                "datetime",
+                                (),
+                                {"isoformat": lambda: "2023-01-01T00:00:00"},
+                            )(),
+                            "user_id": test_user.id,
+                        },
+                    )
 
                     mock_messages = [
-                        type('Message', (), {
-                            'id': uuid4(),
-                            'content': "Hi Ignacio, I need help with my startup idea.",
-                            'message_type': 'text',
-                            'is_from_user': True,
-                            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-                            'file_path': None
-                        }),
-                        type('Message', (), {
-                            'id': uuid4(),
-                            'content': "Welcome! I'm Ignacio, here to help with your project development.",
-                            'message_type': 'text',
-                            'is_from_user': False,
-                            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-                            'file_path': None
-                        })
+                        type(
+                            "Message",
+                            (),
+                            {
+                                "id": uuid4(),
+                                "content": "Hi Ignacio, I need help with my startup idea.",
+                                "message_type": "text",
+                                "is_from_user": True,
+                                "created_at": type(
+                                    "datetime",
+                                    (),
+                                    {"isoformat": lambda: "2023-01-01T00:00:00"},
+                                )(),
+                                "file_path": None,
+                            },
+                        ),
+                        type(
+                            "Message",
+                            (),
+                            {
+                                "id": uuid4(),
+                                "content": "Welcome! I'm Ignacio, here to help with your project development.",
+                                "message_type": "text",
+                                "is_from_user": False,
+                                "created_at": type(
+                                    "datetime",
+                                    (),
+                                    {"isoformat": lambda: "2023-01-01T00:00:00"},
+                                )(),
+                                "file_path": None,
+                            },
+                        ),
                     ]
 
                     mock_db.update_conversation.return_value = None
-                    mock_db.get_conversation_messages.return_value = [mock_messages[1]]  # AI response
+                    mock_db.get_conversation_messages.return_value = [
+                        mock_messages[1]
+                    ]  # AI response
                     mock_db.get_conversation_by_id.return_value = mock_conv
 
                     # 1. Start conversation with Agent SDK
@@ -641,8 +697,8 @@ class TestChatAPIIntegration:
                         "/api/chat/conversations/start",
                         json={
                             "initial_message": "Hi Ignacio, I need help with my startup idea.",
-                            "title": "Project Help"
-                        }
+                            "title": "Project Help",
+                        },
                     )
                     assert response.status_code == 200
                     start_data = response.json()
@@ -651,26 +707,36 @@ class TestChatAPIIntegration:
 
                     # 2. Continue conversation with marketing question
                     mock_db.get_conversation_messages.return_value = [
-                        type('Message', (), {
-                            'id': uuid4(),
-                            'content': "For marketing, let's focus on understanding your target audience first.",
-                            'message_type': 'text',
-                            'is_from_user': False,
-                            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-                            'file_path': None
-                        })
+                        type(
+                            "Message",
+                            (),
+                            {
+                                "id": uuid4(),
+                                "content": "For marketing, let's focus on understanding your target audience first.",
+                                "message_type": "text",
+                                "is_from_user": False,
+                                "created_at": type(
+                                    "datetime",
+                                    (),
+                                    {"isoformat": lambda: "2023-01-01T00:00:00"},
+                                )(),
+                                "file_path": None,
+                            },
+                        )
                     ]
 
                     mock_agent_service.set_conversation_result(
                         response_text="For marketing, let's focus on understanding your target audience first.",
                         agent_name="marketing",
                         tools_called=["web_search", "file_search"],
-                        confidence_score=0.92
+                        confidence_score=0.92,
                     )
 
                     response = await async_client.post(
                         f"/api/chat/conversations/{mock_conv.id}/messages",
-                        json={"content": "I need help with marketing strategies for my tech startup."}
+                        json={
+                            "content": "I need help with marketing strategies for my tech startup."
+                        },
                     )
                     assert response.status_code == 200
                     marketing_data = response.json()
@@ -686,7 +752,9 @@ class TestChatAPIIntegration:
         mock_agent_service = MockIgnacioAgentService()
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     mock_db.get_conversation_by_id.return_value = test_conversation
 
@@ -695,22 +763,30 @@ class TestChatAPIIntegration:
                         response_text="For marketing, focus on customer personas and value proposition.",
                         agent_name="marketing",
                         tools_called=["web_search"],
-                        confidence_score=0.9
+                        confidence_score=0.9,
                     )
                     mock_db.get_conversation_messages.return_value = [
-                        type('Message', (), {
-                            'id': uuid4(),
-                            'content': "For marketing, focus on customer personas and value proposition.",
-                            'message_type': 'text',
-                            'is_from_user': False,
-                            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-                            'file_path': None
-                        })
+                        type(
+                            "Message",
+                            (),
+                            {
+                                "id": uuid4(),
+                                "content": "For marketing, focus on customer personas and value proposition.",
+                                "message_type": "text",
+                                "is_from_user": False,
+                                "created_at": type(
+                                    "datetime",
+                                    (),
+                                    {"isoformat": lambda: "2023-01-01T00:00:00"},
+                                )(),
+                                "file_path": None,
+                            },
+                        )
                     ]
 
                     response = await async_client.post(
                         f"/api/chat/conversations/{test_conversation.id}/messages",
-                        json={"content": "Help me with marketing strategies"}
+                        json={"content": "Help me with marketing strategies"},
                     )
                     assert response.status_code == 200
                     marketing_response = response.json()
@@ -721,22 +797,30 @@ class TestChatAPIIntegration:
                         response_text="For technology stack, consider scalability and team expertise.",
                         agent_name="tech",
                         tools_called=["web_search", "file_search"],
-                        confidence_score=0.88
+                        confidence_score=0.88,
                     )
                     mock_db.get_conversation_messages.return_value = [
-                        type('Message', (), {
-                            'id': uuid4(),
-                            'content': "For technology stack, consider scalability and team expertise.",
-                            'message_type': 'text',
-                            'is_from_user': False,
-                            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-                            'file_path': None
-                        })
+                        type(
+                            "Message",
+                            (),
+                            {
+                                "id": uuid4(),
+                                "content": "For technology stack, consider scalability and team expertise.",
+                                "message_type": "text",
+                                "is_from_user": False,
+                                "created_at": type(
+                                    "datetime",
+                                    (),
+                                    {"isoformat": lambda: "2023-01-01T00:00:00"},
+                                )(),
+                                "file_path": None,
+                            },
+                        )
                     ]
 
                     response = await async_client.post(
                         f"/api/chat/conversations/{test_conversation.id}/messages",
-                        json={"content": "What technology stack should I use?"}
+                        json={"content": "What technology stack should I use?"},
                     )
                     assert response.status_code == 200
                     tech_response = response.json()
@@ -750,13 +834,15 @@ class TestChatAPIIntegration:
         mock_agent_service = MockIgnacioAgentService()
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     # 1. Integrate file into context
                     mock_agent_service.set_file_integration_result(
                         success=True,
                         openai_file_id="file-business-plan-123",
-                        content_preview="Business Plan - Our startup focuses on AI-powered solutions..."
+                        content_preview="Business Plan - Our startup focuses on AI-powered solutions...",
                     )
                     mock_db.get_user_files.return_value = [test_user_file]
 
@@ -772,28 +858,38 @@ class TestChatAPIIntegration:
                         response_text="Based on your business plan, I see you're targeting small businesses with AI solutions. This is a strong market opportunity.",
                         agent_name="ignacio",
                         tools_called=["file_search", "web_search"],
-                        confidence_score=0.93
+                        confidence_score=0.93,
                     )
                     mock_db.get_conversation_by_id.return_value = test_conversation
                     mock_db.get_conversation_messages.return_value = [
-                        type('Message', (), {
-                            'id': uuid4(),
-                            'content': "Based on your business plan, I see you're targeting small businesses with AI solutions. This is a strong market opportunity.",
-                            'message_type': 'text',
-                            'is_from_user': False,
-                            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-                            'file_path': None
-                        })
+                        type(
+                            "Message",
+                            (),
+                            {
+                                "id": uuid4(),
+                                "content": "Based on your business plan, I see you're targeting small businesses with AI solutions. This is a strong market opportunity.",
+                                "message_type": "text",
+                                "is_from_user": False,
+                                "created_at": type(
+                                    "datetime",
+                                    (),
+                                    {"isoformat": lambda: "2023-01-01T00:00:00"},
+                                )(),
+                                "file_path": None,
+                            },
+                        )
                     ]
 
                     response = await async_client.post(
                         f"/api/chat/conversations/{test_conversation.id}/messages",
-                        json={"content": "What do you think about my business plan?"}
+                        json={"content": "What do you think about my business plan?"},
                     )
                     assert response.status_code == 200
                     chat_response = response.json()
                     assert "file_search" in chat_response["tools_called"]
-                    assert "business plan" in chat_response["message"]["content"].lower()
+                    assert (
+                        "business plan" in chat_response["message"]["content"].lower()
+                    )
 
 
 class TestChatAPIErrorHandling:
@@ -835,16 +931,20 @@ class TestChatAPIErrorHandling:
         import asyncio
 
         mock_agent_service = AsyncMock()
-        mock_agent_service.continue_conversation.side_effect = asyncio.TimeoutError("Agent timeout")
+        mock_agent_service.continue_conversation.side_effect = asyncio.TimeoutError(
+            "Agent timeout"
+        )
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     mock_db.get_conversation_by_id.return_value = test_conversation
 
                     response = await async_client.post(
                         f"/api/chat/conversations/{test_conversation.id}/messages",
-                        json={"content": "Test message"}
+                        json={"content": "Test message"},
                     )
 
                     assert response.status_code == 500
@@ -857,7 +957,9 @@ class TestChatAPIErrorHandling:
         mock_agent_service = MockIgnacioAgentService()
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     mock_db.get_conversation_by_id.return_value = test_conversation
 
@@ -887,20 +989,28 @@ class TestChatAPIErrorHandling:
         mock_agent_service.set_conversation_result(
             response_text="Response to concurrent message",
             agent_name="ignacio",
-            confidence_score=0.9
+            confidence_score=0.9,
         )
 
-        mock_message = type('Message', (), {
-            'id': uuid4(),
-            'content': "Response to concurrent message",
-            'message_type': 'text',
-            'is_from_user': False,
-            'created_at': type('datetime', (), {'isoformat': lambda: '2023-01-01T00:00:00'})(),
-            'file_path': None
-        })
+        mock_message = type(
+            "Message",
+            (),
+            {
+                "id": uuid4(),
+                "content": "Response to concurrent message",
+                "message_type": "text",
+                "is_from_user": False,
+                "created_at": type(
+                    "datetime", (), {"isoformat": lambda: "2023-01-01T00:00:00"}
+                )(),
+                "file_path": None,
+            },
+        )
 
         with patch("app.routers.chat.TEMP_USER_ID", test_user.id):
-            with patch("app.routers.chat.get_ignacio_service", return_value=mock_agent_service):
+            with patch(
+                "app.routers.chat.get_ignacio_service", return_value=mock_agent_service
+            ):
                 with patch("app.services.database.db_service") as mock_db:
                     mock_db.get_conversation_by_id.return_value = test_conversation
                     mock_db.get_conversation_messages.return_value = [mock_message]

@@ -23,23 +23,26 @@ async def sync_file_to_openai(user_id: UUID, file_id: UUID):
     try:
         # Get the file to find its conversation
         from app.services.database import db_service
+
         file_record = await db_service.get_file_by_id(file_id)
-        
+
         if not file_record:
             logger.error(f"File {file_id} not found for OpenAI sync")
             return
-            
+
         # Skip sync for chat files - they are processed directly by Agent SDK
         if file_record.conversation_id:
-            logger.info(f"File {file_id} is a chat attachment, skipping vector store sync (handled by Agent SDK)")
+            logger.info(
+                f"File {file_id} is a chat attachment, skipping vector store sync (handled by Agent SDK)"
+            )
             return
-        
+
         # Only sync files that are not part of conversations (legacy user files)
         logger.info(f"Starting OpenAI sync for user file {file_id}")
         # For user files without conversation_id, we'd need to implement user-based sync
         # For now, we'll skip since we're moving away from vector stores for chat
         logger.info(f"Vector store sync skipped - using direct Agent SDK processing")
-            
+
     except Exception as e:
         logger.error(f"OpenAI sync failed for file {file_id}: {str(e)}")
 
@@ -51,7 +54,7 @@ async def upload_file(
     file: UploadFile = File(...),
 ):
     """Upload a file to user's storage
-    
+
     Supported file types:
     - Images: All image formats (image/*)
     - PDFs: application/pdf
@@ -67,14 +70,15 @@ async def upload_file(
     # Validate file type - only accept PDFs and images
     if not file.content_type:
         raise HTTPException(
-            status_code=400, 
-            detail=f"File type not detected for {file.filename}"
+            status_code=400, detail=f"File type not detected for {file.filename}"
         )
-    
-    if not (file.content_type.startswith('image/') or file.content_type == 'application/pdf'):
+
+    if not (
+        file.content_type.startswith("image/") or file.content_type == "application/pdf"
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted."
+            detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted.",
         )
 
     # Read file content
@@ -115,6 +119,7 @@ async def get_file_metadata(file_id: str, user_id: str):
 
     try:
         from app.services.database import db_service
+
         file_record = await db_service.get_file_by_id(file_uuid)
 
         if not file_record:
@@ -144,6 +149,7 @@ async def download_file(file_id: str, user_id: str):
     try:
         # Get file metadata first
         from app.services.database import db_service
+
         file_record = await db_service.get_file_by_id(file_uuid)
 
         if not file_record:
@@ -174,7 +180,9 @@ async def download_file(file_id: str, user_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to download file: {str(e)}"
+        )
 
 
 @router.get("/{file_id}/url")
@@ -187,10 +195,14 @@ async def get_file_url(file_id: str, user_id: str, expires_in: int = 3600):
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
     try:
-        signed_url = await storage_service.get_file_url(file_uuid, user_uuid, expires_in)
+        signed_url = await storage_service.get_file_url(
+            file_uuid, user_uuid, expires_in
+        )
 
         if not signed_url:
-            raise HTTPException(status_code=404, detail="File not found or access denied")
+            raise HTTPException(
+                status_code=404, detail="File not found or access denied"
+            )
 
         return {"url": signed_url, "expires_in": expires_in}
 
@@ -213,7 +225,9 @@ async def get_user_files(user_id: str):
         return files
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get user files: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get user files: {str(e)}"
+        )
 
 
 @router.get("/conversation/{conversation_id}", response_model=list[UserFile])
@@ -226,11 +240,14 @@ async def get_conversation_files(conversation_id: str):
 
     try:
         from app.services.database import db_service
+
         files = await db_service.get_conversation_files(conv_uuid)
         return files
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get conversation files: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get conversation files: {str(e)}"
+        )
 
 
 @router.post("/conversations/{conversation_id}/files", response_model=UserFile)
@@ -241,7 +258,7 @@ async def upload_file_to_conversation(
     file: UploadFile = File(...),
 ):
     """Upload a file and associate it with a conversation
-    
+
     Supported file types:
     - Images: All image formats (image/*)
     - PDFs: application/pdf
@@ -258,14 +275,15 @@ async def upload_file_to_conversation(
     # Validate file type - only accept PDFs and images
     if not file.content_type:
         raise HTTPException(
-            status_code=400, 
-            detail=f"File type not detected for {file.filename}"
+            status_code=400, detail=f"File type not detected for {file.filename}"
         )
-    
-    if not (file.content_type.startswith('image/') or file.content_type == 'application/pdf'):
+
+    if not (
+        file.content_type.startswith("image/") or file.content_type == "application/pdf"
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted."
+            detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted.",
         )
 
     # Read file content
@@ -309,7 +327,9 @@ async def delete_file(file_id: str, user_id: str):
         success = await storage_service.delete_file(file_uuid, user_uuid)
 
         if not success:
-            raise HTTPException(status_code=404, detail="File not found or access denied")
+            raise HTTPException(
+                status_code=404, detail="File not found or access denied"
+            )
 
         return {"message": "File deleted successfully"}
 
@@ -342,7 +362,9 @@ async def get_file_conversations(file_id: str, user_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get file conversations: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get file conversations: {str(e)}"
+        )
 
 
 @router.post("/{file_id}/reuse")
@@ -374,7 +396,11 @@ async def reuse_file(file_id: str, conversation_id: str, user_id: str):
         if not success:
             raise HTTPException(status_code=500, detail="Failed to reuse file")
 
-        return {"message": "File reused successfully", "file_id": file_id, "conversation_id": conversation_id}
+        return {
+            "message": "File reused successfully",
+            "file_id": file_id,
+            "conversation_id": conversation_id,
+        }
 
     except HTTPException:
         raise
@@ -392,8 +418,14 @@ async def get_user_files_with_conversations(user_id: str):
 
     try:
         from app.services.database import db_service
-        files_with_conversations = await db_service.get_user_files_with_conversations(user_uuid)
+
+        files_with_conversations = await db_service.get_user_files_with_conversations(
+            user_uuid
+        )
         return files_with_conversations
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get user files with conversations: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get user files with conversations: {str(e)}",
+        )

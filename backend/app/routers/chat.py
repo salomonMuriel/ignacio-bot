@@ -57,6 +57,7 @@ class ConversationDetailResponse(ConversationResponse):
 
 class AgentMessageResponse(BaseModel):
     """Enhanced response for Agent SDK messages"""
+
     message: MessageResponse
     agent_used: str
     tools_called: list[str] = []
@@ -100,12 +101,12 @@ async def get_conversations(current_user: User = Depends(get_current_user)):
         )
 
 
-
-
 @router.get(
     "/conversations/{conversation_id}", response_model=ConversationDetailResponse
 )
-async def get_conversation(conversation_id: UUID, current_user: User = Depends(get_current_user)):
+async def get_conversation(
+    conversation_id: UUID, current_user: User = Depends(get_current_user)
+):
     """Get a specific conversation with its messages"""
     try:
         # Get conversation
@@ -118,7 +119,8 @@ async def get_conversation(conversation_id: UUID, current_user: User = Depends(g
         # Verify user owns this conversation
         if conversation.user_id != current_user.id:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this conversation"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied to this conversation",
             )
 
         # Get messages
@@ -168,7 +170,9 @@ async def update_conversation(
             )
 
         # Update conversation
-        update_data = ConversationUpdate(title=request.title, project_id=request.project_id)
+        update_data = ConversationUpdate(
+            title=request.title, project_id=request.project_id
+        )
         updated_conv = await db_service.update_conversation(
             conversation_id, update_data
         )
@@ -260,10 +264,6 @@ async def get_messages(conversation_id: UUID, limit: int = 50, offset: int = 0):
         )
 
 
-
-
-
-
 # Agent SDK specific endpoints
 
 # Note: File integration is now handled automatically via direct Agent SDK processing
@@ -283,12 +283,12 @@ async def get_conversation_summary(conversation_id: UUID):
             "tools_used": summary.tools_used,
             "key_topics": summary.key_topics,
             "project_context": summary.project_context,
-            "last_activity": summary.last_activity.isoformat()
+            "last_activity": summary.last_activity.isoformat(),
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get conversation summary: {str(e)}"
+            detail=f"Failed to get conversation summary: {str(e)}",
         )
 
 
@@ -298,19 +298,22 @@ async def get_conversation_interactions(conversation_id: UUID):
     try:
         interactions = await db_service.get_conversation_interactions(conversation_id)
 
-        return [{
-            "id": interaction.id,
-            "agent_name": interaction.agent_name,
-            "input_text": interaction.input_text,
-            "output_text": interaction.output_text,
-            "tools_used": interaction.tools_used,
-            "execution_time_ms": interaction.execution_time_ms,
-            "created_at": interaction.created_at.isoformat()
-        } for interaction in interactions]
+        return [
+            {
+                "id": interaction.id,
+                "agent_name": interaction.agent_name,
+                "input_text": interaction.input_text,
+                "output_text": interaction.output_text,
+                "tools_used": interaction.tools_used,
+                "execution_time_ms": interaction.execution_time_ms,
+                "created_at": interaction.created_at.isoformat(),
+            }
+            for interaction in interactions
+        ]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get conversation interactions: {str(e)}"
+            detail=f"Failed to get conversation interactions: {str(e)}",
         )
 
 
@@ -321,33 +324,34 @@ async def associate_conversation_with_project(conversation_id: UUID, request: di
         project_id = request.get("project_id")
         if not project_id:
             raise HTTPException(status_code=400, detail="project_id is required")
-        
+
         # Check if conversation exists
         conversation = await db_service.get_conversation_by_id(conversation_id)
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
-        
+
         # Check if project exists
         project = await db_service.get_project_by_id(UUID(project_id))
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
-        
+
         # Update conversation with project association
         updated_conv = await db_service.update_conversation(
-            conversation_id, 
-            {"project_id": project_id}
+            conversation_id, {"project_id": project_id}
         )
-        
+
         if not updated_conv:
-            raise HTTPException(status_code=500, detail="Failed to associate conversation with project")
-        
+            raise HTTPException(
+                status_code=500, detail="Failed to associate conversation with project"
+            )
+
         return {"message": "Conversation successfully associated with project"}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to associate conversation with project: {str(e)}"
+            detail=f"Failed to associate conversation with project: {str(e)}",
         )
 
 
@@ -358,7 +362,7 @@ async def send_message_unified(
     project_id: str = Form(None),
     file: UploadFile = File(None),
     existing_file_id: str = Form(None),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Unified endpoint for sending messages - handles both new conversations and continuing existing ones
 
@@ -372,7 +376,9 @@ async def send_message_unified(
     print(f"  - Content length: {len(content)}")
     print(f"  - Conversation ID: {conversation_id}")
     print(f"  - Project ID: {project_id}")
-    print(f"  - New file attached: {file.filename if file and file.filename else 'None'}")
+    print(
+        f"  - New file attached: {file.filename if file and file.filename else 'None'}"
+    )
     print(f"  - Existing file ID: {existing_file_id}")
     if file and file.filename:
         print(f"  - File size: {file.size if hasattr(file, 'size') else 'Unknown'}")
@@ -382,13 +388,15 @@ async def send_message_unified(
         # Parse UUIDs if provided
         parsed_conversation_id = None
         parsed_project_id = None
-        
+
         if conversation_id:
             try:
                 parsed_conversation_id = UUID(conversation_id)
             except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid conversation_id format")
-        
+                raise HTTPException(
+                    status_code=400, detail="Invalid conversation_id format"
+                )
+
         if project_id:
             try:
                 parsed_project_id = UUID(project_id)
@@ -399,7 +407,7 @@ async def send_message_unified(
         if file and file.filename and existing_file_id:
             raise HTTPException(
                 status_code=400,
-                detail="Cannot provide both new file and existing_file_id. Choose one."
+                detail="Cannot provide both new file and existing_file_id. Choose one.",
             )
 
         # Handle file upload or existing file reuse
@@ -412,7 +420,9 @@ async def send_message_unified(
             try:
                 existing_file_uuid = UUID(existing_file_id)
             except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid existing_file_id format")
+                raise HTTPException(
+                    status_code=400, detail="Invalid existing_file_id format"
+                )
 
             # Get existing file record and verify ownership
             existing_file_record = await db_service.get_file_by_id(existing_file_uuid)
@@ -420,19 +430,35 @@ async def send_message_unified(
                 raise HTTPException(status_code=404, detail="Existing file not found")
 
             if existing_file_record.user_id != current_user.id:
-                raise HTTPException(status_code=403, detail="Access denied to existing file")
+                raise HTTPException(
+                    status_code=403, detail="Access denied to existing file"
+                )
 
             # Prepare file content data from existing file
             try:
-                file_content = await storage_service.download_file(existing_file_uuid, current_user.id)
+                file_content = await storage_service.download_file(
+                    existing_file_uuid, current_user.id
+                )
                 if file_content is None:
-                    raise HTTPException(status_code=404, detail="Existing file content not found")
+                    raise HTTPException(
+                        status_code=404, detail="Existing file content not found"
+                    )
 
-                file_content_data = [(file_content, existing_file_record.file_name, existing_file_record.file_type)]
-                print(f"[CHAT] Existing file loaded successfully: {existing_file_record.file_name}")
+                file_content_data = [
+                    (
+                        file_content,
+                        existing_file_record.file_name,
+                        existing_file_record.file_type,
+                    )
+                ]
+                print(
+                    f"[CHAT] Existing file loaded successfully: {existing_file_record.file_name}"
+                )
             except Exception as e:
                 print(f"[CHAT] ERROR: Failed to load existing file: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Failed to load existing file: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to load existing file: {str(e)}"
+                )
 
         elif file and file.filename:
             print(f"[CHAT] Processing file upload: {file.filename}")
@@ -442,14 +468,17 @@ async def send_message_unified(
                 print(f"[CHAT] ERROR: File type not detected for {file.filename}")
                 raise HTTPException(
                     status_code=400,
-                    detail=f"File type not detected for {file.filename}"
+                    detail=f"File type not detected for {file.filename}",
                 )
 
-            if not (file.content_type.startswith('image/') or file.content_type == 'application/pdf'):
+            if not (
+                file.content_type.startswith("image/")
+                or file.content_type == "application/pdf"
+            ):
                 print(f"[CHAT] ERROR: Unsupported file type {file.content_type}")
                 raise HTTPException(
                     status_code=400,
-                    detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted."
+                    detail=f"File type {file.content_type} not supported. Only PDF and image files are accepted.",
                 )
 
             print(f"[CHAT] File validation passed, reading content...")
@@ -462,28 +491,43 @@ async def send_message_unified(
         if parsed_conversation_id:
             print(f"[CHAT] Continuing existing conversation: {parsed_conversation_id}")
             # Continue existing conversation
-            conversation = await db_service.get_conversation_by_id(parsed_conversation_id)
+            conversation = await db_service.get_conversation_by_id(
+                parsed_conversation_id
+            )
             if not conversation:
                 print(f"[CHAT] ERROR: Conversation {parsed_conversation_id} not found")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Conversation not found"
+                    detail="Conversation not found",
                 )
 
             # Handle file for conversation
             if file_content_data:
                 if existing_file_record:
                     # Reuse existing file - add to conversation relationship
-                    print(f"[CHAT] Adding existing file {existing_file_record.id} to conversation {parsed_conversation_id}")
+                    print(
+                        f"[CHAT] Adding existing file {existing_file_record.id} to conversation {parsed_conversation_id}"
+                    )
                     try:
-                        await db_service.add_file_to_conversation(existing_file_record.id, parsed_conversation_id)
-                        print(f"[CHAT] Existing file added to conversation successfully")
+                        await db_service.add_file_to_conversation(
+                            existing_file_record.id, parsed_conversation_id
+                        )
+                        print(
+                            f"[CHAT] Existing file added to conversation successfully"
+                        )
                     except Exception as e:
-                        print(f"[CHAT] ERROR: Failed to add existing file to conversation: {str(e)}")
-                        raise HTTPException(status_code=500, detail=f"Failed to add existing file to conversation: {str(e)}")
+                        print(
+                            f"[CHAT] ERROR: Failed to add existing file to conversation: {str(e)}"
+                        )
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to add existing file to conversation: {str(e)}",
+                        )
                 else:
                     # Upload new file and associate with conversation
-                    print(f"[CHAT] Uploading file to storage for conversation {parsed_conversation_id}")
+                    print(
+                        f"[CHAT] Uploading file to storage for conversation {parsed_conversation_id}"
+                    )
                     try:
                         uploaded_file = await storage_service.upload_file(
                             user_id=current_user.id,
@@ -494,10 +538,14 @@ async def send_message_unified(
                         )
                         print(f"[CHAT] File uploaded successfully: {uploaded_file.id}")
                         # Add file-conversation relationship for new uploads to existing conversations
-                        await db_service.add_file_to_conversation(uploaded_file.id, parsed_conversation_id)
+                        await db_service.add_file_to_conversation(
+                            uploaded_file.id, parsed_conversation_id
+                        )
                     except Exception as e:
                         print(f"[CHAT] ERROR: File upload failed: {str(e)}")
-                        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+                        raise HTTPException(
+                            status_code=500, detail=f"File upload failed: {str(e)}"
+                        )
 
             print(f"[CHAT] Calling Agent SDK to continue conversation...")
             # Process message with Agent SDK
@@ -505,13 +553,15 @@ async def send_message_unified(
                 agent_result = await get_ignacio_service().continue_conversation(
                     conversation_id=parsed_conversation_id,
                     message=content,
-                    file_contents=file_content_data if file_content_data else None
+                    file_contents=file_content_data if file_content_data else None,
                 )
                 print(f"[CHAT] Agent SDK processing completed successfully")
             except Exception as e:
                 print(f"[CHAT] ERROR: Agent SDK processing failed: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
-            
+                raise HTTPException(
+                    status_code=500, detail=f"AI processing failed: {str(e)}"
+                )
+
         else:
             print(f"[CHAT] Starting new conversation with project {parsed_project_id}")
             # Start new conversation
@@ -531,7 +581,9 @@ async def send_message_unified(
                     print(f"[CHAT] File uploaded successfully: {uploaded_file.id}")
                 except Exception as e:
                     print(f"[CHAT] ERROR: File upload failed: {str(e)}")
-                    raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+                    raise HTTPException(
+                        status_code=500, detail=f"File upload failed: {str(e)}"
+                    )
 
             print(f"[CHAT] Calling Agent SDK to start conversation...")
             # Start conversation with Agent SDK
@@ -540,44 +592,56 @@ async def send_message_unified(
                     user_id=current_user.id,
                     initial_message=content,
                     project_id=parsed_project_id,
-                    file_contents=file_content_data if file_content_data else None
+                    file_contents=file_content_data if file_content_data else None,
                 )
                 print(f"[CHAT] Agent SDK conversation started successfully")
             except Exception as e:
                 print(f"[CHAT] ERROR: Agent SDK conversation start failed: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
-            
+                raise HTTPException(
+                    status_code=500, detail=f"AI processing failed: {str(e)}"
+                )
+
             # Handle file-conversation relationships after conversation creation
-            if hasattr(agent_result, 'conversation_id'):
+            if hasattr(agent_result, "conversation_id"):
                 if uploaded_file:
                     # Update the uploaded file record with the conversation_id
                     await db_service.update_user_file(
                         uploaded_file.id,
-                        {"conversation_id": str(agent_result.conversation_id)}
+                        {"conversation_id": str(agent_result.conversation_id)},
                     )
                     # Add file-conversation relationship for new uploads
-                    await db_service.add_file_to_conversation(uploaded_file.id, agent_result.conversation_id)
+                    await db_service.add_file_to_conversation(
+                        uploaded_file.id, agent_result.conversation_id
+                    )
                 elif existing_file_record:
                     # Link existing file to the new conversation
-                    print(f"[CHAT] Adding existing file {existing_file_record.id} to new conversation {agent_result.conversation_id}")
+                    print(
+                        f"[CHAT] Adding existing file {existing_file_record.id} to new conversation {agent_result.conversation_id}"
+                    )
                     try:
-                        await db_service.add_file_to_conversation(existing_file_record.id, agent_result.conversation_id)
-                        print(f"[CHAT] Existing file added to new conversation successfully")
+                        await db_service.add_file_to_conversation(
+                            existing_file_record.id, agent_result.conversation_id
+                        )
+                        print(
+                            f"[CHAT] Existing file added to new conversation successfully"
+                        )
                     except Exception as e:
-                        print(f"[CHAT] ERROR: Failed to add existing file to new conversation: {str(e)}")
+                        print(
+                            f"[CHAT] ERROR: Failed to add existing file to new conversation: {str(e)}"
+                        )
                         # Don't fail the whole request if file linking fails
                         pass
 
         # Handle the case where agent_result might be a dict due to an error
         conversation_id_result = None
-        if hasattr(agent_result, 'conversation_id'):
+        if hasattr(agent_result, "conversation_id"):
             conversation_id_result = agent_result.conversation_id
-        elif isinstance(agent_result, dict) and 'conversation_id' in agent_result:
-            conversation_id_result = agent_result['conversation_id']
+        elif isinstance(agent_result, dict) and "conversation_id" in agent_result:
+            conversation_id_result = agent_result["conversation_id"]
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Invalid agent result format: {type(agent_result)}"
+                detail=f"Invalid agent result format: {type(agent_result)}",
             )
 
         # Get the AI response message
@@ -591,7 +655,7 @@ async def send_message_unified(
         if not ai_message:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve AI response message"
+                detail="Failed to retrieve AI response message",
             )
 
         response = AgentMessageResponse(
@@ -627,5 +691,3 @@ async def send_message_unified(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to send message: {str(e)}",
         )
-
-

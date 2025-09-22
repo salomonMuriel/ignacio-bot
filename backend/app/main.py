@@ -7,6 +7,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import os
 from pathlib import Path
 
+
 def get_env_file_path() -> Path:
     """Get the path to the appropriate .env file based on APP_ENV."""
     app_env = os.getenv("APP_ENV", "development")
@@ -18,12 +19,14 @@ def get_env_file_path() -> Path:
         filename = ".env.local"
     return Path(__file__).parent.parent.parent / filename
 
+
 env_path = get_env_file_path()
 load_dotenv(env_path)
 
 # Configure logging
 import logging
 import sys
+
 
 def configure_logging():
     """Configure application logging based on settings."""
@@ -35,36 +38,45 @@ def configure_logging():
     # Configure root logger
     logging.basicConfig(
         level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s' if settings.log_format == 'text'
-               else '{"timestamp": "%(asctime)s", "name": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}',
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        if settings.log_format == "text"
+        else '{"timestamp": "%(asctime)s", "name": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}',
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
 
     # Set uvicorn logging level
     logging.getLogger("uvicorn").setLevel(log_level)
     logging.getLogger("uvicorn.access").setLevel(log_level)
-    
+
     # Suppress verbose HTTP request logs from httpx (used by Supabase client)
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    
+
     # Also suppress other noisy loggers in production
     if settings.app_env == "production":
         logging.getLogger("urllib3").setLevel(logging.WARNING)
         logging.getLogger("requests").setLevel(logging.WARNING)
 
+
 configure_logging()
 
 # Ensure OpenAI API key is set in environment for Agent SDK
-if 'OPENAI_API_KEY' not in os.environ and hasattr(os.environ, 'get'):
+if "OPENAI_API_KEY" not in os.environ and hasattr(os.environ, "get"):
     from app.core.config import Settings
+
     temp_settings = Settings()
     if temp_settings.openai_api_key:
-        os.environ['OPENAI_API_KEY'] = temp_settings.openai_api_key
+        os.environ["OPENAI_API_KEY"] = temp_settings.openai_api_key
 
 from app.core.config import settings
-from app.routers import chat, files, health, project, prompt_templates, admin_users, whatsapp_auth
+from app.routers import (
+    chat,
+    files,
+    health,
+    project,
+    prompt_templates,
+    admin_users,
+    whatsapp_auth,
+)
 
 # Create FastAPI application
 app = FastAPI(
@@ -92,7 +104,10 @@ if settings.backend_host not in allowed_hosts:
     allowed_hosts.append(settings.backend_host)
 
 # In development, allow all hosts if not explicitly configured
-if settings.app_env == "development" and settings.allowed_hosts == "localhost,127.0.0.1":
+if (
+    settings.app_env == "development"
+    and settings.allowed_hosts == "localhost,127.0.0.1"
+):
     allowed_hosts = ["*"]
 
 app.add_middleware(

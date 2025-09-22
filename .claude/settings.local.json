@@ -27,7 +27,8 @@
       "Bash(npm create:*)",
       "Bash(grep:*)",
       "WebSearch",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npm run format:*)"
     ],
     "deny": [],
     "ask": []

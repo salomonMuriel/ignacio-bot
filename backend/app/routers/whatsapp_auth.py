@@ -15,7 +15,9 @@ router = APIRouter(prefix="/auth/whatsapp", tags=["whatsapp-auth"])
 class PhoneLookupRequest(BaseModel):
     """Request model for phone number lookup"""
 
-    phone_number: str = Field(..., description="Phone number to look up (with or without + prefix)")
+    phone_number: str = Field(
+        ..., description="Phone number to look up (with or without + prefix)"
+    )
 
 
 class PhoneLookupResponse(BaseModel):
@@ -52,7 +54,7 @@ async def lookup_user_by_phone(request: PhoneLookupRequest):
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid phone number format"
+            detail="Invalid phone number format",
         )
 
     # Look up user in database
@@ -60,7 +62,7 @@ async def lookup_user_by_phone(request: PhoneLookupRequest):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No user found with phone number {formatted_phone}"
+            detail=f"No user found with phone number {formatted_phone}",
         )
 
     return PhoneLookupResponse(
@@ -68,7 +70,7 @@ async def lookup_user_by_phone(request: PhoneLookupRequest):
         phone_number=user.phone_number,
         name=user.name,
         is_active=user.is_active,
-        is_admin=user.is_admin
+        is_admin=user.is_admin,
     )
 
 
@@ -96,15 +98,14 @@ async def validate_whatsapp_user(request: PhoneLookupRequest):
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid phone number format"
+            detail="Invalid phone number format",
         )
 
     # Look up user in database
     user = await db_service.get_user_by_phone(formatted_phone)
     if not user or not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found or inactive"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found or inactive"
         )
 
     return {"status": "valid", "message": "User is registered and active"}

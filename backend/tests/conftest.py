@@ -113,7 +113,7 @@ def test_conversation_data(test_user: User) -> ConversationCreate:
         openai_session_id=f"session_{uuid.uuid4()}",
         agent_state={"current_agent": "ignacio"},
         project_context={"stage": "ideation"},
-        language_preference="es"
+        language_preference="es",
     )
 
 
@@ -164,7 +164,7 @@ async def test_user_project_data(test_user: User) -> ProjectCreate:
         problem_statement="Solving efficiency problems",
         solution_approach="AI-powered automation",
         business_model="SaaS subscription",
-        context_data={"industry": "fintech", "location": "Mexico"}
+        context_data={"industry": "fintech", "location": "Mexico"},
     )
 
 
@@ -180,7 +180,7 @@ async def test_user_project(
 
 @pytest.fixture
 async def test_agent_interaction_data(
-    test_conversation: Conversation
+    test_conversation: Conversation,
 ) -> AgentInteractionCreate:
     """Test agent interaction data"""
     return AgentInteractionCreate(
@@ -189,7 +189,7 @@ async def test_agent_interaction_data(
         input_text="Tell me about marketing strategies",
         output_text="Here are some effective marketing strategies...",
         tools_used=["web_search", "file_search"],
-        execution_time_ms=2500
+        execution_time_ms=2500,
     )
 
 
@@ -217,14 +217,12 @@ async def test_user_file_data(test_user: User) -> dict:
         "openai_sync_status": SyncStatus.SYNCED,
         "content_preview": "This is a test document with business information...",
         "metadata": {"pages": 5, "language": "en"},
-        "vector_store_id": "vs-test123"
+        "vector_store_id": "vs-test123",
     }
 
 
 @pytest.fixture
-async def test_user_file(
-    test_user: User, test_user_file_data: dict
-) -> UserFile:
+async def test_user_file(test_user: User, test_user_file_data: dict) -> UserFile:
     """Create a test user file in database"""
     file = await db_service.create_user_file(test_user_file_data)
     yield file
@@ -243,7 +241,7 @@ def mock_agent_response() -> ConversationResult:
         confidence_score=0.95,
         suggested_actions=["Review uploaded documents"],
         requires_followup=False,
-        execution_time_ms=1500
+        execution_time_ms=1500,
     )
 
 
@@ -257,7 +255,7 @@ def mock_ignacio_service(mock_agent_response: ConversationResult) -> AsyncMock:
         success=True,
         openai_file_id="file-123",
         vector_store_updated=True,
-        content_preview="Test file content..."
+        content_preview="Test file content...",
     )
     mock_service.get_conversation_summary.return_value = AsyncMock(
         conversation_id=uuid.uuid4(),
@@ -266,7 +264,7 @@ def mock_ignacio_service(mock_agent_response: ConversationResult) -> AsyncMock:
         tools_used=["file_search", "web_search"],
         key_topics=["marketing", "strategy"],
         project_context={},
-        last_activity=datetime.utcnow()
+        last_activity=datetime.utcnow(),
     )
     return mock_service
 

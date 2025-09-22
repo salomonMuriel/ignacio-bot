@@ -23,6 +23,7 @@ ALGORITHM = "HS256"
 
 class AuthError(HTTPException):
     """Custom authentication error"""
+
     def __init__(self, detail: str = "Could not validate credentials"):
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -64,7 +65,7 @@ def verify_jwt_token(token: str) -> dict:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> User:
     """
     Dependency to get current authenticated user
@@ -94,7 +95,7 @@ async def get_current_user(
 
 
 async def get_current_admin_user(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> User:
     """
     Dependency to ensure current user is an admin
@@ -117,7 +118,7 @@ async def get_current_admin_user(
 async def get_optional_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(
         HTTPBearer(auto_error=False)
-    )
+    ),
 ) -> Optional[User]:
     """
     Optional authentication dependency - returns None if no token provided
@@ -147,7 +148,7 @@ def get_user_from_phone(phone_number: str) -> Optional[User]:
     Returns:
         User if found, None otherwise
     """
-    return db_service.get_user_by_phone(phone_number)
+    return db_service.get_user_by_phone(format_phone_number(phone_number))
 
 
 def format_phone_number(phone: str) -> str:
@@ -161,10 +162,12 @@ def format_phone_number(phone: str) -> str:
         Formatted phone number
     """
     # Remove common prefixes and formatting
-    clean_phone = phone.replace("whatsapp:", "").replace("+", "").replace("-", "").replace(" ", "")
+    clean_phone = (
+        phone.replace("whatsapp:", "")
+        .replace("+", "")
+        .replace("-", "")
+        .replace(" ", "")
+        .replace(".", "")
+    )
 
-    # Add + prefix if not present
-    if not phone.startswith("+"):
-        return f"+{clean_phone}"
-
-    return phone
+    return clean_phone

@@ -44,7 +44,7 @@ class MockIgnacioAgentService:
         response_text: str,
         agent_name: str = "ignacio",
         tools_called: list = None,
-        confidence_score: float = 0.95
+        confidence_score: float = 0.95,
     ) -> ConversationResult:
         """Set mock conversation result"""
         conversation_id = uuid4()
@@ -56,7 +56,7 @@ class MockIgnacioAgentService:
             confidence_score=confidence_score,
             suggested_actions=["Review project goals"],
             requires_followup=False,
-            execution_time_ms=1200
+            execution_time_ms=1200,
         )
 
         self.start_conversation.return_value = mock_result
@@ -67,7 +67,7 @@ class MockIgnacioAgentService:
         self,
         success: bool = True,
         openai_file_id: str = "file-test123",
-        content_preview: str = "Test file content..."
+        content_preview: str = "Test file content...",
     ) -> FileIntegrationResult:
         """Set mock file integration result"""
         mock_result = FileIntegrationResult(
@@ -75,7 +75,7 @@ class MockIgnacioAgentService:
             openai_file_id=openai_file_id if success else None,
             vector_store_updated=success,
             content_preview=content_preview if success else None,
-            error_message=None if success else "File integration failed"
+            error_message=None if success else "File integration failed",
         )
 
         self.upload_file_to_context.return_value = mock_result

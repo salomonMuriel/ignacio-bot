@@ -21,45 +21,78 @@ class StorageService:
     # Allowed file types
     ALLOWED_EXTENSIONS = {
         # Audio files
-        '.mp3', '.wav', '.m4a', '.ogg', '.flac',
+        ".mp3",
+        ".wav",
+        ".m4a",
+        ".ogg",
+        ".flac",
         # Documents
-        '.pdf', '.txt', '.doc', '.docx',
+        ".pdf",
+        ".txt",
+        ".doc",
+        ".docx",
         # Images
-        '.jpg', '.jpeg', '.png', '.gif', '.webp'
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".webp",
     }
 
     ALLOWED_MIME_TYPES = {
         # Audio
-        'audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/ogg', 'audio/flac',
+        "audio/mpeg",
+        "audio/wav",
+        "audio/mp4",
+        "audio/ogg",
+        "audio/flac",
         # Documents
-        'application/pdf', 'text/plain', 'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        "application/pdf",
+        "text/plain",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         # Images
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp'
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
     }
 
     def __init__(self):
         self.client = supabase
         self.bucket_name = "user-files"
 
-    def validate_file(self, file_content: bytes, file_name: str, content_type: str | None = None) -> tuple[bool, str]:
+    def validate_file(
+        self, file_content: bytes, file_name: str, content_type: str | None = None
+    ) -> tuple[bool, str]:
         """Validate file size and type"""
 
         # Check file size
         if len(file_content) > self.MAX_FILE_SIZE:
-            return False, f"File size ({len(file_content)} bytes) exceeds maximum allowed size of {self.MAX_FILE_SIZE} bytes (20MB)"
+            return (
+                False,
+                f"File size ({len(file_content)} bytes) exceeds maximum allowed size of {self.MAX_FILE_SIZE} bytes (20MB)",
+            )
 
         # Check file extension
-        file_extension = f".{file_name.split('.')[-1].lower()}" if "." in file_name else ""
+        file_extension = (
+            f".{file_name.split('.')[-1].lower()}" if "." in file_name else ""
+        )
         if file_extension not in self.ALLOWED_EXTENSIONS:
             allowed_exts = ", ".join(sorted(self.ALLOWED_EXTENSIONS))
-            return False, f"File type '{file_extension}' not allowed. Allowed types: {allowed_exts}"
+            return (
+                False,
+                f"File type '{file_extension}' not allowed. Allowed types: {allowed_exts}",
+            )
 
         # Check MIME type if provided
         if content_type:
             if content_type not in self.ALLOWED_MIME_TYPES:
                 allowed_types = ", ".join(sorted(self.ALLOWED_MIME_TYPES))
-                return False, f"MIME type '{content_type}' not allowed. Allowed types: {allowed_types}"
+                return (
+                    False,
+                    f"MIME type '{content_type}' not allowed. Allowed types: {allowed_types}",
+                )
 
         return True, "File validation passed"
 
@@ -97,7 +130,9 @@ class StorageService:
             content_type, _ = mimetypes.guess_type(file_name)
 
         # Validate file
-        is_valid, validation_message = self.validate_file(file_content, file_name, content_type)
+        is_valid, validation_message = self.validate_file(
+            file_content, file_name, content_type
+        )
         if not is_valid:
             raise Exception(validation_message)
 
@@ -106,10 +141,12 @@ class StorageService:
         unique_filename = (
             f"{uuid.uuid4()}.{file_extension}" if file_extension else str(uuid.uuid4())
         )
-        
+
         # Use conversation-based path structure if conversation_id is provided
         if conversation_id:
-            file_path = f"users/{user_id}/conversations/{conversation_id}/{unique_filename}"
+            file_path = (
+                f"users/{user_id}/conversations/{conversation_id}/{unique_filename}"
+            )
         else:
             # Fallback to user-based path for backwards compatibility
             file_path = f"users/{user_id}/files/{unique_filename}"
