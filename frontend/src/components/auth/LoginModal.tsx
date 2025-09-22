@@ -50,7 +50,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]); // Colombia as default
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { login } = useAuth();
+  const { login, verifyOTP, error, clearError } = useAuth();
 
   // Countdown timer for resend button
   useEffect(() => {
@@ -81,41 +81,47 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     if (!phoneNumber.trim()) return;
 
     setIsLoading(true);
-    // Mock API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-
-    setStep('otp');
-    setCountdown(30); // 30 second countdown for resend
+    try {
+      clearError();
+      const fullPhoneNumber = `${selectedCountry.dialCode}${phoneNumber.replace(/\D/g, '')}`;
+      await login(fullPhoneNumber);
+      setStep('otp');
+      setCountdown(30); // 30 second countdown for resend
+    } catch (error) {
+      console.error('Failed to send OTP:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResendOTP = async () => {
     setIsLoading(true);
-    // Mock API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsLoading(false);
-
-    setCountdown(30);
+    try {
+      clearError();
+      const fullPhoneNumber = `${selectedCountry.dialCode}${phoneNumber.replace(/\D/g, '')}`;
+      await login(fullPhoneNumber);
+      setCountdown(30);
+    } catch (error) {
+      console.error('Failed to resend OTP:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleVerifyOTP = async () => {
     if (!otp.trim()) return;
 
     setIsLoading(true);
-    // Mock API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Mock successful login - accept any OTP
-    login({
-      id: '1',
-      phone_number: `${selectedCountry.dialCode} ${phoneNumber}`,
-      is_admin: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-
-    setIsLoading(false);
-    onClose();
+    try {
+      clearError();
+      const fullPhoneNumber = `${selectedCountry.dialCode}${phoneNumber.replace(/\D/g, '')}`;
+      await verifyOTP(fullPhoneNumber, otp);
+      onClose();
+    } catch (error) {
+      console.error('Failed to verify OTP:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatPhoneNumber = (value: string, countryCode: string) => {
@@ -187,6 +193,12 @@ export default function LoginModal({ onClose }: LoginModalProps) {
 
         {/* Content */}
         <div className="p-6">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg">
+              <p className="text-red-200 text-sm">{error}</p>
+            </div>
+          )}
           {step === 'phone' ? (
             <div className="space-y-6">
               <div>

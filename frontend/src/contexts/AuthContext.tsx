@@ -102,44 +102,67 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Initialize authentication state
+  // Initialize authentication state and set up auth listeners
   useEffect(() => {
     initializeAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = api.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+
+      if (event === 'SIGNED_IN' && session) {
+        try {
+          const user = await api.auth.getCurrentUser();
+          dispatch({ type: 'AUTH_SUCCESS', payload: user });
+        } catch (error) {
+          console.error('Failed to get user after sign in:', error);
+          dispatch({ type: 'AUTH_LOGOUT' });
+        }
+      } else if (event === 'SIGNED_OUT') {
+        dispatch({ type: 'AUTH_LOGOUT' });
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const initializeAuth = async () => {
     try {
       dispatch({ type: 'AUTH_LOADING' });
-      
-      // For Phase 2: Automatically authenticate with mock user
-      // In Phase 4: This will check for stored tokens and validate them
-      const user = await api.auth.getCurrentUser();
-      dispatch({ type: 'AUTH_SUCCESS', payload: user });
+
+      // Check if user has active Supabase session
+      const session = await api.auth.getSession();
+      if (session) {
+        // Get user details from backend
+        const user = await api.auth.getCurrentUser();
+        dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      } else {
+        // No active session
+        dispatch({ type: 'AUTH_LOGOUT' });
+      }
     } catch (error) {
       console.error('Auth initialization failed:', error);
-      dispatch({ 
-        type: 'AUTH_ERROR', 
-        payload: error instanceof Error ? error.message : 'Authentication failed' 
-      });
+      dispatch({ type: 'AUTH_LOGOUT' });
     }
   };
 
   const login = async (whatsappNumber: string) => {
     try {
       dispatch({ type: 'AUTH_LOADING' });
-      
-      // Phase 2: Mock login
-      // Phase 4: This will send OTP to WhatsApp number
+
+      // Send OTP to WhatsApp number via Supabase
       await api.auth.login(whatsappNumber);
-      
-      // For Phase 2, immediately get mock user after "login"
-      const user = await api.auth.getCurrentUser();
-      dispatch({ type: 'AUTH_SUCCESS', payload: user });
-      
+
+      // Don't dispatch success here - wait for OTP verification
+      dispatch({ type: 'AUTH_CLEAR_ERROR' });
+
     } catch (error) {
-      dispatch({ 
-        type: 'AUTH_ERROR', 
-        payload: error instanceof Error ? error.message : 'Login failed' 
+      dispatch({
+        type: 'AUTH_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to send OTP'
       });
       throw error;
     }
@@ -148,20 +171,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const verifyOTP = async (whatsappNumber: string, otp: string) => {
     try {
       dispatch({ type: 'AUTH_LOADING' });
-      
-      // Phase 2: Mock OTP verification
-      // Phase 4: This will verify OTP and return JWT token
+
+      // Verify OTP with Supabase and get user
       const { user } = await api.auth.verifyOTP(whatsappNumber, otp);
-      
-      // Store token in localStorage (Phase 4)
-      // localStorage.setItem('auth_token', token);
-      
+
       dispatch({ type: 'AUTH_SUCCESS', payload: user });
-      
+
     } catch (error) {
-      dispatch({ 
-        type: 'AUTH_ERROR', 
-        payload: error instanceof Error ? error.message : 'OTP verification failed' 
+      dispatch({
+        type: 'AUTH_ERROR',
+        payload: error instanceof Error ? error.message : 'OTP verification failed'
       });
       throw error;
     }
@@ -170,12 +189,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     try {
       await api.auth.logout();
-      
-      // Clear stored token (Phase 4)
-      // localStorage.removeItem('auth_token');
-      
       dispatch({ type: 'AUTH_LOGOUT' });
-      
+
     } catch (error) {
       console.error('Logout failed:', error);
       // Still logout locally even if API call fails
