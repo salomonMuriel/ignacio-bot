@@ -8,7 +8,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, field_validator
 
-from app.core.auth import get_current_admin_user
+from app.core.auth import get_current_admin_user, get_current_user
 from app.core.config import settings
 from app.models.database import User
 from app.services.database import db_service
@@ -51,6 +51,23 @@ class AdminUserResponse(BaseModel):
     is_active: bool
     created_at: str
     updated_at: str
+
+
+@router.get("/me", response_model=AdminUserResponse)
+async def get_current_user_profile(
+    current_user: User = Depends(get_current_user)
+) -> AdminUserResponse:
+    """Get current authenticated user's profile"""
+    return AdminUserResponse(
+        id=current_user.id,
+        auth_user_id=current_user.auth_user_id,
+        phone_number=current_user.phone_number,
+        name=current_user.name,
+        is_admin=current_user.is_admin,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at.isoformat(),
+        updated_at=current_user.updated_at.isoformat(),
+    )
 
 
 @router.get("/", response_model=List[AdminUserResponse])

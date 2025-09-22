@@ -1,7 +1,7 @@
 /**
  * API Service Layer for Ignacio Bot Frontend
  * Handles all HTTP requests to the FastAPI backend
- * Uses mocked authentication with test user for Phase 2
+ * Integrated with Supabase Auth for real authentication
  */
 
 import type {
@@ -20,12 +20,10 @@ import type {
   UserFile,
   UserFileWithConversations,
 } from '@/types';
-
-// Mock user ID from backend (Phase 2 - no authentication yet)
-const MOCK_USER_ID = 'a456f25a-6269-4de3-87df-48b0a3389d01';
+import { supabase, auth as supabaseAuth } from './supabase';
 
 // API Base Configuration
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const CHAT_BASE_URL = `${API_BASE_URL}/chat`;
 const PROJECT_BASE_URL = `${API_BASE_URL}/project`;
 const FILES_BASE_URL = `${API_BASE_URL}/files`;
@@ -43,10 +41,15 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
+    // Get JWT token from Supabase session
+    const session = await supabaseAuth.getSession();
+    const token = session?.access_token;
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
@@ -54,9 +57,17 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // Handle authentication errors
+        if (response.status === 401) {
+          // Token might be expired, try to refresh
+          await supabaseAuth.getUser(); // This will refresh if needed
+          throw new Error('Authentication failed. Please log in again.');
+        }
+
         throw new Error(
           errorData.detail || `HTTP ${response.status}: ${response.statusText}`
         );
@@ -93,10 +104,20 @@ class ApiClient {
 
   async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
+    // Get JWT token from Supabase session
+    const session = await supabaseAuth.getSession();
+    const token = session?.access_token;
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     try {
       const response = await fetch(url, {
         method: 'POST',
+        headers,
         body: formData,
       });
       
@@ -481,34 +502,51 @@ export const api = {
   promptTemplates: promptTemplateApi,
   files: fileApi,
   
-  // Mock authentication service for Phase 2
+  // Supabase authentication service
   auth: {
-    // Mock current user
+    // Get current authenticated user from backend
     async getCurrentUser(): Promise<User> {
+      // Get user details from our backend using JWT token
+      const client = new ApiClient();
+      return client.get<User>('/admin/users/me');
+    },
+
+    // Send OTP to phone number
+    async login(whatsappNumber: string): Promise<{ message: string }> {
+      const { session } = await supabaseAuth.signInWithOTP(whatsappNumber);
+      return { message: 'OTP sent to your phone number' };
+    },
+
+    // Verify OTP and complete login
+    async verifyOTP(whatsappNumber: string, otp: string): Promise<{ token: string; user: User }> {
+      const { session, user: authUser } = await supabaseAuth.verifyOTP(whatsappNumber, otp);
+
+      if (!session || !authUser) {
+        throw new Error('Invalid OTP');
+      }
+
+      // Get user details from our backend
+      const user = await this.getCurrentUser();
+
       return {
-        id: MOCK_USER_ID,
-        phone_number: '+1234567890',
-        name: 'Salomon',
-        is_active: true,
-        is_admin: false, // Regular user for testing
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        token: session.access_token,
+        user
       };
     },
 
-    // Mock login (will be implemented in Phase 4)
-    async login(whatsappNumber: string): Promise<{ message: string }> {
-      return { message: 'Mock login successful' };
-    },
-
-    // Mock OTP verification (will be implemented in Phase 4)
-    async verifyOTP(whatsappNumber: string, otp: string): Promise<{ token: string; user: User }> {
-      const user = await this.getCurrentUser();
-      return { token: 'mock-jwt-token', user };
-    },
-
-    // Mock logout
+    // Sign out
     async logout(): Promise<void> {
+      await supabaseAuth.signOut();
+    },
+
+    // Get current session
+    async getSession() {
+      return supabaseAuth.getSession();
+    },
+
+    // Listen to auth state changes
+    onAuthStateChange(callback: (event: string, session: any) => void) {
+      return supabaseAuth.onAuthStateChange(callback);
     },
   },
 };
