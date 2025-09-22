@@ -46,6 +46,7 @@ export enum TemplateType {
 // User types
 export interface User {
   id: string;
+  auth_user_id?: string | null;
   phone_number: string;
   name?: string;
   is_admin: boolean;
