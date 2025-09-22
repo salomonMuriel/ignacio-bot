@@ -8,7 +8,7 @@
 - **Database**: Supabase (PostgreSQL)
 - **Storage**: Supabase Storage with OpenAI Vector Stores
 - **External Integrations**: WhatsApp Business API, OpenAI API
-- **Authentication**: OTP-based authentication via WhatsApp
+- **Authentication**: Supabase Auth with OTP + WhatsApp phone number verification
 
 ### System Components
 1. **Web Frontend** - React 19.1 application with global state management
@@ -16,7 +16,7 @@
 3. **WhatsApp Service** - Integration service for WhatsApp Business API
 4. **AI Processing Service** - OpenAI Agent SDK with 8 specialized domain experts and handoff monitoring
 5. **File Processing Service** - Media, document handling, and vector store integration
-6. **Authentication Service** - OTP and session management
+6. **Authentication Service** - Supabase Auth with JWT validation, RLS policies, and admin management
 7. **Project Management Service** - Multi-project context management
 
 ## 2. Multi-Project Architecture

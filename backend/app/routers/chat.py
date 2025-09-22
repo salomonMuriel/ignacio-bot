@@ -1,15 +1,16 @@
 """
 Chat API endpoints for Ignacio Bot
-Handles conversations and messages for Phase 2 (without authentication)
+Handles conversations and messages with Supabase Auth integration
 """
 
 from uuid import UUID
 from typing import List
 
-from fastapi import APIRouter, HTTPException, status, File, Form, UploadFile
+from fastapi import APIRouter, HTTPException, status, File, Form, UploadFile, Depends
 from pydantic import BaseModel
 
-from app.models.database import ConversationUpdate, MessageType
+from app.core.auth import get_current_user, get_optional_user
+from app.models.database import ConversationUpdate, MessageType, User
 from app.services.ai_service import get_ignacio_service
 from app.services.database import db_service
 from app.services.storage import storage_service
@@ -71,10 +72,10 @@ TEMP_USER_ID = UUID("a456f25a-6269-4de3-87df-48b0a3389d01")
 
 
 @router.get("/conversations", response_model=list[ConversationResponse])
-async def get_conversations():
-    """Get all conversations for a given user"""
+async def get_conversations(current_user: User = Depends(get_current_user)):
+    """Get all conversations for the authenticated user"""
     try:
-        conversations = await db_service.get_user_conversations(TEMP_USER_ID)
+        conversations = await db_service.get_user_conversations(current_user.id)
 
         # Get message count for each conversation
         result = []
@@ -104,7 +105,7 @@ async def get_conversations():
 @router.get(
     "/conversations/{conversation_id}", response_model=ConversationDetailResponse
 )
-async def get_conversation(conversation_id: UUID):
+async def get_conversation(conversation_id: UUID, current_user: User = Depends(get_current_user)):
     """Get a specific conversation with its messages"""
     try:
         # Get conversation
@@ -112,6 +113,12 @@ async def get_conversation(conversation_id: UUID):
         if not conversation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
+
+        # Verify user owns this conversation
+        if conversation.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this conversation"
             )
 
         # Get messages
@@ -350,7 +357,8 @@ async def send_message_unified(
     conversation_id: str = Form(None),
     project_id: str = Form(None),
     file: UploadFile = File(None),
-    existing_file_id: str = Form(None)
+    existing_file_id: str = Form(None),
+    current_user: User = Depends(get_current_user)
 ):
     """Unified endpoint for sending messages - handles both new conversations and continuing existing ones
 
@@ -411,12 +419,12 @@ async def send_message_unified(
             if not existing_file_record:
                 raise HTTPException(status_code=404, detail="Existing file not found")
 
-            if existing_file_record.user_id != TEMP_USER_ID:
+            if existing_file_record.user_id != current_user.id:
                 raise HTTPException(status_code=403, detail="Access denied to existing file")
 
             # Prepare file content data from existing file
             try:
-                file_content = await storage_service.download_file(existing_file_uuid, TEMP_USER_ID)
+                file_content = await storage_service.download_file(existing_file_uuid, current_user.id)
                 if file_content is None:
                     raise HTTPException(status_code=404, detail="Existing file content not found")
 
@@ -478,7 +486,7 @@ async def send_message_unified(
                     print(f"[CHAT] Uploading file to storage for conversation {parsed_conversation_id}")
                     try:
                         uploaded_file = await storage_service.upload_file(
-                            user_id=TEMP_USER_ID,
+                            user_id=current_user.id,
                             file_content=file_content_data[0][0],
                             file_name=file_content_data[0][1],
                             content_type=file_content_data[0][2],
@@ -514,7 +522,7 @@ async def send_message_unified(
                 print(f"[CHAT] Uploading file to storage for new conversation")
                 try:
                     uploaded_file = await storage_service.upload_file(
-                        user_id=TEMP_USER_ID,
+                        user_id=current_user.id,
                         file_content=file_content_data[0][0],
                         file_name=file_content_data[0][1],
                         content_type=file_content_data[0][2],
@@ -529,7 +537,7 @@ async def send_message_unified(
             # Start conversation with Agent SDK
             try:
                 agent_result = await get_ignacio_service().start_conversation(
-                    user_id=TEMP_USER_ID,
+                    user_id=current_user.id,
                     initial_message=content,
                     project_id=parsed_project_id,
                     file_contents=file_content_data if file_content_data else None

@@ -70,17 +70,25 @@ Code formatting is automatically enforced via pre-commit hooks:
 - All components, classes, models, and functions are properly typed in both Python and TypeScript
 
 
-#### **API Endpoints**
+#### **API Endpoints (✅ WITH AUTHENTICATION)**
 **Project Management:**
-- `GET/POST /project/by_user/{user_id}` - List/create projects for user
-- `GET/PUT/DELETE /project/{id}` - Manage specific projects
+- `GET /project/` - List current user's projects (authenticated)
+- `GET/POST /project/by_user/{user_id}` - List/create projects for user (admin or self)
+- `GET/PUT/DELETE /project/{id}` - Manage specific projects (owner verification)
 - `GET /project/conversations/{id}` - Project conversations
 - `GET/PUT /project/{id}/context` - Project-specific context
 
 **Enhanced Chat:**
-- `POST /chat/messages` - Unified message endpoint (new/continue conversations)
+- `POST /chat/messages` - Unified message endpoint (authenticated users only)
+- `GET /chat/conversations` - List user's conversations (authenticated)
+- `GET /chat/conversations/{id}` - Get conversation with ownership verification
 - `PUT /chat/conversations/{id}/project` - Associate conversation with project
 - `PUT /chat/conversations/{id}` - Update conversation details
+
+**Admin User Management:**
+- `GET/POST /admin/users` - List/create users (admin only)
+- `GET/PUT/DELETE /admin/users/{id}` - Manage specific users (admin only)
+- `POST /admin/users/{id}/invite` - Send user invites (admin only)
 
 #### **AI Service Architecture (REFACTORED - September 2025)**
 - **Multi-Agent System**: 8 specialized domain experts + main Ignacio coordinator
@@ -93,8 +101,9 @@ Code formatting is automatically enforced via pre-commit hooks:
 
 
 ### **Technical Architecture**
-- **Backend**: FastAPI + OpenAI Agent SDK + Supabase (OPERATIONAL)
+- **Backend**: FastAPI + OpenAI Agent SDK + Supabase (OPERATIONAL) + **Supabase Auth Integration**
 - **Frontend**: React 19.1 + Vite + TypeScript + Tailwind CSS (CHAT INTEGRATION COMPLETE)
+- **Authentication**: Supabase Auth + JWT validation + RLS policies + Admin management
 - **State Management**: React Context API with Auth, Projects, Conversations, Global contexts
 - **Agent Framework**: Multi-agent with specialized expertise domains
 - **File Processing**: Vector stores + content search + metadata extraction

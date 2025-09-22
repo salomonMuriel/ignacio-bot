@@ -1,15 +1,16 @@
 """
 Project management router for Ignacio Bot
-Handles user project context for AI conversations
+Handles user project context for AI conversations with authentication
 """
 
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 
+from app.core.auth import get_current_user
 from app.models.database import (
-    Project, ProjectCreate, ProjectUpdate, 
-    ProjectType, ProjectStage
+    Project, ProjectCreate, ProjectUpdate,
+    ProjectType, ProjectStage, User
 )
 from app.services.database import db_service
 from app.services.project_context_service import project_context_service
@@ -30,8 +31,12 @@ async def get_project_stages():
 
 
 @router.get("/by_user/{user_id}")
-async def get_user_projects(user_id: UUID) -> List[Project]:
-    """Get all projects for a user (database level)"""
+async def get_user_projects_by_id(user_id: UUID, current_user: User = Depends(get_current_user)) -> List[Project]:
+    """Get all projects for a specific user (admin only or own projects)"""
+    # Allow users to access their own projects, or admins to access any projects
+    if user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
     try:
         projects = await db_service.get_user_projects(user_id)
         return projects
@@ -39,8 +44,18 @@ async def get_user_projects(user_id: UUID) -> List[Project]:
         raise HTTPException(status_code=500, detail=f"Failed to get user projects: {str(e)}")
 
 
+@router.get("/")
+async def get_my_projects(current_user: User = Depends(get_current_user)) -> List[Project]:
+    """Get all projects for the authenticated user"""
+    try:
+        projects = await db_service.get_user_projects(current_user.id)
+        return projects
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get user projects: {str(e)}")
+
+
 @router.post("/")
-async def create_project(project_data: ProjectCreate) -> Project:
+async def create_project(project_data: ProjectCreate, current_user: User = Depends(get_current_user)) -> Project:
     """Create a new project for a user (database level)"""
     try:
         # Validate project_type and current_stage if provided
@@ -58,7 +73,7 @@ async def create_project(project_data: ProjectCreate) -> Project:
         
         # Convert to dict for database service
         data = {
-            "user_id": project_data.user_id,
+            "user_id": current_user.id,
             "project_name": project_data.project_name,
             "project_type": project_data.project_type.value if project_data.project_type else None,
             "description": project_data.description,
