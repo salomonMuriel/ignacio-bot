@@ -81,6 +81,19 @@ class DatabaseService:
             return User(**response.data[0])
         return None
 
+    async def get_user_by_auth_id(self, auth_user_id: str) -> User | None:
+        """Get user by Supabase auth user ID"""
+        response = (
+            self.client.table("users")
+            .select("*")
+            .eq("auth_user_id", auth_user_id)
+            .execute()
+        )
+
+        if response.data:
+            return User(**response.data[0])
+        return None
+
     async def get_users(self, limit: int = 100, offset: int = 0) -> list[User]:
         """Get all users with pagination"""
         response = (

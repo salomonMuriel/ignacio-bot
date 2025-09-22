@@ -66,6 +66,7 @@ class User(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    auth_user_id: UUID | None = None  # Links to auth.users.id
     created_at: datetime
     updated_at: datetime
 
