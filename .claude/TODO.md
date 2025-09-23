@@ -1,102 +1,79 @@
-# Agent Instruction System Refactor - TODO
+# Supertokens Authentication Implementation Plan
 
-## Task Overview
-Refactor the agent system to separate base personality from domain-specific instructions, and expand to 8 specialized agents with tech-savvy tool recommendations.
+## Overview
+Replace our current mock authentication system with Supertokens for both backend (FastAPI) and frontend (React). Based on the example implementation at ~/git/supertokens-example-app/.
 
-## Core Requirements
-- **Project Diversity**: ALL projects are entrepreneurial (NGOs, foundations, traditional companies, consultancies) - not just tech startups
-- **Scrappy Mindset**: ALL projects have startup agility and go-getter attitude, but NOT all aim for unicorn scale/VC funding
-- **Tech-Optimization**: ALL agents should suggest tech tools to automate/improve processes in their domain
-- **Speed Focus**: Rapid prototyping, quick testing, fast iteration for competitive advantage
+## Implementation Tasks
 
-## Phase 1: Base Instructions Refactor
-- [X] Extract base personality from `create_project_aware_instructions()` in `project_context_service.py`
-- [X] Create new `create_base_personality_instructions()` function with:
-  - Project diversity awareness (NGOs, foundations, traditional companies, etc.)
-  - Scrappy startup mindset without unicorn-scale assumptions
-  - Tech-optimization emphasis for ALL project types
-  - Speed and rapid iteration focus
-  - Adaptive mentoring approach (Socratic + direct assistance)
+### Phase 1: Backend Integration
+- [ ] Add Supertokens Python dependency to backend
+- [ ] Create Supertokens configuration for backend
+- [ ] Integrate Supertokens middleware into FastAPI app
+- [ ] Update backend auth endpoints to use Supertokens
+- [ ] Create user management endpoints for admin functionality
 
-## Phase 2: Domain-Specific Instructions (Research + Create)
-[X]Create domain-specific instruction functions with researched tool recommendations:
+### Phase 2: Frontend Integration
+- [ ] Add Supertokens React dependency to frontend
+- [ ] Create Supertokens configuration for frontend
+- [ ] Update React App.tsx to integrate Supertokens
+- [ ] Replace AuthContext with Supertokens session management
+- [ ] Update ProtectedRoute to use Supertokens SessionAuth
+- [ ] Update API client to handle Supertokens authentication
+- [ ] Replace LoginModal with Supertokens pre-built UI
 
-### Marketing Expert
-- [X] Research digital marketing tools (analytics, automation, social media, lead gen)
-- [X] Include: Google Analytics, Mailchimp, Buffer, Canva, HubSpot, Zapier, etc.
-- [X] Focus: Customer acquisition, growth hacking, conversion optimization
-- [X] Quick wins: GA setup, customer interviews, landing pages, email automation
+### Phase 3: Configuration & Testing
+- [ ] Update environment variables and configuration
+- [ ] Test authentication flow end-to-end
+- [ ] Verify admin functionality works
+- [ ] Test OTP login flow
+- [ ] Ensure project/chat functionality works with new auth
 
-### Technology Expert
-- [X] Research dev tools (no-code, low-code, development, infrastructure)
-- [X] Include: Bubble, Webflow, Retool, n8n, GitHub, Vercel, AWS, etc.
-- [X] Focus: Tech stack selection, rapid prototyping, MVP development
-- [X] Quick wins: No-code prototypes, development workflows, deployment
+## Key Implementation Details
 
-### Finance Expert
-- [X] Research financial tools (modeling, fundraising, accounting, analytics)
-- [X] Include: Airtable templates, QuickBooks, Stripe, ProfitWell, etc.
-- [X] Focus: Unit economics, cash flow, funding strategies, financial planning
-- [X] Quick wins: Financial model setup, expense tracking, revenue forecasting
+### Backend Configuration
+- Use passwordless authentication with OTP (email or phone)
+- Configure multifactor auth for enhanced security
+- Set up account linking for email/phone combinations
+- Use development Supertokens core for now (https://try.supertokens.com)
 
-### Sustainability Expert (NEW)
-- [X] Research ESG and impact measurement tools
-- [X] Include: B Impact Assessment, Salesforce Sustainability Cloud, etc.
-- [X] Focus: Environmental impact, social responsibility, ESG reporting
-- [X] Quick wins: Impact baseline, sustainability metrics, reporting setup
+### Frontend Configuration
+- Integrate Supertokens pre-built UI components
+- Configure auth routes (/auth)
+- Set up session management
+- Redirect authenticated users to /dashboard or /projects
 
-### Legal/Compliance Expert (NEW)
-- [X] Research legal tech tools (contracts, formation, compliance)
-- [X] Include: LegalZoom, Clerky, DocuSign, Ironclad, etc.
-- [X] Focus: Business formation, contracts, regulatory compliance
-- [X] Quick wins: Entity formation, contract templates, compliance checklists
+### Authentication Flow
+1. User enters phone number
+2. Supertokens sends OTP via SMS/WhatsApp
+3. User verifies OTP
+4. Session is created and user is authenticated
+5. User can access protected routes
 
-### Operations Expert (NEW)
-- [X] Research process optimization tools (workflow, supply chain, logistics)
-- [X] Include: Notion, Airtable, Monday.com, Zapier, ShipStation, etc.
-- [X] Focus: Process automation, supply chain, workflow optimization
-- [X] Quick wins: Process documentation, automation setup, efficiency metrics
+### Migration Strategy
+- Keep existing AuthContext initially for compatibility
+- Gradually replace mock authentication calls
+- Update API client to use Supertokens session tokens
+- Remove mock authentication once everything is working
 
-### Product/Design Expert (NEW)
-- [X] Research design and product development tools
-- [X] Include: Figma, Miro, UserVoice, Hotjar, Maze, ProdPad, etc.
-- [X] Focus: UX/UI design, product development, user research
-- [X] Quick wins: User research setup, design system, prototyping workflow
+## Files to Modify
 
-### Sales Expert (NEW)
-- [X] Research sales tools (CRM, pipeline, enablement, automation)
-- [X] Include: HubSpot, Pipedrive, Calendly, Loom, Outreach, etc.
-- [X] Focus: Sales strategy, pipeline management, customer relationships
-- [X] Quick wins: CRM setup, sales process documentation, automation workflows
+### Backend
+- `backend/pyproject.toml` - Add supertokens-python dependency
+- `backend/app/core/config.py` - Add Supertokens configuration
+- `backend/app/main.py` - Integrate Supertokens middleware
+- `backend/app/core/supertokens_config.py` - New Supertokens config file
+- `backend/app/routers/auth.py` - New auth endpoints if needed
 
-## Phase 3: Implementation
-- [X] Create `create_domain_specific_instructions(domain: str)` function
-- [X] Update `create_project_aware_agent()` to use base + domain instructions
-- [X] Modify existing agent creation in `ai_service.py` to use new system
+### Frontend
+- `frontend/package.json` - Add supertokens-auth-react dependency
+- `frontend/src/App.tsx` - Integrate Supertokens wrapper and routes
+- `frontend/src/config/supertokens.tsx` - New Supertokens config file
+- `frontend/src/contexts/AuthContext.tsx` - Update to use Supertokens
+- `frontend/src/components/ProtectedRoute.tsx` - Use SessionAuth
+- `frontend/src/services/api.ts` - Update to handle auth tokens
+- `frontend/src/components/auth/LoginModal.tsx` - Remove or replace
 
-## Phase 4: Agent Expansion
-- [X] Create 5 new specialized agents in `IgnacioAgentService`:
-  - Sustainability Expert
-  - Legal/Compliance Expert
-  - Operations Expert
-  - Product/Design Expert
-  - Sales Expert
-- [X] Update main Ignacio agent with all 8 specialists as tools
-- [X] Add proper handoff descriptions for each agent
-
-## Phase 5: Testing & Validation
-- [ ] Test base personality consistency across all agents
-- [ ] Validate domain-specific tool recommendations
-- [ ] Test agent coordination and handoffs
-- [ ] Verify project context integration works with new system
-
-## Key Files to Modify
-- `backend/app/services/project_context_service.py` - Instruction refactor
-- `backend/app/services/ai_service.py` - Agent creation and expansion
-
-## Success Criteria
-- All 8 agents have consistent base personality
-- Each agent provides domain-specific, researched tool recommendations
-- All agents emphasize tech-optimization and rapid iteration
-- System supports diverse entrepreneurial project types (not just tech startups)
-- Agents suggest appropriate tools based on user's tech comfort level
+## Environment Variables Needed
+- `SUPERTOKENS_CONNECTION_URI` (https://try.supertokens.com for dev)
+- `SUPERTOKENS_API_KEY` (if using managed core)
+- Frontend needs to know backend auth endpoints

@@ -3,6 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+from supertokens_python import get_all_cors_headers
+from supertokens_python.framework.fastapi import get_middleware
+
 # Load environment variables based on APP_ENV
 import os
 from pathlib import Path
@@ -64,7 +67,11 @@ if 'OPENAI_API_KEY' not in os.environ and hasattr(os.environ, 'get'):
         os.environ['OPENAI_API_KEY'] = temp_settings.openai_api_key
 
 from app.core.config import settings
-from app.routers import chat, files, health, project, prompt_templates
+from app.core.supertokens_config import init_supertokens
+from app.routers import auth, chat, files, health, project, prompt_templates
+
+# Initialize SuperTokens
+init_supertokens()
 
 # Create FastAPI application
 app = FastAPI(
@@ -74,13 +81,16 @@ app = FastAPI(
     debug=settings.debug,
 )
 
+# Add SuperTokens middleware
+app.add_middleware(get_middleware())
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type"] + get_all_cors_headers(),
 )
 
 # Add trusted host middleware for security
@@ -102,6 +112,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router)
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(chat.router)
 app.include_router(files.router, prefix="/files", tags=["files"])
 app.include_router(project.router)

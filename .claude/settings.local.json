@@ -27,7 +27,8 @@
       "Bash(npm create:*)",
       "Bash(grep:*)",
       "WebSearch",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Read(//Users/salomonmuriel/git/supertokens-example-app/**)"
     ],
     "deny": [],
     "ask": []

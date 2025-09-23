@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_anon_key: str
     supabase_service_role_key: str
+    supabase_jwt_secret: str
 
     # OpenAI
     openai_api_key: str
@@ -67,6 +68,14 @@ class Settings(BaseSettings):
     # Rate Limiting (for future implementation)
     rate_limit_per_minute: int = 60
     rate_limit_burst: int = 10
+
+    # SuperTokens
+    supertokens_connection_uri: str = "https://try.supertokens.com"
+    supertokens_api_key: str = ""
+
+    # URLs
+    frontend_url: str = "http://localhost:3000"
+    backend_url: str = "http://localhost:8000"
 
     @property
     def cors_origins_list(self) -> list[str]:
