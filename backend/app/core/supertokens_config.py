@@ -70,7 +70,10 @@ async def should_do_automatic_account_linking(
 
 
 def get_supertokens_config() -> SupertokensConfig:
-    return SupertokensConfig(connection_uri=settings.supertokens_connection_uri)
+    config = SupertokensConfig(connection_uri=settings.supertokens_connection_uri)
+    if settings.supertokens_api_key:
+        config.api_key = settings.supertokens_api_key
+    return config
 
 
 def get_app_info() -> InputAppInfo:
@@ -84,25 +87,18 @@ def get_app_info() -> InputAppInfo:
 
 
 def get_recipe_list() -> List[Any]:
+    # Configure dashboard with admin access control if admins are specified
+    dashboard_config = {}
+    if settings.supertokens_dashboard_admins_list:
+        dashboard_config["admins"] = settings.supertokens_dashboard_admins_list
+
     return [
         session.init(),
-        dashboard.init(),
+        dashboard.init(**dashboard_config),
         userroles.init(),
         passwordless.init(
             flow_type="USER_INPUT_CODE", contact_config=ContactEmailOrPhoneConfig()
-        ),
-        multifactorauth.init(
-            first_factors=["otp-email", "otp-phone"],
-            override=multifactorauth.OverrideConfig(
-                functions=lambda original_implementation: override_multifactor_functions(
-                    original_implementation
-                )
-            ),
-        ),
-        emailverification.init(mode="REQUIRED"),
-        accountlinking.init(
-            should_do_automatic_account_linking=should_do_automatic_account_linking
-        ),
+        )
     ]
 
 

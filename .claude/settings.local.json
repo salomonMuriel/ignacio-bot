@@ -28,7 +28,9 @@
       "Bash(grep:*)",
       "WebSearch",
       "Bash(mkdir:*)",
-      "Read(//Users/salomonmuriel/git/supertokens-example-app/**)"
+      "Read(//Users/salomonmuriel/git/supertokens-example-app/**)",
+      "Read(//home/salomon/git/supertokens-example-app/**)",
+      "WebFetch(domain:supertokens.com)"
     ],
     "deny": [],
     "ask": []

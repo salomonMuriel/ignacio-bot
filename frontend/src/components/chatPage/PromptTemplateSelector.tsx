@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import type { PromptTemplate, TemplateType } from '@/types';
 
 // Template Card Component
@@ -97,7 +97,7 @@ export default function PromptTemplateSelector({
   onClose,
   refreshTrigger
 }: PromptTemplateSelectorProps) {
-  const { user } = useAuth();
+  const { user } = useSession();
   const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
   const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<{ admin: PromptTemplate[], user: PromptTemplate[] }>({

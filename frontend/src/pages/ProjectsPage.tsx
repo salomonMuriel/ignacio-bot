@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useNavigate } from 'react-router-dom';
 import { type Project } from '../types';
@@ -8,7 +8,7 @@ import ProjectFormModal from '@/components/projectsPage/ProjectForm';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 
 export default function ProjectsPage() {
-  const { user } = useAuth();
+  const { user } = useSession();
   const { 
     projects, 
     activeProject, 

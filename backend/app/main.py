@@ -27,6 +27,9 @@ load_dotenv(env_path)
 # Configure logging
 import logging
 import sys
+from app.core.config import settings
+from app.core.supertokens_config import init_supertokens
+from app.routers import chat, files, health, project, prompt_templates
 
 def configure_logging():
     """Configure application logging based on settings."""
@@ -66,9 +69,6 @@ if 'OPENAI_API_KEY' not in os.environ and hasattr(os.environ, 'get'):
     if temp_settings.openai_api_key:
         os.environ['OPENAI_API_KEY'] = temp_settings.openai_api_key
 
-from app.core.config import settings
-from app.core.supertokens_config import init_supertokens
-from app.routers import auth, chat, files, health, project, prompt_templates
 
 # Initialize SuperTokens
 init_supertokens()
@@ -112,7 +112,6 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router)
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(chat.router)
 app.include_router(files.router, prefix="/files", tags=["files"])
 app.include_router(project.router)

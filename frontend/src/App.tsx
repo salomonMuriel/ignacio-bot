@@ -2,13 +2,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import SuperTokens, { SuperTokensWrapper } from "supertokens-auth-react";
 import { getSuperTokensRoutesForReactRouterDom } from "supertokens-auth-react/ui";
-import * as ReactRouter from "react-router-dom";
+import * as reactRouterDom from "react-router-dom";
 
 // SuperTokens Configuration
-import { SuperTokensConfig, PreBuiltUIList, ComponentWrapper } from './config/supertokens';
+import { SuperTokensConfig, PreBuiltUIList } from './config/supertokens';
 
 // Context Providers
-import { AuthProvider } from './contexts/AuthContext';
 import { ProjectsProvider } from './contexts/ProjectsContext';
 import { ConversationsProvider } from './contexts/ConversationsContext';
 import { GlobalProvider } from './contexts/GlobalContext';
@@ -34,20 +33,18 @@ function App() {
     <SuperTokensWrapper>
       <ErrorBoundary>
         <GlobalProvider>
-          <AuthProvider>
-            <ProjectsProvider>
-              <ConversationsProvider>
+          <ProjectsProvider>
+            <ConversationsProvider>
                 <Router>
                   <div className="App">
-                    <ComponentWrapper>
-                      <Routes>
-                        {/* Public Route - Landing Page */}
-                        <Route path="/" element={<LandingPage />} />
+                    <Routes>
+                      {/* Public Route - Landing Page */}
+                      <Route path="/" element={<LandingPage />} />
 
-                        {/* SuperTokens Auth Routes */}
-                        {getSuperTokensRoutesForReactRouterDom(ReactRouter, PreBuiltUIList)}
+                      {/* SuperTokens Auth Routes */}
+                      {getSuperTokensRoutesForReactRouterDom(reactRouterDom, PreBuiltUIList)}
 
-                        {/* Protected Routes */}
+                      {/* Protected Routes */}
                         <Route
                           path="/create-project"
                           element={
@@ -97,10 +94,9 @@ function App() {
                           }
                         />
 
-                        {/* Catch all - redirect to landing */}
-                        <Route path="*" element={<LandingPage />} />
-                      </Routes>
-                    </ComponentWrapper>
+                      {/* Catch all - redirect to landing */}
+                      <Route path="*" element={<LandingPage />} />
+                    </Routes>
                   </div>
 
                   {/* Global Toast Notifications */}
@@ -116,9 +112,8 @@ function App() {
                     }}
                   />
                 </Router>
-              </ConversationsProvider>
-            </ProjectsProvider>
-          </AuthProvider>
+            </ConversationsProvider>
+          </ProjectsProvider>
         </GlobalProvider>
       </ErrorBoundary>
     </SuperTokensWrapper>

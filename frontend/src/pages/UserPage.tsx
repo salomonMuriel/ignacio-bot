@@ -1,10 +1,11 @@
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
+import { logout } from '@/utils/auth';
 import { useNavigate } from 'react-router-dom';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 
 export default function UserPage() {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading } = useSession();
   const navigate = useNavigate();
 
   if (isLoading) {

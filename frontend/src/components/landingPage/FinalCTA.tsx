@@ -1,9 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import { useProjects } from '../../contexts/ProjectsContext';
 
-export default function FinalCTA() {
-    const { user } = useAuth();
+interface FinalCTAProps {
+  onLoginClick?: () => void;
+}
+
+export default function FinalCTA({ onLoginClick }: FinalCTAProps) {
+    const { user } = useSession();
     const { projects } = useProjects();
     const navigate = useNavigate();
 
@@ -46,8 +50,11 @@ export default function FinalCTA() {
                             </button>
                         ) : (
                             <>
-                                <button className="px-10 py-5 bg-gradient-to-r from-gray-600 to-gray-700 text-gray-300 font-bold text-lg rounded-2xl cursor-not-allowed opacity-60">
-                                    🔐 Login Required
+                                <button
+                                    onClick={onLoginClick}
+                                    className="px-10 py-5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-lg rounded-2xl transition-all duration-300 transform hover:scale-105"
+                                >
+                                    🚀 Start Chatting with Ignacio
                                 </button>
                                 <button className="px-10 py-5 border-2 border-gray-600 text-gray-300 hover:text-white hover:border-gray-500 font-bold text-lg rounded-2xl transition-all duration-300">
                                     📖 Learn More About Action Lab

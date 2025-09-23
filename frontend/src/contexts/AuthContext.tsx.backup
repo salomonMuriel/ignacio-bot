@@ -144,8 +144,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const login = () => {
-    // Redirect to SuperTokens auth flow
-    redirectToAuth();
+    // Modal-based auth - this function is no longer used
+    // Authentication is handled through the AuthModal component
   };
 
   const logout = async () => {

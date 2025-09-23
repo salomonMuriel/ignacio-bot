@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import { useConversations } from '../../contexts/ConversationsContext';
 import type { UserFile, UserFileWithConversations } from '@/types';
 
@@ -20,7 +20,7 @@ export default function FileAttachmentModal({
   onClose,
   onFileSelect
 }: FileAttachmentModalProps) {
-  const { user } = useAuth();
+  const { user } = useSession();
   const { conversations } = useConversations();
   const [activeTab, setActiveTab] = useState<'upload' | 'existing'>('upload');
   const [fileSelection, setFileSelection] = useState<FileSelectionState>({

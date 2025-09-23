@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import AuthRequiredScreen from '../components/ui/AuthRequiredScreen';
 import PromptTemplateManager from '../components/admin/PromptTemplateManager';
 
 type AdminTab = 'prompt-templates' | 'user-management' | 'statistics';
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user } = useSession();
   const [activeTab, setActiveTab] = useState<AdminTab>('prompt-templates');
 
   if (!user) {

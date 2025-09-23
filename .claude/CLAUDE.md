@@ -81,9 +81,9 @@ Code formatting is automatically enforced via pre-commit hooks:
 #### **API Endpoints (SuperTokens Protected)**
 
 **Authentication (SuperTokens):**
-- `GET /api/auth/sessioninfo` - Current session details
 - `GET /auth/*` - SuperTokens authentication routes (login, signup, etc.)
 - `GET /auth/dashboard` - SuperTokens admin dashboard
+- **Note**: User authentication handled directly by SuperTokens session - no additional API calls needed
 
 **Project Management (Protected):**
 - `GET /project/by_user/me` - List authenticated user's projects
@@ -121,8 +121,8 @@ Code formatting is automatically enforced via pre-commit hooks:
 ### **Technical Architecture**
 - **Backend**: FastAPI + OpenAI Agent SDK + Supabase (OPERATIONAL)
 - **Frontend**: React 19.1 + Vite + TypeScript + Tailwind CSS (CHAT INTEGRATION COMPLETE)
-- **Authentication**: SuperTokens with passwordless OTP authentication (FULLY IMPLEMENTED)
-- **State Management**: React Context API with Auth, Projects, Conversations, Global contexts
+- **Authentication**: SuperTokens with passwordless OTP authentication + native session management (OPTIMIZED)
+- **State Management**: React Context API with Projects, Conversations, Global contexts
 - **Agent Framework**: Multi-agent with specialized expertise domains
 - **File Processing**: Vector stores + content search + metadata extraction
 - **Session Management**: OpenAI conversation sessions with persistent context
@@ -132,7 +132,8 @@ Code formatting is automatically enforced via pre-commit hooks:
 ### **Authentication & Security Architecture (September 2025)**
 - ✅ **SuperTokens Integration**: Complete passwordless authentication with OTP via email/phone
 - ✅ **Session Management**: JWT-based sessions with automatic refresh and validation
-- ✅ **Role-Based Access Control**: Admin users with elevated permissions for user management
+- ✅ **Role-Based Access Control**: Client-side role/permission checking from session payload
+- ✅ **Optimized Session Access**: Direct session data extraction (no API calls for user info)
 - ✅ **Endpoint Security**: 28/44 endpoints protected with authentication and ownership validation
 - ✅ **Multi-Factor Authentication**: OTP verification with automatic account linking
 - ✅ **Admin Dashboard**: SuperTokens built-in admin panel at `/auth/dashboard`
@@ -141,7 +142,8 @@ Code formatting is automatically enforced via pre-commit hooks:
 - **Protected Routes**: All user data operations (chat, files, projects) require authentication
 - **Ownership Validation**: Users can only access their own conversations, files, and projects
 - **Admin Operations**: File sync, user management requires admin role verification
-- **Audit Logging**: Comprehensive logging for admin actions and security events
+- **Client-Side Role Checks**: `useSession()` provides roles, permissions, isAdmin from JWT payload
+- **Session-Based Auth**: User data extracted directly from SuperTokens session (no API calls)
 - **Public Routes**: Health checks, auth flows, and reference data remain publicly accessible
 
 ### **Active Development Environment**

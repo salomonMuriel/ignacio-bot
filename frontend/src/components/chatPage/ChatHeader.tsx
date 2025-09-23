@@ -1,5 +1,5 @@
 import type { ConversationDetailResponse } from '@/types';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import { useNavigate } from 'react-router-dom';
 import ignacioAvatar from '../../assets/ignacio_avatar.png';
 
@@ -8,7 +8,7 @@ interface ChatHeaderProps {
 }
 
 export default function ChatHeader({ activeConversation }: ChatHeaderProps) {
-  const { user } = useAuth();
+  const { user } = useSession();
   const navigate = useNavigate();
   return (
     <div className="p-6 flex-shrink-0 glass-surface" style={{

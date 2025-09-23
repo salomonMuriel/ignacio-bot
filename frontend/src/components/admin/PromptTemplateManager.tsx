@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import { api } from '../../services/api';
 import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate, TemplateType } from '@/types';
 
 export default function PromptTemplateManager() {
-  const { user } = useAuth();
+  const { user } = useSession();
   const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
   const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);

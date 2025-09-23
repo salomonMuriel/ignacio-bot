@@ -1,22 +1,26 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import { useProjects } from '../../contexts/ProjectsContext';
 import ignacioVideo from '../../assets/ignacio_video_optimized.mp4';
 
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  onLoginClick?: () => void;
+}
 
-    const { user } = useAuth();
+export default function HeroSection({ onLoginClick }: HeroSectionProps) {
+
+    const { user } = useSession();
     const { projects } = useProjects();
     const navigate = useNavigate();
 
 
     const handleStartChatting = () => {
         if (!user) {
-          // For now, simulate login - in Phase 4 this will be actual OTP login
+          onLoginClick?.();
           return;
         }
-        
+
         navigate('/chat');
       };
 

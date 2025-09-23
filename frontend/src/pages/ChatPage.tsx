@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +13,7 @@ import MessageList from '../components/chatPage/MessageList';
 import MessageInput from '../components/chatPage/MessageInput';
 
 export default function ChatPage() {
-  const { user } = useAuth();
+  const { user } = useSession();
   const { projects, activeProject, setActiveProject, isLoading: projectsLoading } = useProjects();
   const {
     conversations,

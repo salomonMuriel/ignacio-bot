@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSession } from '@/hooks/useSession';
 import type { PromptTemplateCreate } from '@/types';
 
 interface SaveTemplateModalProps {
@@ -18,7 +18,7 @@ export default function SaveTemplateModal({
   initialContent,
   onTemplateCreated
 }: SaveTemplateModalProps) {
-  const { user } = useAuth();
+  const { user } = useSession();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState(initialContent);
   const [tags, setTags] = useState<string[]>([]);

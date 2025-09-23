@@ -14,7 +14,7 @@ import type {
  
 } from '@/types';
 import { api } from '@/services/api';
-import { useAuth } from './AuthContext';
+import { useSession } from '@/hooks/useSession';
 import { useProjects } from './ProjectsContext';
 
 // Conversations State Interface
@@ -223,7 +223,7 @@ interface ConversationsProviderProps {
 
 export function ConversationsProvider({ children }: ConversationsProviderProps) {
   const [state, dispatch] = useReducer(conversationsReducer, initialState);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useSession();
   const { activeProject } = useProjects();
 
   // Load conversations when user is authenticated

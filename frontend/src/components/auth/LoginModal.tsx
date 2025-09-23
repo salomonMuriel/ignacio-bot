@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { login } from '@/utils/auth';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -50,7 +50,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]); // Colombia as default
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { login } = useAuth();
+  // Login function imported from utils
 
   // Countdown timer for resend button
   useEffect(() => {

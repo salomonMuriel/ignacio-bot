@@ -70,12 +70,13 @@ class Settings(BaseSettings):
     rate_limit_burst: int = 10
 
     # SuperTokens
-    supertokens_connection_uri: str = "https://try.supertokens.com"
+    supertokens_connection_uri: str
     supertokens_api_key: str = ""
+    supertokens_dashboard_admins: str = ""
 
     # URLs
-    frontend_url: str = "http://localhost:3000"
-    backend_url: str = "http://localhost:8000"
+    frontend_url: str
+    backend_url: str
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -87,6 +88,13 @@ class Settings(BaseSettings):
         if not self.allowed_hosts:
             return ["*"]
         return [host.strip() for host in self.allowed_hosts.split(",")]
+
+    @property
+    def supertokens_dashboard_admins_list(self) -> list[str]:
+        """Convert SUPERTOKENS_DASHBOARD_ADMINS comma-separated string to list."""
+        if not self.supertokens_dashboard_admins:
+            return []
+        return [email.strip() for email in self.supertokens_dashboard_admins.split(",")]
 
 
 settings = Settings()

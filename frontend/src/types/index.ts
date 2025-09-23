@@ -272,13 +272,6 @@ export interface MessageFormData {
 }
 
 // Context types
-export interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  login: (phoneNumber: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
 
 export interface ProjectsContextType {
   projects: Project[];

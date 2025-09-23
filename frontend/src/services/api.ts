@@ -478,21 +478,8 @@ export const api = {
   files: fileApi,
   
   // SuperTokens authentication service
-  auth: {
-    // Get current user session info from backend
-    async getCurrentUser(): Promise<User> {
-      const authClient = new ApiClient(API_BASE_URL);
-      const sessionInfo = await authClient.get<{
-        status: string;
-        sessionHandle: string;
-        userId: string;
-        accessTokenPayload: Record<string, any>;
-        user: User;
-      }>('/api/auth/sessioninfo');
-
-      return sessionInfo.user;
-    },
-  },
+  // Note: User authentication is now handled directly by SuperTokens session
+  // No additional auth API calls needed
 };
 
 export default api;
