@@ -5,10 +5,9 @@ from pydantic import BaseModel
 
 from supertokens_python.recipe.session import SessionContainer
 from supertokens_python.recipe.session.framework.fastapi import verify_session
-from supertokens_python.recipe.userroles import add_role_to_user, create_new_role_or_add_permissions, get_roles_for_user, delete_role, remove_role_from_user, get_all_roles
+from supertokens_python.recipe.userroles.asyncio import add_role_to_user, create_new_role_or_add_permissions, get_roles_for_user, delete_role, remove_user_role, get_all_roles
 from supertokens_python.recipe.multifactorauth.asyncio import get_factors_setup_for_user
-from supertokens_python.recipe.passwordless.asyncio import get_user_by_id, list_users_by_email, list_users_by_phone_number
-from supertokens_python.asyncio import get_user, list_users_oldest_first, delete_user
+from supertokens_python.asyncio import get_user, get_users_oldest_first, delete_user
 
 router = APIRouter()
 
@@ -206,7 +205,7 @@ async def list_users(
             raise HTTPException(status_code=403, detail="Admin role required")
 
         # Get users
-        response = await list_users_oldest_first(
+        response = await get_users_oldest_first(
             limit=limit,
             pagination_token=pagination_token,
         )
@@ -264,7 +263,7 @@ async def remove_role_from_user_endpoint(
             raise HTTPException(status_code=403, detail="Admin role required")
 
         # Remove role from user
-        response = await remove_role_from_user(user_id, role)
+        response = await remove_user_role(user_id, role)
         if response.status == "OK":
             return AdminActionResponse(success=True, message=f"Role '{role}' removed from user {user_id}")
         elif response.status == "UNKNOWN_ROLE_ERROR":
