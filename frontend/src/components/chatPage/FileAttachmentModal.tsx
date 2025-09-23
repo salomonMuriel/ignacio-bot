@@ -101,7 +101,7 @@ export default function FileAttachmentModal({
 
     setIsLoadingFiles(true);
     try {
-      const files = await api.files.getUserFilesWithConversations(user.id);
+      const files = await api.files.getUserFilesWithConversations();
       setUserFiles(files);
     } catch (err) {
       setError('Failed to load your files');

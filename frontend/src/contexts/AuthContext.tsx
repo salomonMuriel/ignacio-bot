@@ -1,10 +1,12 @@
 /**
  * AuthContext - User Authentication State Management
  * Handles user authentication state, login/logout, and user data
- * Phase 2: Uses mocked authentication with test user
+ * Updated to use SuperTokens for real authentication
  */
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import Session, { SessionContainer } from "supertokens-auth-react/recipe/session";
+import { redirectToAuth, signOut } from "supertokens-auth-react";
 import type { User } from '@/types';
 import { api } from '@/services/api';
 import LoadingScreen from '@/components/ui/LoadingScreen';
@@ -28,11 +30,12 @@ type AuthAction =
 // Auth Context Interface
 interface AuthContextType extends AuthState {
   // Actions
-  login: (whatsappNumber: string) => Promise<void>;
-  verifyOTP: (whatsappNumber: string, otp: string) => Promise<void>;
+  login: () => void; // Redirects to SuperTokens auth flow
   logout: () => Promise<void>;
   clearError: () => void;
   refreshUser: () => Promise<void>;
+  // SuperTokens session info
+  session: SessionContainer | null;
 }
 
 // Initial state
@@ -101,6 +104,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [session, setSession] = React.useState<SessionContainer | null>(null);
 
   // Initialize authentication state
   useEffect(() => {
@@ -110,75 +114,53 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const initializeAuth = async () => {
     try {
       dispatch({ type: 'AUTH_LOADING' });
-      
-      // For Phase 2: Automatically authenticate with mock user
-      // In Phase 4: This will check for stored tokens and validate them
-      const user = await api.auth.getCurrentUser();
-      dispatch({ type: 'AUTH_SUCCESS', payload: user });
+
+      // Check if user has active SuperTokens session
+      const sessionExists = await Session.doesSessionExist();
+
+      if (sessionExists) {
+        // Get session info and user data
+        const sessionInfo = await Session.getAccessTokenPayloadSecurely();
+        const currentSession = await Session.getSessionContext();
+        setSession(currentSession);
+
+        // Get user data from our backend using the session
+        const user = await api.auth.getCurrentUser();
+        dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      } else {
+        // No active session
+        dispatch({
+          type: 'AUTH_ERROR',
+          payload: 'No active session'
+        });
+      }
     } catch (error) {
       console.error('Auth initialization failed:', error);
-      dispatch({ 
-        type: 'AUTH_ERROR', 
-        payload: error instanceof Error ? error.message : 'Authentication failed' 
+      dispatch({
+        type: 'AUTH_ERROR',
+        payload: error instanceof Error ? error.message : 'Authentication failed'
       });
     }
   };
 
-  const login = async (whatsappNumber: string) => {
-    try {
-      dispatch({ type: 'AUTH_LOADING' });
-      
-      // Phase 2: Mock login
-      // Phase 4: This will send OTP to WhatsApp number
-      await api.auth.login(whatsappNumber);
-      
-      // For Phase 2, immediately get mock user after "login"
-      const user = await api.auth.getCurrentUser();
-      dispatch({ type: 'AUTH_SUCCESS', payload: user });
-      
-    } catch (error) {
-      dispatch({ 
-        type: 'AUTH_ERROR', 
-        payload: error instanceof Error ? error.message : 'Login failed' 
-      });
-      throw error;
-    }
-  };
-
-  const verifyOTP = async (whatsappNumber: string, otp: string) => {
-    try {
-      dispatch({ type: 'AUTH_LOADING' });
-      
-      // Phase 2: Mock OTP verification
-      // Phase 4: This will verify OTP and return JWT token
-      const { user } = await api.auth.verifyOTP(whatsappNumber, otp);
-      
-      // Store token in localStorage (Phase 4)
-      // localStorage.setItem('auth_token', token);
-      
-      dispatch({ type: 'AUTH_SUCCESS', payload: user });
-      
-    } catch (error) {
-      dispatch({ 
-        type: 'AUTH_ERROR', 
-        payload: error instanceof Error ? error.message : 'OTP verification failed' 
-      });
-      throw error;
-    }
+  const login = () => {
+    // Redirect to SuperTokens auth flow
+    redirectToAuth();
   };
 
   const logout = async () => {
     try {
-      await api.auth.logout();
-      
-      // Clear stored token (Phase 4)
-      // localStorage.removeItem('auth_token');
-      
+      // Use SuperTokens signOut function
+      await signOut();
+
+      // Clear local state
+      setSession(null);
       dispatch({ type: 'AUTH_LOGOUT' });
-      
+
     } catch (error) {
       console.error('Logout failed:', error);
       // Still logout locally even if API call fails
+      setSession(null);
       dispatch({ type: 'AUTH_LOGOUT' });
     }
   };
@@ -190,12 +172,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async () => {
     try {
       dispatch({ type: 'AUTH_LOADING' });
-      const user = await api.auth.getCurrentUser();
-      dispatch({ type: 'AUTH_SUCCESS', payload: user });
+
+      // Check if session still exists
+      const sessionExists = await Session.doesSessionExist();
+
+      if (sessionExists) {
+        const user = await api.auth.getCurrentUser();
+        dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      } else {
+        // Session expired, logout
+        setSession(null);
+        dispatch({ type: 'AUTH_LOGOUT' });
+      }
     } catch (error) {
-      dispatch({ 
-        type: 'AUTH_ERROR', 
-        payload: error instanceof Error ? error.message : 'Failed to refresh user data' 
+      dispatch({
+        type: 'AUTH_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to refresh user data'
       });
     }
   };
@@ -203,10 +195,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const contextValue: AuthContextType = {
     ...state,
     login,
-    verifyOTP,
     logout,
     clearError,
     refreshUser,
+    session,
   };
 
   return (

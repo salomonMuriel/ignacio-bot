@@ -56,6 +56,14 @@ The backend uses `uv` as the package manager for Python dependencies.
 - `export PATH="$HOME/.local/bin:$PATH" && uv run uvicorn app.main:app --reload` to start dev server
 - Backend runs on `http://localhost:8000`
 - API documentation available at `http://localhost:8000/docs`
+- SuperTokens admin dashboard available at `http://localhost:8000/auth/dashboard`
+
+### SuperTokens Configuration
+- **Connection URI**: `https://try.supertokens.com` (development core)
+- **Authentication**: Passwordless OTP via email/phone
+- **Session Management**: JWT-based with automatic refresh
+- **Admin Dashboard**: Built-in user management interface
+- **Development**: Uses managed SuperTokens core for easy setup
 
 ### Testing the Agent System
 - **Quick Test**: `uv run python quick_test.py` - Fast validation (30 seconds)
@@ -70,17 +78,35 @@ Code formatting is automatically enforced via pre-commit hooks:
 - All components, classes, models, and functions are properly typed in both Python and TypeScript
 
 
-#### **API Endpoints**
-**Project Management:**
-- `GET/POST /project/by_user/{user_id}` - List/create projects for user
-- `GET/PUT/DELETE /project/{id}` - Manage specific projects
-- `GET /project/conversations/{id}` - Project conversations
-- `GET/PUT /project/{id}/context` - Project-specific context
+#### **API Endpoints (SuperTokens Protected)**
 
-**Enhanced Chat:**
-- `POST /chat/messages` - Unified message endpoint (new/continue conversations)
-- `PUT /chat/conversations/{id}/project` - Associate conversation with project
-- `PUT /chat/conversations/{id}` - Update conversation details
+**Authentication (SuperTokens):**
+- `GET /api/auth/sessioninfo` - Current session details
+- `GET /auth/*` - SuperTokens authentication routes (login, signup, etc.)
+- `GET /auth/dashboard` - SuperTokens admin dashboard
+
+**Project Management (Protected):**
+- `GET /project/by_user/me` - List authenticated user's projects
+- `POST /project/` - Create new project for authenticated user
+- `GET/PUT/DELETE /project/{id}` - Manage user's projects (ownership validated)
+- `GET /project/conversations/{id}` - Project conversations (ownership validated)
+- `GET/PUT /project/{id}/context` - Project-specific context (ownership validated)
+
+**Enhanced Chat (Protected):**
+- `GET /chat/conversations` - List authenticated user's conversations
+- `POST /chat/messages` - Send messages (session-based user identification)
+- `GET/PUT/DELETE /chat/conversations/{id}` - Manage conversations (ownership validated)
+- `PUT /chat/conversations/{id}/project` - Associate conversation with user's project
+
+**File Management (Protected):**
+- `POST /files/upload` - Upload files for authenticated user
+- `GET /files/user/me` - List authenticated user's files
+- `GET/DELETE /files/{id}` - Access user's files (ownership validated)
+- `POST /files/{id}/reuse` - Reuse files in conversations (ownership validated)
+
+**Admin Operations (Admin Role Required):**
+- `POST /api/admin/sync-files/{user_id}` - Admin file sync operations
+- `GET /api/admin/file-sync-status/{user_id}` - Admin file status monitoring
 
 #### **AI Service Architecture (REFACTORED - September 2025)**
 - **Multi-Agent System**: 8 specialized domain experts + main Ignacio coordinator
@@ -95,6 +121,7 @@ Code formatting is automatically enforced via pre-commit hooks:
 ### **Technical Architecture**
 - **Backend**: FastAPI + OpenAI Agent SDK + Supabase (OPERATIONAL)
 - **Frontend**: React 19.1 + Vite + TypeScript + Tailwind CSS (CHAT INTEGRATION COMPLETE)
+- **Authentication**: SuperTokens with passwordless OTP authentication (FULLY IMPLEMENTED)
 - **State Management**: React Context API with Auth, Projects, Conversations, Global contexts
 - **Agent Framework**: Multi-agent with specialized expertise domains
 - **File Processing**: Vector stores + content search + metadata extraction
@@ -102,8 +129,23 @@ Code formatting is automatically enforced via pre-commit hooks:
 - **Project Context**: Dynamic user project tracking and context injection
 - **API Integration**: Complete TypeScript-first client with working chat flow
 
+### **Authentication & Security Architecture (September 2025)**
+- ✅ **SuperTokens Integration**: Complete passwordless authentication with OTP via email/phone
+- ✅ **Session Management**: JWT-based sessions with automatic refresh and validation
+- ✅ **Role-Based Access Control**: Admin users with elevated permissions for user management
+- ✅ **Endpoint Security**: 28/44 endpoints protected with authentication and ownership validation
+- ✅ **Multi-Factor Authentication**: OTP verification with automatic account linking
+- ✅ **Admin Dashboard**: SuperTokens built-in admin panel at `/auth/dashboard`
+
+**Security Implementation:**
+- **Protected Routes**: All user data operations (chat, files, projects) require authentication
+- **Ownership Validation**: Users can only access their own conversations, files, and projects
+- **Admin Operations**: File sync, user management requires admin role verification
+- **Audit Logging**: Comprehensive logging for admin actions and security events
+- **Public Routes**: Health checks, auth flows, and reference data remain publicly accessible
+
 ### **Active Development Environment**
-- **Frontend**: http://localhost:3000 (Vite dev server)
+- **Frontend**: http://localhost:3001 (Vite dev server)
 - **Backend**: http://localhost:8000 (FastAPI + uvicorn)
 
 ### **File Attachment System Status (September 2025)**

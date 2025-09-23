@@ -21,8 +21,7 @@ import type {
   UserFileWithConversations,
 } from '@/types';
 
-// Mock user ID from backend (Phase 2 - no authentication yet)
-const MOCK_USER_ID = 'a456f25a-6269-4de3-87df-48b0a3389d01';
+// SuperTokens will handle authentication automatically
 
 // API Base Configuration
 const API_BASE_URL = 'http://localhost:8000';
@@ -123,16 +122,13 @@ const projectClient = new ApiClient(PROJECT_BASE_URL);
 export const projectApi = {
   // Get all projects for current user
   async getProjects(): Promise<Project[]> {
-    return projectClient.get<Project[]>(`/by_user/${MOCK_USER_ID}`);
+    return projectClient.get<Project[]>('/by_user/me');
   },
 
   // Create new project
   async createProject(projectData: Omit<ProjectCreate, 'user_id'>): Promise<Project> {
-    const data: ProjectCreate = {
-      ...projectData,
-      user_id: MOCK_USER_ID,
-    };
-    return projectClient.post<Project>('/', data);
+    // Backend will automatically use the authenticated user's ID
+    return projectClient.post<Project>('/', projectData);
   },
 
   // Get project by ID
@@ -411,19 +407,19 @@ const fileClient = new ApiClient(FILES_BASE_URL);
 
 // File API Service
 const fileApi = {
-  // Get all files for a user
-  async getUserFiles(userId: string): Promise<UserFile[]> {
-    return fileClient.get<UserFile[]>(`/user/${userId}`);
+  // Get all files for current authenticated user
+  async getUserFiles(): Promise<UserFile[]> {
+    return fileClient.get<UserFile[]>('/user/me');
   },
 
   // Get file metadata
-  async getFileMetadata(fileId: string, userId: string): Promise<UserFile> {
-    return fileClient.get<UserFile>(`/${fileId}?user_id=${userId}`);
+  async getFileMetadata(fileId: string): Promise<UserFile> {
+    return fileClient.get<UserFile>(`/${fileId}`);
   },
 
   // Get a signed URL for file access/preview
-  async getFileUrl(fileId: string, userId: string, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> {
-    return fileClient.get<{ url: string; expires_in: number }>(`/${fileId}/url?user_id=${userId}&expires_in=${expiresIn}`);
+  async getFileUrl(fileId: string, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> {
+    return fileClient.get<{ url: string; expires_in: number }>(`/${fileId}/url?expires_in=${expiresIn}`);
   },
 
   // Get files for a specific conversation
@@ -432,13 +428,13 @@ const fileApi = {
   },
 
   // Delete a file
-  async deleteFile(fileId: string, userId: string): Promise<{ message: string }> {
-    return fileClient.delete<{ message: string }>(`/${fileId}?user_id=${userId}`);
+  async deleteFile(fileId: string): Promise<{ message: string }> {
+    return fileClient.delete<{ message: string }>(`/${fileId}`);
   },
 
   // Download file content
-  async downloadFile(fileId: string, userId: string): Promise<Blob> {
-    const url = `${FILES_BASE_URL}/${fileId}/download?user_id=${userId}`;
+  async downloadFile(fileId: string): Promise<Blob> {
+    const url = `${FILES_BASE_URL}/${fileId}/download`;
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -451,26 +447,26 @@ const fileApi = {
   // NEW: File reuse methods
 
   // Get files with conversation usage data
-  async getUserFilesWithConversations(userId: string): Promise<UserFileWithConversations[]> {
-    return fileClient.get<UserFileWithConversations[]>(`/user/${userId}/with-conversations`);
+  async getUserFilesWithConversations(): Promise<UserFileWithConversations[]> {
+    return fileClient.get<UserFileWithConversations[]>('/user/me/with-conversations');
   },
 
   // Get conversation history for a specific file
-  async getFileConversations(fileId: string, userId: string): Promise<Array<{
+  async getFileConversations(fileId: string): Promise<Array<{
     conversation_id: string;
     conversation_title: string;
     used_at: string;
   }>> {
-    return fileClient.get(`/${fileId}/conversations?user_id=${userId}`);
+    return fileClient.get(`/${fileId}/conversations`);
   },
 
   // Reuse an existing file in a conversation
-  async reuseFile(fileId: string, conversationId: string, userId: string): Promise<{
+  async reuseFile(fileId: string, conversationId: string): Promise<{
     message: string;
     file_id: string;
     conversation_id: string;
   }> {
-    return fileClient.post(`/${fileId}/reuse?conversation_id=${conversationId}&user_id=${userId}`, {});
+    return fileClient.post(`/${fileId}/reuse?conversation_id=${conversationId}`, {});
   },
 };
 
@@ -481,34 +477,20 @@ export const api = {
   promptTemplates: promptTemplateApi,
   files: fileApi,
   
-  // Mock authentication service for Phase 2
+  // SuperTokens authentication service
   auth: {
-    // Mock current user
+    // Get current user session info from backend
     async getCurrentUser(): Promise<User> {
-      return {
-        id: MOCK_USER_ID,
-        phone_number: '+1234567890',
-        name: 'Salomon',
-        is_active: true,
-        is_admin: false, // Regular user for testing
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-    },
+      const authClient = new ApiClient(API_BASE_URL);
+      const sessionInfo = await authClient.get<{
+        status: string;
+        sessionHandle: string;
+        userId: string;
+        accessTokenPayload: Record<string, any>;
+        user: User;
+      }>('/api/auth/sessioninfo');
 
-    // Mock login (will be implemented in Phase 4)
-    async login(whatsappNumber: string): Promise<{ message: string }> {
-      return { message: 'Mock login successful' };
-    },
-
-    // Mock OTP verification (will be implemented in Phase 4)
-    async verifyOTP(whatsappNumber: string, otp: string): Promise<{ token: string; user: User }> {
-      const user = await this.getCurrentUser();
-      return { token: 'mock-jwt-token', user };
-    },
-
-    // Mock logout
-    async logout(): Promise<void> {
+      return sessionInfo.user;
     },
   },
 };

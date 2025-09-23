@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { SessionAuth } from 'supertokens-auth-react/recipe/session';
 import LoadingScreen from './ui/LoadingScreen';
 
 interface ProtectedRouteProps {
@@ -8,15 +7,15 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <LoadingScreen/>;
-  }
-
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
+  return (
+    <SessionAuth
+      requireAuth={true}
+      onSessionExpired={() => {
+        // Handle session expiration if needed
+        console.log('Session expired');
+      }}
+    >
+      {children}
+    </SessionAuth>
+  );
 }
