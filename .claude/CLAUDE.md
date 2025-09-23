@@ -145,7 +145,7 @@ Code formatting is automatically enforced via pre-commit hooks:
 - **Public Routes**: Health checks, auth flows, and reference data remain publicly accessible
 
 ### **Active Development Environment**
-- **Frontend**: http://localhost:3001 (Vite dev server)
+- **Frontend**: http://localhost:3000 (Vite dev server)
 - **Backend**: http://localhost:8000 (FastAPI + uvicorn)
 
 ### **File Attachment System Status (September 2025)**

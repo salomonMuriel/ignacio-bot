@@ -11,7 +11,7 @@ export function getApiDomain() {
 }
 
 export function getWebsiteDomain() {
-    return "http://localhost:3001";
+    return "http://localhost:3000";
 }
 
 export const styleOverride = `
