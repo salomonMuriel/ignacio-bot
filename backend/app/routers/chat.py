@@ -6,8 +6,11 @@ Handles conversations and messages for Phase 2 (without authentication)
 from uuid import UUID
 from typing import List
 
-from fastapi import APIRouter, HTTPException, status, File, Form, UploadFile
+from fastapi import APIRouter, HTTPException, status, File, Form, UploadFile, Depends
 from pydantic import BaseModel
+
+from supertokens_python.recipe.session import SessionContainer
+from supertokens_python.recipe.session.framework.fastapi import verify_session
 
 from app.models.database import ConversationUpdate, MessageType
 from app.services.ai_service import get_ignacio_service
@@ -71,10 +74,11 @@ TEMP_USER_ID = UUID("a456f25a-6269-4de3-87df-48b0a3389d01")
 
 
 @router.get("/conversations", response_model=list[ConversationResponse])
-async def get_conversations():
-    """Get all conversations for a given user"""
+async def get_conversations(session: SessionContainer = Depends(verify_session())):
+    """Get all conversations for the authenticated user"""
     try:
-        conversations = await db_service.get_user_conversations(TEMP_USER_ID)
+        user_id = UUID(session.get_user_id())
+        conversations = await db_service.get_user_conversations(user_id)
 
         # Get message count for each conversation
         result = []
@@ -104,14 +108,22 @@ async def get_conversations():
 @router.get(
     "/conversations/{conversation_id}", response_model=ConversationDetailResponse
 )
-async def get_conversation(conversation_id: UUID):
-    """Get a specific conversation with its messages"""
+async def get_conversation(conversation_id: UUID, session: SessionContainer = Depends(verify_session())):
+    """Get a specific conversation with its messages for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
+
         # Get conversation
         conversation = await db_service.get_conversation_by_id(conversation_id)
         if not conversation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
+
+        # Verify ownership
+        if conversation.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
 
         # Get messages
@@ -149,15 +161,23 @@ async def get_conversation(conversation_id: UUID):
 
 @router.put("/conversations/{conversation_id}", response_model=ConversationResponse)
 async def update_conversation(
-    conversation_id: UUID, request: ConversationCreateRequest
+    conversation_id: UUID, request: ConversationCreateRequest, session: SessionContainer = Depends(verify_session())
 ):
-    """Update a conversation (mainly title)"""
+    """Update a conversation (mainly title) for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
+
         # Check if conversation exists
         conversation = await db_service.get_conversation_by_id(conversation_id)
         if not conversation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
+
+        # Verify ownership
+        if conversation.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
 
         # Update conversation
@@ -193,14 +213,22 @@ async def update_conversation(
 
 
 @router.delete("/conversations/{conversation_id}")
-async def delete_conversation(conversation_id: UUID):
-    """Delete a conversation and all its messages"""
+async def delete_conversation(conversation_id: UUID, session: SessionContainer = Depends(verify_session())):
+    """Delete a conversation and all its messages for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
+
         # Check if conversation exists
         conversation = await db_service.get_conversation_by_id(conversation_id)
         if not conversation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
+
+        # Verify ownership
+        if conversation.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
 
         # Note: In a real implementation, we'd want to delete messages first
@@ -219,14 +247,22 @@ async def delete_conversation(conversation_id: UUID):
 @router.get(
     "/conversations/{conversation_id}/messages", response_model=list[MessageResponse]
 )
-async def get_messages(conversation_id: UUID, limit: int = 50, offset: int = 0):
-    """Get messages for a conversation"""
+async def get_messages(conversation_id: UUID, limit: int = 50, offset: int = 0, session: SessionContainer = Depends(verify_session())):
+    """Get messages for a conversation for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
+
         # Check if conversation exists
         conversation = await db_service.get_conversation_by_id(conversation_id)
         if not conversation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
+
+        # Verify ownership
+        if conversation.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
 
         messages = await db_service.get_conversation_messages(
@@ -264,9 +300,22 @@ async def get_messages(conversation_id: UUID, limit: int = 50, offset: int = 0):
 
 
 @router.get("/conversations/{conversation_id}/summary")
-async def get_conversation_summary(conversation_id: UUID):
-    """Get a summary of the conversation for context management"""
+async def get_conversation_summary(conversation_id: UUID, session: SessionContainer = Depends(verify_session())):
+    """Get a summary of the conversation for context management for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
+
+        # Check if conversation exists and verify ownership
+        conversation = await db_service.get_conversation_by_id(conversation_id)
+        if not conversation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
+        if conversation.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+            )
+
         summary = await get_ignacio_service().get_conversation_summary(conversation_id)
 
         return {
@@ -286,9 +335,22 @@ async def get_conversation_summary(conversation_id: UUID):
 
 
 @router.get("/conversations/{conversation_id}/interactions")
-async def get_conversation_interactions(conversation_id: UUID):
-    """Get all agent interactions for a conversation"""
+async def get_conversation_interactions(conversation_id: UUID, session: SessionContainer = Depends(verify_session())):
+    """Get all agent interactions for a conversation for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
+
+        # Check if conversation exists and verify ownership
+        conversation = await db_service.get_conversation_by_id(conversation_id)
+        if not conversation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
+        if conversation.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+            )
+
         interactions = await db_service.get_conversation_interactions(conversation_id)
 
         return [{
@@ -308,22 +370,27 @@ async def get_conversation_interactions(conversation_id: UUID):
 
 
 @router.put("/conversations/{conversation_id}/project")
-async def associate_conversation_with_project(conversation_id: UUID, request: dict):
-    """Associate a conversation with a specific project"""
+async def associate_conversation_with_project(conversation_id: UUID, request: dict, session: SessionContainer = Depends(verify_session())):
+    """Associate a conversation with a specific project for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
         project_id = request.get("project_id")
         if not project_id:
             raise HTTPException(status_code=400, detail="project_id is required")
-        
-        # Check if conversation exists
+
+        # Check if conversation exists and verify ownership
         conversation = await db_service.get_conversation_by_id(conversation_id)
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
-        
-        # Check if project exists
+        if conversation.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # Check if project exists and verify ownership
         project = await db_service.get_project_by_id(UUID(project_id))
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
+        if project.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Project access denied")
         
         # Update conversation with project association
         updated_conv = await db_service.update_conversation(
@@ -350,7 +417,8 @@ async def send_message_unified(
     conversation_id: str = Form(None),
     project_id: str = Form(None),
     file: UploadFile = File(None),
-    existing_file_id: str = Form(None)
+    existing_file_id: str = Form(None),
+    session: SessionContainer = Depends(verify_session())
 ):
     """Unified endpoint for sending messages - handles both new conversations and continuing existing ones
 
@@ -360,7 +428,9 @@ async def send_message_unified(
     - File options: either 'file' (new upload) or 'existing_file_id' (reuse existing file)
     - For new conversations, project_id can be specified for project context
     """
-    print(f"[CHAT] Received message request:")
+    user_id = UUID(session.get_user_id())
+
+    print(f"[CHAT] Received message request for user {user_id}:")
     print(f"  - Content length: {len(content)}")
     print(f"  - Conversation ID: {conversation_id}")
     print(f"  - Project ID: {project_id}")
@@ -411,12 +481,12 @@ async def send_message_unified(
             if not existing_file_record:
                 raise HTTPException(status_code=404, detail="Existing file not found")
 
-            if existing_file_record.user_id != TEMP_USER_ID:
+            if existing_file_record.user_id != user_id:
                 raise HTTPException(status_code=403, detail="Access denied to existing file")
 
             # Prepare file content data from existing file
             try:
-                file_content = await storage_service.download_file(existing_file_uuid, TEMP_USER_ID)
+                file_content = await storage_service.download_file(existing_file_uuid, user_id)
                 if file_content is None:
                     raise HTTPException(status_code=404, detail="Existing file content not found")
 
@@ -462,6 +532,14 @@ async def send_message_unified(
                     detail="Conversation not found"
                 )
 
+            # Verify conversation ownership
+            if conversation.user_id != user_id:
+                print(f"[CHAT] ERROR: Access denied to conversation {parsed_conversation_id} for user {user_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied to conversation"
+                )
+
             # Handle file for conversation
             if file_content_data:
                 if existing_file_record:
@@ -478,7 +556,7 @@ async def send_message_unified(
                     print(f"[CHAT] Uploading file to storage for conversation {parsed_conversation_id}")
                     try:
                         uploaded_file = await storage_service.upload_file(
-                            user_id=TEMP_USER_ID,
+                            user_id=user_id,
                             file_content=file_content_data[0][0],
                             file_name=file_content_data[0][1],
                             content_type=file_content_data[0][2],
@@ -514,7 +592,7 @@ async def send_message_unified(
                 print(f"[CHAT] Uploading file to storage for new conversation")
                 try:
                     uploaded_file = await storage_service.upload_file(
-                        user_id=TEMP_USER_ID,
+                        user_id=user_id,
                         file_content=file_content_data[0][0],
                         file_name=file_content_data[0][1],
                         content_type=file_content_data[0][2],
@@ -529,7 +607,7 @@ async def send_message_unified(
             # Start conversation with Agent SDK
             try:
                 agent_result = await get_ignacio_service().start_conversation(
-                    user_id=TEMP_USER_ID,
+                    user_id=user_id,
                     initial_message=content,
                     project_id=parsed_project_id,
                     file_contents=file_content_data if file_content_data else None

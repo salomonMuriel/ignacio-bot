@@ -6,7 +6,11 @@ Handles administrative tasks like file synchronization and system maintenance
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+
+from supertokens_python.recipe.session import SessionContainer
+from supertokens_python.recipe.session.framework.fastapi import verify_session
+from supertokens_python.recipe.userroles.asyncio import get_roles_for_user
 
 
 logger = logging.getLogger(__name__)
@@ -14,20 +18,36 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
+async def verify_admin_role(session: SessionContainer = Depends(verify_session())) -> str:
+    """Verify that the authenticated user has admin role"""
+    user_id = session.get_user_id()
+
+    # Check if user has admin role
+    user_roles_response = await get_roles_for_user(user_id)
+    if user_roles_response.status != "OK" or "admin" not in user_roles_response.roles:
+        raise HTTPException(status_code=403, detail="Admin role required")
+
+    return user_id
+
+
 @router.post("/sync-files/{user_id}")
-async def sync_user_files(user_id: str):
-    """Manually trigger file sync for a user"""
+async def sync_user_files(user_id: str, admin_user_id: str = Depends(verify_admin_role)):
+    """Manually trigger file sync for a user (admin only)"""
     try:
         user_uuid = UUID(user_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid user ID format")
 
     try:
-        sync_result = await openai_file_service.sync_user_files(user_uuid)
+        # TODO: Import correct file sync service when available
+        # sync_result = await openai_file_service.sync_user_files(user_uuid)
+        logger.info(f"Admin {admin_user_id} triggered file sync for user {user_id}")
+
         return {
             "user_id": user_id,
-            "sync_result": sync_result,
-            "message": "File sync completed successfully"
+            "sync_result": "File sync service not yet implemented",
+            "message": "File sync request logged successfully",
+            "admin_user": admin_user_id
         }
     except Exception as e:
         logger.error(f"File sync failed for user {user_id}: {str(e)}")
@@ -35,8 +55,8 @@ async def sync_user_files(user_id: str):
 
 
 @router.post("/sync-all-files")
-async def sync_all_user_files():
-    """Sync files for all users (maintenance endpoint)"""
+async def sync_all_user_files(admin_user_id: str = Depends(verify_admin_role)):
+    """Sync files for all users (maintenance endpoint - admin only)"""
     try:
         from app.services.database import db_service
 
@@ -52,7 +72,7 @@ async def sync_all_user_files():
 
         # For now, this is a placeholder since we don't have user enumeration
         # In a real implementation, you'd get all users from the database
-        logger.info("Sync all files endpoint called - implementation pending user enumeration")
+        logger.info(f"Admin {admin_user_id} called sync all files endpoint - implementation pending user enumeration")
 
         return {
             "message": "Sync all files endpoint - implementation pending",
@@ -65,8 +85,8 @@ async def sync_all_user_files():
 
 
 @router.get("/file-sync-status/{user_id}")
-async def get_user_file_sync_status(user_id: str):
-    """Get file synchronization status for a user"""
+async def get_user_file_sync_status(user_id: str, admin_user_id: str = Depends(verify_admin_role)):
+    """Get file synchronization status for a user (admin only)"""
     try:
         user_uuid = UUID(user_id)
     except ValueError:
@@ -75,6 +95,7 @@ async def get_user_file_sync_status(user_id: str):
     try:
         from app.services.database import db_service
 
+        logger.info(f"Admin {admin_user_id} requesting file sync status for user {user_id}")
         user_files = await db_service.get_user_files(user_uuid)
 
         status_counts = {

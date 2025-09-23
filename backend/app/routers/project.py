@@ -7,6 +7,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 
+from supertokens_python.recipe.session import SessionContainer
+from supertokens_python.recipe.session.framework.fastapi import verify_session
+
 from app.models.database import (
     Project, ProjectCreate, ProjectUpdate, 
     ProjectType, ProjectStage
@@ -29,10 +32,11 @@ async def get_project_stages():
     return [{"value": ps.value, "label": ps.value.replace("_", " ").title()} for ps in ProjectStage]
 
 
-@router.get("/by_user/{user_id}")
-async def get_user_projects(user_id: UUID) -> List[Project]:
-    """Get all projects for a user (database level)"""
+@router.get("/by_user/me")
+async def get_user_projects(session: SessionContainer = Depends(verify_session())) -> List[Project]:
+    """Get all projects for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
         projects = await db_service.get_user_projects(user_id)
         return projects
     except Exception as e:
@@ -40,25 +44,27 @@ async def get_user_projects(user_id: UUID) -> List[Project]:
 
 
 @router.post("/")
-async def create_project(project_data: ProjectCreate) -> Project:
-    """Create a new project for a user (database level)"""
+async def create_project(project_data: ProjectCreate, session: SessionContainer = Depends(verify_session())) -> Project:
+    """Create a new project for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
+
         # Validate project_type and current_stage if provided
         if project_data.project_type:
             try:
                 ProjectType(project_data.project_type.value)
             except ValueError:
                 raise HTTPException(status_code=400, detail=f"Invalid project type: {project_data.project_type}")
-        
+
         if project_data.current_stage:
             try:
                 ProjectStage(project_data.current_stage.value)
             except ValueError:
                 raise HTTPException(status_code=400, detail=f"Invalid project stage: {project_data.current_stage}")
-        
+
         # Convert to dict for database service
         data = {
-            "user_id": project_data.user_id,
+            "user_id": user_id,
             "project_name": project_data.project_name,
             "project_type": project_data.project_type.value if project_data.project_type else None,
             "description": project_data.description,
@@ -80,25 +86,37 @@ async def create_project(project_data: ProjectCreate) -> Project:
 
 
 @router.get("/{project_id}")
-async def get_project_by_id(project_id: UUID) -> Project:
-    """Get a specific project by ID"""
+async def get_project_by_id(project_id: UUID, session: SessionContainer = Depends(verify_session())) -> Project:
+    """Get a specific project by ID for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
         project = await db_service.get_project_by_id(project_id)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
+
+        # Verify ownership
+        if project.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied to project")
+
         return project
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get project: {str(e)}")
 
 
 @router.put("/{project_id}")
-async def update_project(project_id: UUID, project_data: ProjectUpdate) -> Project:
-    """Update a specific project"""
+async def update_project(project_id: UUID, project_data: ProjectUpdate, session: SessionContainer = Depends(verify_session())) -> Project:
+    """Update a specific project for authenticated user"""
     try:
-        # Check if project exists
+        user_id = UUID(session.get_user_id())
+
+        # Check if project exists and verify ownership
         existing_project = await db_service.get_project_by_id(project_id)
         if not existing_project:
             raise HTTPException(status_code=404, detail="Project not found")
+        if existing_project.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied to project")
 
         # Prepare update data
         update_data = {}
@@ -134,13 +152,17 @@ async def update_project(project_id: UUID, project_data: ProjectUpdate) -> Proje
 
 
 @router.delete("/{project_id}")
-async def delete_user_project(project_id: UUID):
-    """Delete a specific project"""
+async def delete_user_project(project_id: UUID, session: SessionContainer = Depends(verify_session())):
+    """Delete a specific project for authenticated user"""
     try:
-        # Check if project exists
+        user_id = UUID(session.get_user_id())
+
+        # Check if project exists and verify ownership
         existing_project = await db_service.get_project_by_id(project_id)
         if not existing_project:
             raise HTTPException(status_code=404, detail="Project not found")
+        if existing_project.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied to project")
 
         # Delete project
         success = await db_service.delete_project(project_id)
@@ -155,13 +177,17 @@ async def delete_user_project(project_id: UUID):
 
 
 @router.get("/conversations/{project_id}")
-async def get_project_conversations(project_id: UUID):
-    """Get all conversations for a specific project"""
+async def get_project_conversations(project_id: UUID, session: SessionContainer = Depends(verify_session())):
+    """Get all conversations for a specific project for authenticated user"""
     try:
-        # Check if project exists
+        user_id = UUID(session.get_user_id())
+
+        # Check if project exists and verify ownership
         existing_project = await db_service.get_project_by_id(project_id)
         if not existing_project:
             raise HTTPException(status_code=404, detail="Project not found")
+        if existing_project.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied to project")
 
         # Get conversations for the project
         conversations = await db_service.get_project_conversations(project_id)
@@ -186,12 +212,15 @@ async def get_project_conversations(project_id: UUID):
 
 
 @router.get("/{project_id}/context")
-async def get_project_context(project_id: UUID):
-    """Get project context for AI conversations"""
+async def get_project_context(project_id: UUID, session: SessionContainer = Depends(verify_session())):
+    """Get project context for AI conversations for authenticated user"""
     try:
+        user_id = UUID(session.get_user_id())
         project = await db_service.get_project_by_id(project_id)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
+        if project.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied to project")
         
         return {
             "project_id": project.id,
@@ -212,13 +241,17 @@ async def get_project_context(project_id: UUID):
 
 
 @router.put("/{project_id}/context")
-async def update_project_context(project_id: UUID, context_data: dict):
-    """Update project context"""
+async def update_project_context(project_id: UUID, context_data: dict, session: SessionContainer = Depends(verify_session())):
+    """Update project context for authenticated user"""
     try:
-        # Check if project exists
+        user_id = UUID(session.get_user_id())
+
+        # Check if project exists and verify ownership
         existing_project = await db_service.get_project_by_id(project_id)
         if not existing_project:
             raise HTTPException(status_code=404, detail="Project not found")
+        if existing_project.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied to project")
 
         # Update project context
         update_data = {"context_data": context_data}

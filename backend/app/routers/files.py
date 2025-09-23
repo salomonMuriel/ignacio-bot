@@ -7,8 +7,11 @@ import asyncio
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile, Depends
 from fastapi.responses import Response, StreamingResponse
+
+from supertokens_python.recipe.session import SessionContainer
+from supertokens_python.recipe.session.framework.fastapi import verify_session
 
 from app.models.database import UserFile
 from app.services.storage import storage_service
@@ -47,19 +50,16 @@ async def sync_file_to_openai(user_id: UUID, file_id: UUID):
 @router.post("/upload", response_model=UserFile)
 async def upload_file(
     background_tasks: BackgroundTasks,
-    user_id: str = Form(...),
     file: UploadFile = File(...),
+    session: SessionContainer = Depends(verify_session()),
 ):
-    """Upload a file to user's storage
-    
+    """Upload a file to authenticated user's storage
+
     Supported file types:
     - Images: All image formats (image/*)
     - PDFs: application/pdf
     """
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    user_uuid = UUID(session.get_user_id())
 
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
@@ -105,11 +105,11 @@ async def upload_file(
 
 
 @router.get("/{file_id}", response_model=UserFile)
-async def get_file_metadata(file_id: str, user_id: str):
-    """Get file metadata"""
+async def get_file_metadata(file_id: str, session: SessionContainer = Depends(verify_session())):
+    """Get file metadata for authenticated user"""
     try:
         file_uuid = UUID(file_id)
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
@@ -133,11 +133,11 @@ async def get_file_metadata(file_id: str, user_id: str):
 
 
 @router.get("/{file_id}/download")
-async def download_file(file_id: str, user_id: str):
-    """Download a file"""
+async def download_file(file_id: str, session: SessionContainer = Depends(verify_session())):
+    """Download a file for authenticated user"""
     try:
         file_uuid = UUID(file_id)
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
@@ -178,11 +178,11 @@ async def download_file(file_id: str, user_id: str):
 
 
 @router.get("/{file_id}/url")
-async def get_file_url(file_id: str, user_id: str, expires_in: int = 3600):
-    """Get a signed URL for file access"""
+async def get_file_url(file_id: str, expires_in: int = 3600, session: SessionContainer = Depends(verify_session())):
+    """Get a signed URL for file access for authenticated user"""
     try:
         file_uuid = UUID(file_id)
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
@@ -200,11 +200,11 @@ async def get_file_url(file_id: str, user_id: str, expires_in: int = 3600):
         raise HTTPException(status_code=500, detail=f"Failed to get file URL: {str(e)}")
 
 
-@router.get("/user/{user_id}", response_model=list[UserFile])
-async def get_user_files(user_id: str):
-    """Get all files for a user"""
+@router.get("/user/me", response_model=list[UserFile])
+async def get_user_files(session: SessionContainer = Depends(verify_session())):
+    """Get all files for authenticated user"""
     try:
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid user ID format")
 
@@ -217,15 +217,24 @@ async def get_user_files(user_id: str):
 
 
 @router.get("/conversation/{conversation_id}", response_model=list[UserFile])
-async def get_conversation_files(conversation_id: str):
-    """Get all files for a conversation"""
+async def get_conversation_files(conversation_id: str, session: SessionContainer = Depends(verify_session())):
+    """Get all files for a conversation for authenticated user"""
     try:
+        user_uuid = UUID(session.get_user_id())
         conv_uuid = UUID(conversation_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid conversation ID format")
 
     try:
         from app.services.database import db_service
+
+        # Verify conversation ownership
+        conversation = await db_service.get_conversation_by_id(conv_uuid)
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        if conversation.user_id != user_uuid:
+            raise HTTPException(status_code=403, detail="Access denied to conversation")
+
         files = await db_service.get_conversation_files(conv_uuid)
         return files
 
@@ -237,18 +246,18 @@ async def get_conversation_files(conversation_id: str):
 async def upload_file_to_conversation(
     conversation_id: str,
     background_tasks: BackgroundTasks,
-    user_id: str = Form(...),
     file: UploadFile = File(...),
+    session: SessionContainer = Depends(verify_session()),
 ):
-    """Upload a file and associate it with a conversation
-    
+    """Upload a file and associate it with a conversation for authenticated user
+
     Supported file types:
     - Images: All image formats (image/*)
     - PDFs: application/pdf
     """
     try:
         conv_uuid = UUID(conversation_id)
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
@@ -297,11 +306,11 @@ async def upload_file_to_conversation(
 
 
 @router.delete("/{file_id}")
-async def delete_file(file_id: str, user_id: str):
-    """Delete a file"""
+async def delete_file(file_id: str, session: SessionContainer = Depends(verify_session())):
+    """Delete a file for authenticated user"""
     try:
         file_uuid = UUID(file_id)
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
@@ -320,11 +329,11 @@ async def delete_file(file_id: str, user_id: str):
 
 
 @router.get("/{file_id}/conversations")
-async def get_file_conversations(file_id: str, user_id: str):
-    """Get all conversations where a file has been used"""
+async def get_file_conversations(file_id: str, session: SessionContainer = Depends(verify_session())):
+    """Get all conversations where a file has been used for authenticated user"""
     try:
         file_uuid = UUID(file_id)
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
@@ -346,12 +355,12 @@ async def get_file_conversations(file_id: str, user_id: str):
 
 
 @router.post("/{file_id}/reuse")
-async def reuse_file(file_id: str, conversation_id: str, user_id: str):
-    """Reuse an existing file in a conversation"""
+async def reuse_file(file_id: str, conversation_id: str, session: SessionContainer = Depends(verify_session())):
+    """Reuse an existing file in a conversation for authenticated user"""
     try:
         file_uuid = UUID(file_id)
         conv_uuid = UUID(conversation_id)
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
@@ -382,11 +391,11 @@ async def reuse_file(file_id: str, conversation_id: str, user_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to reuse file: {str(e)}")
 
 
-@router.get("/user/{user_id}/with-conversations")
-async def get_user_files_with_conversations(user_id: str):
-    """Get all files for a user with their conversation usage data"""
+@router.get("/user/me/with-conversations")
+async def get_user_files_with_conversations(session: SessionContainer = Depends(verify_session())):
+    """Get all files for authenticated user with their conversation usage data"""
     try:
-        user_uuid = UUID(user_id)
+        user_uuid = UUID(session.get_user_id())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid user ID format")
 
