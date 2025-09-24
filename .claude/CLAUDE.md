@@ -16,9 +16,9 @@ Normal Users:
 * Any images, videos or audio files sent to Ignacio should be saved in that user's folder in Supabase Storage.
 * Users should be able to upload any other kind of file to Ignacio (documents, PDFs, presentations, etc). Ignacio should be able to pull these into context when it needs to.
 * Ignacio should respond to the user according to their questions on the project. Prompts for these interactions should be tailored to the response at hand. Example, if the user asks about a marketing problem, Ignacio should act as a marketing expert.
-* Users should login to use Ignacio from the web platform. If they use Whatsapp, their number should be stored as the number of a created user for Ignacio to respond positively.
+* Users authenticate via Auth0 for the web platform with secure JWT token-based authentication.
 * Users shouldn't be able to create a new account. Accounts are created by administrators manually.
-* In order to login, users get a OTP code to their stored WhatsApp numbers. They login using their WhatsApp number.
+* WhatsApp integration uses phone number validation against Auth0 user profiles.
 
 Administrators:
 * Some users are administrators. They have permission to see Ignacio's conversations with anyone in a special tab.
@@ -95,6 +95,7 @@ Code formatting is automatically enforced via pre-commit hooks:
 ### **Technical Architecture**
 - **Backend**: FastAPI + OpenAI Agent SDK + Supabase (OPERATIONAL)
 - **Frontend**: React 19.1 + Vite + TypeScript + Tailwind CSS (CHAT INTEGRATION COMPLETE)
+- **Authentication**: Auth0 with JWT tokens, role-based access control (OPERATIONAL)
 - **State Management**: React Context API with Auth, Projects, Conversations, Global contexts
 - **Agent Framework**: Multi-agent with specialized expertise domains
 - **File Processing**: Vector stores + content search + metadata extraction
