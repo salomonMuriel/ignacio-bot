@@ -89,3 +89,25 @@ class Auth0JWTValidator:
         """
         payload = self.validate_token(token)
         return payload.sub
+
+    def get_user_profile(self, token: str) -> Dict[str, Any]:
+        """
+        Extract user profile information from token
+
+        Args:
+            token: JWT token string
+
+        Returns:
+            Dict[str, Any]: User profile data from token
+        """
+        payload = self.validate_token(token)
+
+        # Extract common user profile fields
+        return {
+            "auth_user_id": payload.sub,
+            "name": getattr(payload, "name", None),
+            "email": getattr(payload, "email", None),
+            "phone_number": getattr(payload, "phone_number", None),
+            "picture": getattr(payload, "picture", None),
+            "nickname": getattr(payload, "nickname", None),
+        }

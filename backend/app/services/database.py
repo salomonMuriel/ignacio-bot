@@ -49,6 +49,7 @@ class DatabaseService:
                     "name": user_data.name,
                     "is_admin": user_data.is_admin,
                     "is_active": user_data.is_active,
+                    "auth_user_id": user_data.auth_user_id,
                 }
             )
             .execute()

@@ -57,20 +57,24 @@ async def get_auth0_user_id(token: str = Depends(get_bearer_token)) -> str:
     return jwt_validator.get_auth0_user_id(token)
 
 
-async def get_current_user(auth0_user_id: str = Depends(get_auth0_user_id)) -> AuthUser:
+async def get_current_user(token: str = Depends(get_bearer_token)) -> AuthUser:
     """
-    Get current authenticated user from database
+    Get current authenticated user from database with JIT creation
 
     Args:
-        auth0_user_id: Auth0 user_id from validated token
+        token: JWT token from Authorization header
 
     Returns:
         AuthUser: Authenticated user
 
     Raises:
-        UserNotFoundException: User not found in database
+        UserNotFoundException: User creation failed
     """
-    return await user_auth_service.get_user_by_auth_id(auth0_user_id)
+    # Extract user profile and Auth0 ID from token
+    auth0_user_id = jwt_validator.get_auth0_user_id(token)
+    user_profile = jwt_validator.get_user_profile(token)
+
+    return await user_auth_service.get_user_by_auth_id(auth0_user_id, user_profile)
 
 
 async def get_current_active_user(user: AuthUser = Depends(get_current_user)) -> AuthUser:
@@ -126,7 +130,8 @@ async def get_current_user_optional(
 
     try:
         auth0_user_id = jwt_validator.get_auth0_user_id(credentials.credentials)
-        return await user_auth_service.get_user_by_auth_id(auth0_user_id)
+        user_profile = jwt_validator.get_user_profile(credentials.credentials)
+        return await user_auth_service.get_user_by_auth_id(auth0_user_id, user_profile)
     except Exception:
         # Return None for any authentication failures in optional mode
         return None
