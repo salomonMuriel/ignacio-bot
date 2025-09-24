@@ -265,7 +265,6 @@ export default function SaveTemplateModal({
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagInputKeyDown}
-                onBlur={addTag}
                 placeholder={tags.length === 0 ? "Type tags and press Enter (e.g., marketing, strategy)" : "Add another tag..."}
                 className="w-full p-3 rounded-lg transition-all duration-300"
                 style={{

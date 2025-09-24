@@ -92,7 +92,7 @@ async def get_current_active_user(user: AuthUser = Depends(get_current_user)) ->
     return user
 
 
-async def require_admin(user: AuthUser = Depends(get_current_active_user)) -> AuthUser:
+async def get_admin_user(user: AuthUser = Depends(get_current_active_user)) -> AuthUser:
     """
     Require user to have admin permissions using internal is_admin column
 
