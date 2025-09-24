@@ -27,28 +27,34 @@ async def get_prompt_templates(
     template_type: Optional[TemplateType] = Query(
         None, description="Filter by template type (admin/user)"
     ),
-    user_id: Optional[UUID] = Query(
-        None, description="Filter by user (for user templates)"
-    ),
     current_user: AuthUser = Depends(get_current_active_user)
 ) -> list[PromptTemplate]:
     """Get prompt templates with optional filtering"""
     try:
         if tags:
             templates = await db_service.get_prompt_templates_by_tags(tags, active_only)
-            # Additional filtering by type and user if specified
+            # Filter to show: all ADMIN templates + current user's USER templates
+            templates = [
+                t for t in templates
+                if t.template_type == "admin" or t.created_by == current_user.id
+            ]
+            # Additional filtering by type if specified
             if template_type:
                 templates = [
                     t for t in templates if t.template_type == template_type.value
                 ]
-            if user_id:
-                templates = [t for t in templates if t.created_by == user_id]
         else:
-            templates = await db_service.get_prompt_templates(
+            # Get all templates and filter appropriately
+            all_templates = await db_service.get_prompt_templates(
                 active_only=active_only,
                 template_type=template_type.value if template_type else None,
-                user_id=user_id,
+                user_id=None,  # Don't filter by user initially
             )
+            # Filter to show: all ADMIN templates + current user's USER templates
+            templates = [
+                t for t in all_templates
+                if t.template_type == "admin" or t.created_by == current_user.id
+            ]
         return templates
     except Exception as e:
         raise HTTPException(

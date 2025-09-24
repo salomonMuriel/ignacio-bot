@@ -15,7 +15,7 @@ export default function HeroSection() {
         } else {
             navigate('/chat');
         }
-      };
+    };
 
     return (
         <div className="relative overflow-hidden">
