@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
 from app.core.database import supabase
@@ -9,14 +9,20 @@ router = APIRouter(prefix="/health", tags=["health"])
 
 
 @router.get("/")
+@router.get("")
 async def health_check():
     """Basic health check endpoint"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "environment": settings.app_env,
-        "version": "1.0.0",
-    }
+    try:
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "environment": settings.app_env,
+            "version": "1.0.0",
+        }
+    except Exception as e:
+        print(e.with_traceback())
+        raise e
+
 
 
 @router.get("/database")

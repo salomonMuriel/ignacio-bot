@@ -6,15 +6,13 @@ import ignacioVideo from '../../assets/ignacio_video_optimized.mp4';
 
 export default function HeroSection() {
 
-    const { user } = useAuth0();
-    const { projects } = useProjects();
+    const { user, loginWithRedirect } = useAuth0();
     const navigate = useNavigate();
 
 
     const handleStartChatting = () => {
         if (!user) {
-          // For now, simulate login - in Phase 4 this will be actual OTP login
-          return;
+            loginWithRedirect()
         }
         
         navigate('/chat');

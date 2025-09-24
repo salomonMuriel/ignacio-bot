@@ -284,9 +284,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Docker
-.dockerignore
-
 # OS generated files
 .DS_Store
 .DS_Store?

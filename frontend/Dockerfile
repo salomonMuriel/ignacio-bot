@@ -18,21 +18,22 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Copy production environment file
+COPY .env.production .env.production
+
 # Build the application
 RUN npm run build
 
 # Stage 2: Serve with Nginx
-FROM nginx:1.25-alpine
+FROM nginx:1.29.1-alpine
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install curl for health checks and envsubst for template substitution
+RUN apk add --no-cache curl gettext
 
-# Create non-root user for security
-RUN addgroup -g 101 -S nginx \
-    && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
-
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration template and entrypoint script
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Copy built application from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
@@ -48,5 +49,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:80/health || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start nginx with environment variable substitution
+CMD ["/entrypoint.sh"]

@@ -1,11 +1,15 @@
+import traceback
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 # Load environment variables based on APP_ENV
 import os
 from pathlib import Path
+
+from fastapi.responses import JSONResponse
 
 def get_env_file_path() -> Path:
     """Get the path to the appropriate .env file based on APP_ENV."""
@@ -99,6 +103,22 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=allowed_hosts,
 )
+
+# @app.exception_handler(Exception)
+# async def generic_exception_handler(request: Request, exc: Exception):
+#     # This will print the full traceback to your console
+#     print("--- Unhandled Exception ---")
+#     print(traceback.format_exc())
+#     print("--------------------------")
+    
+#     return JSONResponse(
+#         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#         content={
+#             "detail": "An internal server error occurred.",
+#             "error_type": type(exc).__name__,
+#             "error_details": str(exc) # Basic error details
+#         },
+#     )
 
 # Include routers
 app.include_router(health.router)
