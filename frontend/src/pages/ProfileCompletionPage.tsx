@@ -6,17 +6,18 @@ import { useApi } from '../hooks/useApi';
 interface ProfileData {
   name: string;
   phone_number: string;
+  email?: string;
 }
 
 export default function ProfileCompletionPage() {
   const { user, isLoading } = useAuth0();
   const api = useApi();
   const navigate = useNavigate();
-  const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<ProfileData>({
     name: '',
     phone_number: '',
+    email: ''
   });
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function ProfileCompletionPage() {
       setFormData({
         name: '',
         phone_number: '',
+        email: user.email
       });
     }
   }, [user, isLoading]);
@@ -41,6 +43,7 @@ export default function ProfileCompletionPage() {
       // Navigate to intended destination or dashboard
       const redirectTo = '/chat';
       navigate(redirectTo, {replace: true});
+      window.location.reload()
     } catch (error) {
       console.error('Failed to update profile:', error);
     } finally {

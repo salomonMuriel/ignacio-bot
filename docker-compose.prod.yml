@@ -43,21 +43,10 @@ services:
       retries: 3
       start_period: 10s
 
-  # Redis service (optional - uncomment if needed for caching)
-  # redis:
-  #   image: redis:7-alpine
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
-  #   restart: unless-stopped
-  #   networks:
-  #     - ignacio-network
-  #   command: redis-server --appendonly yes
+
 
 volumes:
-  # Uncomment if using Redis
-  # redis_data:
+
 
 networks:
   ignacio-network:
