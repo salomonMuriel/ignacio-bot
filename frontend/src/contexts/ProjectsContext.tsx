@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { Project, ProjectCreate, ProjectUpdate } from '@/types';
-import { api } from '@/services/api';
+import { useApi } from '@/hooks/useApi';
 import { useAuth0 } from '@auth0/auth0-react';
 
 // Projects State Interface
@@ -156,6 +156,7 @@ interface ProjectsProviderProps {
 export function ProjectsProvider({ children }: ProjectsProviderProps) {
   const [state, dispatch] = useReducer(projectsReducer, initialState);
   const { isAuthenticated, user } = useAuth0();
+  const api = useApi();
 
   // Load projects when user is authenticated
   useEffect(() => {
@@ -177,7 +178,7 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
     try {
       dispatch({ type: 'PROJECTS_LOADING' });
       
-      const projects = await api.projects.getProjects();
+      const projects = await api.getProjects();
       dispatch({ type: 'PROJECTS_SUCCESS', payload: projects });
       
       // Try to restore active project from localStorage
@@ -200,7 +201,7 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
 
   const createProject = async (projectData: Omit<ProjectCreate, 'user_id'>): Promise<Project> => {
     try {
-      const newProject = await api.projects.createProject(projectData);
+      const newProject = await api.createProject(projectData);
       dispatch({ type: 'PROJECT_CREATED', payload: newProject });
       return newProject;
     } catch (error) {
@@ -212,7 +213,7 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
 
   const updateProject = async (projectId: string, updates: ProjectUpdate): Promise<Project> => {
     try {
-      const updatedProject = await api.projects.updateProject(projectId, updates);
+      const updatedProject = await api.updateProject(projectId, updates);
       dispatch({ type: 'PROJECT_UPDATED', payload: updatedProject });
       return updatedProject;
     } catch (error) {
@@ -224,7 +225,7 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
 
   const deleteProject = async (projectId: string): Promise<void> => {
     try {
-      await api.projects.deleteProject(projectId);
+      await api.deleteProject(projectId);
       dispatch({ type: 'PROJECT_DELETED', payload: projectId });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete project';
@@ -248,7 +249,7 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
   // Utility methods
   const getProjectContext = async (projectId: string) => {
     try {
-      return await api.projects.getProjectContext(projectId);
+      return await api.getProjectContext(projectId);
     } catch (error) {
       console.error('Failed to get project context:', error);
       throw error;
@@ -257,7 +258,7 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
 
   const updateProjectContext = async (projectId: string, context: Record<string, unknown>) => {
     try {
-      await api.projects.updateProjectContext(projectId, context);
+      await api.updateProjectContext(projectId, context);
     } catch (error) {
       console.error('Failed to update project context:', error);
       throw error;
@@ -266,7 +267,7 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
 
   const getProjectConversations = async (projectId: string) => {
     try {
-      return await api.projects.getProjectConversations(projectId);
+      return await api.getProjectConversations(projectId);
     } catch (error) {
       console.error('Failed to get project conversations:', error);
       throw error;
