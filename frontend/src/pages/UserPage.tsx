@@ -74,8 +74,8 @@ export default function UserPage() {
         borderColor: 'var(--ig-border-glass)',
         backdropFilter: 'blur(10px)'
       }}>
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="max-w-4xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
             <button
               onClick={() => navigate('/chat')}
               className="flex items-center space-x-2 text-sm font-medium transition-colors hover:opacity-80"
@@ -91,48 +91,54 @@ export default function UserPage() {
               Profile
             </h1>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 md:space-x-3">
             <button
               onClick={() => navigate('/projects')}
-              className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+              className="px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-lg font-medium transition-all duration-200 hover:opacity-80"
               style={{
                 background: 'var(--ig-surface-secondary)',
                 color: 'var(--ig-text-secondary)',
                 border: '1px solid var(--ig-border-primary)'
               }}
             >
-              Projects
+              <span className="hidden sm:inline">Projects</span>
+              <span className="sm:hidden">P</span>
             </button>
             <button
               onClick={handleLogout}
-              className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+              className="px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-lg font-medium transition-all duration-200 hover:opacity-80"
               style={{
                 background: 'var(--ig-surface-secondary)',
                 color: 'var(--ig-text-secondary)',
                 border: '1px solid var(--ig-border-primary)'
               }}
             >
-              Sign Out
+              <span className="hidden sm:inline">Sign Out</span>
+              <span className="sm:hidden">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4" style={{ color: 'var(--ig-text-primary)' }}>
               Your Profile
             </h1>
-            <p className="text-lg" style={{ color: 'var(--ig-text-secondary)' }}>
+            <p className="text-base md:text-lg" style={{ color: 'var(--ig-text-secondary)' }}>
               Manage your account settings and information
             </p>
           </div>
 
           {/* Profile Card */}
-          <div className="rounded-lg p-8 mb-6" style={{
+          <div className="rounded-lg p-4 md:p-8 mb-4 md:mb-6" style={{
             background: 'var(--ig-surface-glass)',
             border: '1px solid var(--ig-border-glass)',
             backdropFilter: 'blur(10px)',
@@ -142,7 +148,7 @@ export default function UserPage() {
             <div className="text-center mb-8">
               {/* Avatar */}
               <div className="flex justify-center mb-4">
-                <div className="w-24 h-24 rounded-full overflow-hidden" style={{
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden" style={{
                   background: 'var(--ig-surface-secondary)',
                   border: '2px solid var(--ig-border-accent)'
                 }}>
@@ -166,7 +172,7 @@ export default function UserPage() {
               </div>
 
               {/* User Details */}
-              <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--ig-text-primary)' }}>
+              <h2 className="text-xl md:text-2xl font-bold mb-2" style={{ color: 'var(--ig-text-primary)' }}>
                 {user?.name || auth_user?.name || 'User'}
               </h2>
               <p className="text-lg mb-4" style={{ color: 'var(--ig-text-secondary)' }}>
@@ -174,7 +180,7 @@ export default function UserPage() {
               </p>
 
               {/* Status Badges */}
-              <div className="flex justify-center items-center space-x-3 mb-6">
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-3 mb-4 md:mb-6">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   user?.is_admin
                     ? 'text-purple-300 bg-purple-900/30 border border-purple-500/30'
@@ -250,8 +256,8 @@ export default function UserPage() {
                 <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--ig-text-accent)' }}>
                   Account Activity
                 </h3>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="p-4 rounded-lg" style={{
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 text-center">
+                  <div className="p-3 md:p-4 rounded-lg" style={{
                     background: 'var(--ig-surface-secondary)',
                     border: '1px solid var(--ig-border-primary)'
                   }}>
@@ -260,7 +266,7 @@ export default function UserPage() {
                       {user?.created_at ? formatDate(user.created_at) : 'Not available'}
                     </p>
                   </div>
-                  <div className="p-4 rounded-lg" style={{
+                  <div className="p-3 md:p-4 rounded-lg" style={{
                     background: 'var(--ig-surface-secondary)',
                     border: '1px solid var(--ig-border-primary)'
                   }}>
@@ -276,7 +282,7 @@ export default function UserPage() {
 
           {/* Admin Features */}
           {user?.is_admin && (
-            <div className="rounded-lg p-6" style={{
+            <div className="rounded-lg p-4 md:p-6" style={{
               background: 'var(--ig-surface-glass)',
               border: '1px solid var(--ig-border-accent)',
               backdropFilter: 'blur(10px)',
@@ -291,7 +297,7 @@ export default function UserPage() {
               <div className="text-center">
                 <button
                   onClick={() => navigate('/admin')}
-                  className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg font-medium text-lg transition-all duration-200"
+                  className="inline-flex items-center space-x-2 px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium text-base md:text-lg transition-all duration-200 w-full sm:w-auto justify-center"
                   style={{
                     background: 'var(--ig-accent-gradient)',
                     color: 'var(--ig-dark-primary)',

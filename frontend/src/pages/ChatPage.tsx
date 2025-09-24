@@ -26,6 +26,7 @@ export default function ChatPage() {
   const [messageInput, setMessageInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | UserFileWithConversations | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Helper function to convert MessageResponse to OptimisticMessage
@@ -279,18 +280,43 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-screen flex" style={{ background: 'var(--ig-bg-gradient)' }}>
-      <ConversationSidebar
-        conversations={projectConversations}
-        activeConversation={activeConversation}
-        activeProject={activeProject}
-        onConversationClick={handleConversationClick}
-        onNewConversation={() => setActiveConversation(null)}
-      />
+    <div className="h-screen flex relative" style={{ background: 'var(--ig-bg-gradient)' }}>
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full">
-        <ChatHeader activeConversation={activeConversation} />
+      {/* Sidebar - Hidden on mobile by default, shown as overlay when needed */}
+      <div className={`${
+        isMobileSidebarOpen
+          ? 'fixed left-0 top-0 h-full z-50 w-80 md:relative md:block'
+          : 'hidden md:block md:relative'
+      }`}>
+        <ConversationSidebar
+          conversations={projectConversations}
+          activeConversation={activeConversation}
+          activeProject={activeProject}
+          onConversationClick={(conversation) => {
+            handleConversationClick(conversation);
+            setIsMobileSidebarOpen(false); // Close sidebar on mobile after selection
+          }}
+          onNewConversation={() => {
+            setActiveConversation(null);
+            setIsMobileSidebarOpen(false); // Close sidebar on mobile
+          }}
+        />
+      </div>
+
+      {/* Main Chat Area - Full width on mobile */}
+      <div className="flex-1 flex flex-col h-full min-h-0 w-full md:w-auto">
+        <ChatHeader
+          activeConversation={activeConversation}
+          onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+          showSidebarToggle={true}
+        />
 
         <MessageList
           ref={messagesEndRef}

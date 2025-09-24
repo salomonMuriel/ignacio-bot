@@ -84,26 +84,26 @@ export default function ProfileCompletionPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--ig-bg-gradient)' }}>
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-2xl mx-auto">
+      <div className="container mx-auto px-4 py-8 sm:py-16">
+        <div className="max-w-sm sm:max-w-md md:max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
               Complete Your Profile
             </h1>
-            <p className="text-lg" style={{ color: 'var(--ig-text-secondary)' }}>
+            <p className="text-base sm:text-lg" style={{ color: 'var(--ig-text-secondary)' }}>
               We need a few more details to personalize your experience with Ignacio.
             </p>
           </div>
 
           {/* Form */}
-          <div className="rounded-lg p-8" style={{
+          <div className="rounded-lg p-4 sm:p-6 md:p-8" style={{
             background: 'var(--ig-surface-glass)',
             border: '1px solid var(--ig-border-glass)',
             backdropFilter: 'blur(10px)',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
           }}>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ig-text-accent)' }}>
@@ -114,13 +114,16 @@ export default function ProfileCompletionPage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full p-3 rounded-lg transition-all duration-200"
+                  className="w-full p-4 sm:p-3 rounded-lg transition-all duration-200 text-base"
                   style={{
                     background: 'var(--ig-surface-primary)',
                     border: '1px solid var(--ig-border-primary)',
                     color: 'var(--ig-text-primary)'
                   }}
                   placeholder="Enter your full name"
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  inputMode="text"
                   onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-accent)'}
                   onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-primary)'}
                 />
@@ -139,13 +142,15 @@ export default function ProfileCompletionPage() {
                   required
                   value={formData.phone_number}
                   onChange={handlePhoneChange}
-                  className="w-full p-3 rounded-lg transition-all duration-200"
+                  className="w-full p-4 sm:p-3 rounded-lg transition-all duration-200 text-base"
                   style={{
                     background: 'var(--ig-surface-primary)',
                     border: '1px solid var(--ig-border-primary)',
                     color: 'var(--ig-text-primary)'
                   }}
                   placeholder="(555) 123-4567"
+                  autoComplete="tel"
+                  inputMode="tel"
                   maxLength={14}
                   onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-accent)'}
                   onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--ig-border-primary)'}
@@ -173,11 +178,11 @@ export default function ProfileCompletionPage() {
               </div>
 
               {/* Submit Button */}
-              <div className="pt-6">
+              <div className="pt-4 sm:pt-6">
                 <button
                   type="submit"
                   disabled={!formData.name.trim() || !formData.phone_number.trim() || isSubmitting}
-                  className="w-full py-4 px-6 rounded-lg font-medium text-lg transition-all duration-200"
+                  className="w-full py-5 sm:py-4 px-6 rounded-lg font-medium text-base sm:text-lg transition-all duration-200"
                   style={{
                     background: (!formData.name.trim() || !formData.phone_number.trim() || isSubmitting)
                       ? 'rgba(89, 47, 126, 0.5)'
@@ -209,7 +214,7 @@ export default function ProfileCompletionPage() {
           </div>
 
           {/* Privacy Notice */}
-          <div className="mt-8 rounded-lg p-6" style={{
+          <div className="mt-6 sm:mt-8 rounded-lg p-4 sm:p-6" style={{
             background: 'var(--ig-surface-glass)',
             border: '1px solid var(--ig-border-glass)',
             backdropFilter: 'blur(10px)'

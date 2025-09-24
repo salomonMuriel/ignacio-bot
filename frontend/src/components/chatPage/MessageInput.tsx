@@ -154,7 +154,9 @@ export default function MessageInput({
         </div>
       )}
 
-      <InputHints />
+      <div className="hidden md:block">
+        <InputHints />
+      </div>
     </div>
     </>
   );

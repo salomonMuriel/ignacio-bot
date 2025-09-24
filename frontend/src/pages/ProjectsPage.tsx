@@ -50,7 +50,7 @@ export default function ProjectsPage() {
         borderColor: 'var(--ig-border-glass)',
         backdropFilter: 'blur(10px)'
       }}>
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate('/chat')}
@@ -67,22 +67,23 @@ export default function ProjectsPage() {
               My Projects
             </h1>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1 sm:space-x-3">
             <button
               onClick={() => navigate('/user')}
-              className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+              className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg font-medium transition-all duration-200 hover:opacity-80"
               style={{
                 background: 'var(--ig-surface-secondary)',
                 color: 'var(--ig-text-secondary)',
                 border: '1px solid var(--ig-border-primary)'
               }}
             >
-              Profile
+              <span className="hidden sm:inline">Profile</span>
+              <span className="sm:hidden">👤</span>
             </button>
             <button
               onClick={() => navigate('/chat')}
               disabled={!activeProject}
-              className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-200"
+              className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg font-medium transition-all duration-200"
               style={{
                 background: !activeProject
                   ? 'rgba(89, 47, 126, 0.5)'
@@ -94,11 +95,12 @@ export default function ProjectsPage() {
                 cursor: !activeProject ? 'not-allowed' : 'pointer'
               }}
             >
-              Go to Chat
+              <span className="hidden sm:inline">Go to Chat</span>
+              <span className="sm:hidden">💬</span>
             </button>
             <button
               onClick={() => setShowCreateForm(true)}
-              className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
+              className="px-3 sm:px-4 py-2 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm"
               style={{
                 background: 'var(--ig-accent-gradient)',
                 color: 'var(--ig-dark-primary)'
@@ -106,21 +108,22 @@ export default function ProjectsPage() {
               onMouseEnter={(e) => (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient-hover)'}
               onMouseLeave={(e) => (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient)'}
             >
-              New Project
+              <span className="hidden sm:inline">New Project</span>
+              <span className="sm:hidden">+</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
               Your Projects
             </h2>
-            <p className="text-lg" style={{ color: 'var(--ig-text-secondary)' }}>
+            <p className="text-base sm:text-lg" style={{ color: 'var(--ig-text-secondary)' }}>
               Manage your projects and continue your conversations with Ignacio
             </p>
           </div>
@@ -133,21 +136,21 @@ export default function ProjectsPage() {
               backdropFilter: 'blur(10px)',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
             }}>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--ig-text-accent)' }}>
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2" style={{ color: 'var(--ig-text-accent)' }}>
                     Active Project
                   </h3>
-                  <p className="text-lg font-medium" style={{ color: 'var(--ig-text-primary)' }}>
+                  <p className="text-base sm:text-lg font-medium break-words" style={{ color: 'var(--ig-text-primary)' }}>
                     {activeProject.project_name}
                   </p>
                   {activeProject.description && (
-                    <p className="text-sm mt-2" style={{ color: 'var(--ig-text-secondary)' }}>
+                    <p className="text-sm mt-2 break-words line-clamp-3" style={{ color: 'var(--ig-text-secondary)' }}>
                       {activeProject.description}
                     </p>
                   )}
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 shrink-0">
                   <div className="w-3 h-3 rounded-full" style={{ background: 'var(--ig-accent-primary)' }}></div>
                   <span className="text-sm font-medium" style={{ color: 'var(--ig-text-accent)' }}>Active</span>
                 </div>
@@ -157,10 +160,10 @@ export default function ProjectsPage() {
         </div>
 
         {/* Projects Grid - Uses wider container for better card layout */}
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="max-w-sm mx-auto sm:max-w-2xl md:max-w-4xl lg:max-w-5xl px-4">
           {projects.length === 0 ? (
             <div className="text-center py-16">
-              <div className="rounded-lg p-10 max-w-lg mx-auto" style={{
+              <div className="rounded-lg p-6 sm:p-10 max-w-sm sm:max-w-lg mx-auto" style={{
                 background: 'var(--ig-surface-glass)',
                 border: '1px solid var(--ig-border-glass)',
                 backdropFilter: 'blur(10px)',
@@ -178,15 +181,15 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
+                <h3 className="text-xl sm:text-2xl font-bold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
                   No Projects Yet
                 </h3>
-                <p className="text-lg mb-8 leading-relaxed" style={{ color: 'var(--ig-text-secondary)' }}>
+                <p className="text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed" style={{ color: 'var(--ig-text-secondary)' }}>
                   Create your first project to start working with Ignacio on your ideas and bring them to life.
                 </p>
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className="inline-flex items-center space-x-2 px-8 py-4 rounded-lg font-medium text-lg transition-all duration-200"
+                  className="inline-flex items-center space-x-2 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-all duration-200"
                   style={{
                     background: 'var(--ig-accent-gradient)',
                     color: 'var(--ig-dark-primary)'
@@ -202,7 +205,7 @@ export default function ProjectsPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {projects.map((project) => (
                 <ProjectCard
                   key={project.id}
