@@ -7,7 +7,8 @@ import type { User } from '@/types';
 
 export default function UserPage() {
   const { user: auth_user, isLoading, logout } = useAuth0();
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const api = useApi();
   const navigate = useNavigate();
 
@@ -18,9 +19,11 @@ export default function UserPage() {
         const user_response = await api.getProfile();
         // Update state with the result from the API
         console.log(user_response)
-        setUser(user_response); 
+        setUser(user_response);
+        setIsLoadingUser(false);
       } catch (error) {
         console.error("Failed to fetch profile:", error);
+        setIsLoadingUser(false);
         // Handle error case, e.g., assume incomplete
       }
     };
@@ -30,7 +33,7 @@ export default function UserPage() {
   }, []);
 
 
-  if (isLoading) {
+  if (isLoading || isLoadingUser) {
     return <LoadingScreen />;
   }
 
@@ -65,93 +68,113 @@ export default function UserPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--ig-bg-gradient)' }}>
-      {/* Navigation Header */}
-      <header className="p-6" style={{
+      {/* Navigation Header - Simplified like ChatPage */}
+      <header className="border-b" style={{
         background: 'var(--ig-surface-glass)',
-        borderBottom: '1px solid var(--ig-border-primary)',
+        borderColor: 'var(--ig-border-glass)',
         backdropFilter: 'blur(10px)'
       }}>
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => navigate('/projects')}
-              className="font-medium transition-colors"
+              onClick={() => navigate('/chat')}
+              className="flex items-center space-x-2 text-sm font-medium transition-colors hover:opacity-80"
               style={{ color: 'var(--ig-text-accent)' }}
-              onMouseEnter={(e) => (e.target as HTMLButtonElement).style.color = 'var(--ig-accent-primary)'}
-              onMouseLeave={(e) => (e.target as HTMLButtonElement).style.color = 'var(--ig-text-accent)'}
             >
-              ← Back to Projects
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Back to Chat</span>
             </button>
-            <h1 className="text-2xl font-semibold" style={{ color: 'var(--ig-text-primary)' }}>
-              User Profile
+            <div className="h-4 w-px" style={{ background: 'var(--ig-border-primary)' }}></div>
+            <h1 className="text-lg font-semibold" style={{ color: 'var(--ig-text-primary)' }}>
+              Profile
             </h1>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-            style={{
-              background: 'var(--ig-surface-secondary)',
-              color: 'var(--ig-text-primary)',
-              border: '1px solid var(--ig-border-primary)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.background = 'var(--ig-surface-glass)';
-              (e.target as HTMLButtonElement).style.color = 'var(--ig-text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.background = 'var(--ig-surface-secondary)';
-              (e.target as HTMLButtonElement).style.color = 'var(--ig-text-primary)';
-            }}
-          >
-            Logout
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+              style={{
+                background: 'var(--ig-surface-secondary)',
+                color: 'var(--ig-text-secondary)',
+                border: '1px solid var(--ig-border-primary)'
+              }}
+            >
+              Projects
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+              style={{
+                background: 'var(--ig-surface-secondary)',
+                color: 'var(--ig-text-secondary)',
+                border: '1px solid var(--ig-border-primary)'
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto p-6">
-        <div className="rounded-lg p-8" style={{
-          background: 'var(--ig-surface-glass)',
-          border: '1px solid var(--ig-border-glass)',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-        }}>
-          {/* User Avatar and Basic Info */}
-          <div className="flex items-start space-x-6 mb-8">
-            {/* Avatar */}
-            <div className="flex-shrink-0">
-              <div className="w-24 h-24 rounded-lg overflow-hidden" style={{
-                background: 'var(--ig-surface-secondary)',
-                border: '1px solid var(--ig-border-primary)'
-              }}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" className="w-full h-full">
-                  <rect fill="#f1f4dc" width="100" height="100" x="0" y="0" />
-                  <g transform="translate(5, -4) rotate(-19 50 70)">
-                    <path d="M95 53.33C95 29.4 74.85 10 50 10S5 29.4 5 53.33V140h90V53.33Z" fill="#f88c49"/>
-                    <g transform="translate(29 33)">
-                      <g transform="translate(6, 9) rotate(3 21 21)">
-                        <g transform="translate(0 2)">
-                          <path d="M8 8.36S8 4 12 4s4 4.36 4 4.36v2.91s0 .73-.67.73c-.66 0-.66-2.9-3.33-2.9S9.33 12 8.67 12C8 12 8 11.27 8 11.27v-2.9ZM26 8.36S26 4 30 4s4 4.36 4 4.36v2.91s0 .73-.67.73c-.66 0-.66-2.9-3.33-2.9S27.33 12 26.67 12c-.67 0-.67-.73-.67-.73v-2.9Z" fill="#ffffff"/>
-                        </g>
-                        <g transform="translate(6 26)">
-                          <path d="M15.5 10c-5.07 0-9.3-5.23-8.37-5.88.93-.65 3.45 2.15 8.37 2.15 4.92 0 7.44-2.88 8.37-2.15.93.73-3.3 5.88-8.37 5.88Z" fill="#ffffff"/>
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
+              Your Profile
+            </h1>
+            <p className="text-lg" style={{ color: 'var(--ig-text-secondary)' }}>
+              Manage your account settings and information
+            </p>
+          </div>
+
+          {/* Profile Card */}
+          <div className="rounded-lg p-8 mb-6" style={{
+            background: 'var(--ig-surface-glass)',
+            border: '1px solid var(--ig-border-glass)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+          }}>
+            {/* User Avatar and Basic Info */}
+            <div className="text-center mb-8">
+              {/* Avatar */}
+              <div className="flex justify-center mb-4">
+                <div className="w-24 h-24 rounded-full overflow-hidden" style={{
+                  background: 'var(--ig-surface-secondary)',
+                  border: '2px solid var(--ig-border-accent)'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" className="w-full h-full">
+                    <rect fill="#f1f4dc" width="100" height="100" x="0" y="0" />
+                    <g transform="translate(5, -4) rotate(-19 50 70)">
+                      <path d="M95 53.33C95 29.4 74.85 10 50 10S5 29.4 5 53.33V140h90V53.33Z" fill="#f88c49"/>
+                      <g transform="translate(29 33)">
+                        <g transform="translate(6, 9) rotate(3 21 21)">
+                          <g transform="translate(0 2)">
+                            <path d="M8 8.36S8 4 12 4s4 4.36 4 4.36v2.91s0 .73-.67.73c-.66 0-.66-2.9-3.33-2.9S9.33 12 8.67 12C8 12 8 11.27 8 11.27v-2.9ZM26 8.36S26 4 30 4s4 4.36 4 4.36v2.91s0 .73-.67.73c-.66 0-.66-2.9-3.33-2.9S27.33 12 26.67 12c-.67 0-.67-.73-.67-.73v-2.9Z" fill="#ffffff"/>
+                          </g>
+                          <g transform="translate(6 26)">
+                            <path d="M15.5 10c-5.07 0-9.3-5.23-8.37-5.88.93-.65 3.45 2.15 8.37 2.15 4.92 0 7.44-2.88 8.37-2.15.93.73-3.3 5.88-8.37 5.88Z" fill="#ffffff"/>
+                          </g>
                         </g>
                       </g>
                     </g>
-                  </g>
-                </svg>
+                  </svg>
+                </div>
               </div>
-            </div>
 
-            {/* User Details */}
-            <div className="flex-1">
-              <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--ig-text-primary)' }}>
+              {/* User Details */}
+              <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--ig-text-primary)' }}>
                 {user?.name || auth_user?.name || 'User'}
               </h2>
-              <p className="text-lg mb-2" style={{ color: 'var(--ig-text-secondary)' }}>
+              <p className="text-lg mb-4" style={{ color: 'var(--ig-text-secondary)' }}>
                 {user?.phone_number || 'Not provided'}
               </p>
-              <div className="flex items-center space-x-4">
+
+              {/* Status Badges */}
+              <div className="flex justify-center items-center space-x-3 mb-6">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   user?.is_admin
                     ? 'text-purple-300 bg-purple-900/30 border border-purple-500/30'
@@ -168,82 +191,84 @@ export default function UserPage() {
                 </span>
               </div>
             </div>
-          </div>
 
-          {/* User Information Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Account Details */}
-            <div className="rounded-lg p-6" style={{
-              background: 'var(--ig-surface-secondary)',
-              border: '1px solid var(--ig-border-primary)'
-            }}>
-              <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
-                Account Details
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
-                    User ID
-                  </label>
-                  <p className="font-mono text-sm px-2 py-1 rounded" style={{
-                    color: 'var(--ig-text-primary)',
-                    background: 'var(--ig-surface-glass)',
-                    border: '1px solid var(--ig-border-glass)'
-                  }}>
-                    {auth_user?.sub}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
-                    Phone Number
-                  </label>
-                  <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.phone_number || 'Not provided'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
-                    Name
-                  </label>
-                  <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.name || 'Not provided'}
-                  </p>
+            {/* User Information */}
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--ig-text-accent)' }}>
+                  Account Information
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
+                      Full Name
+                    </label>
+                    <div className="p-3 rounded-lg" style={{
+                      background: 'var(--ig-surface-primary)',
+                      border: '1px solid var(--ig-border-primary)',
+                      color: 'var(--ig-text-primary)'
+                    }}>
+                      {user?.name || 'Not provided'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
+                      Phone Number
+                    </label>
+                    <div className="p-3 rounded-lg" style={{
+                      background: 'var(--ig-surface-primary)',
+                      border: '1px solid var(--ig-border-primary)',
+                      color: 'var(--ig-text-primary)'
+                    }}>
+                      {user?.phone_number || 'Not provided'}
+                    </div>
+                    <p className="text-xs mt-1" style={{ color: 'var(--ig-text-muted)' }}>
+                      Required for WhatsApp integration
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
+                      Email Address
+                    </label>
+                    <div className="p-3 rounded-lg" style={{
+                      background: 'var(--ig-surface-secondary)',
+                      border: '1px solid var(--ig-border-secondary)',
+                      color: 'var(--ig-text-secondary)'
+                    }}>
+                      {auth_user?.email || 'Not provided'}
+                    </div>
+                    <p className="text-xs mt-1" style={{ color: 'var(--ig-text-muted)' }}>
+                      Managed through your authentication provider
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Account Activity */}
-            <div className="rounded-lg p-6" style={{
-              background: 'var(--ig-surface-secondary)',
-              border: '1px solid var(--ig-border-primary)'
-            }}>
-              <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--ig-text-primary)' }}>
-                Account Activity
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
-                    Account Created
-                  </label>
-                  <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.created_at ? formatDate(user.updated_at) : 'Not available'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
-                    Last Updated
-                  </label>
-                  <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.updated_at ? formatDate(user.updated_at) : 'Not available'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ig-text-secondary)' }}>
-                    Account Status
-                  </label>
-                  <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.is_active ? 'Verified and enabled' : 'Inactive'}
-                  </p>
+              {/* Account Activity */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--ig-text-accent)' }}>
+                  Account Activity
+                </h3>
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div className="p-4 rounded-lg" style={{
+                    background: 'var(--ig-surface-secondary)',
+                    border: '1px solid var(--ig-border-primary)'
+                  }}>
+                    <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>Created</p>
+                    <p className="font-medium" style={{ color: 'var(--ig-text-primary)' }}>
+                      {user?.created_at ? formatDate(user.created_at) : 'Not available'}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg" style={{
+                    background: 'var(--ig-surface-secondary)',
+                    border: '1px solid var(--ig-border-primary)'
+                  }}>
+                    <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>Last Updated</p>
+                    <p className="font-medium" style={{ color: 'var(--ig-text-primary)' }}>
+                      {user?.updated_at ? formatDate(user.updated_at) : 'Not available'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -251,52 +276,32 @@ export default function UserPage() {
 
           {/* Admin Features */}
           {user?.is_admin && (
-            <div className="mt-8 rounded-lg p-6" style={{
+            <div className="rounded-lg p-6" style={{
               background: 'var(--ig-surface-glass)',
               border: '1px solid var(--ig-border-accent)',
-              backdropFilter: 'blur(10px)'
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
             }}>
               <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--ig-text-accent)' }}>
-                Administrator Features
+                Administrator Access
               </h3>
-              <p className="mb-4" style={{ color: 'var(--ig-text-secondary)' }}>
-                As an administrator, you have access to advanced features and can manage other users.
+              <p className="mb-6" style={{ color: 'var(--ig-text-secondary)' }}>
+                As an administrator, you have access to advanced management features.
               </p>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
-                    • Manage prompt templates for user interactions
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
-                    • View all user conversations and analytics
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
-                    • Create, edit, and delete user accounts
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--ig-text-secondary)' }}>
-                    • Manage system settings and configurations
-                  </p>
-                </div>
-                
+              <div className="text-center">
                 <button
                   onClick={() => navigate('/admin')}
-                  className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-300"
+                  className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg font-medium text-lg transition-all duration-200"
                   style={{
                     background: 'var(--ig-accent-gradient)',
                     color: 'var(--ig-dark-primary)',
-                    boxShadow: 'var(--ig-shadow-md)'
+                    cursor: 'pointer'
                   }}
                   onMouseEnter={(e) => {
-                    const target = e.target as HTMLButtonElement;
-                    target.style.background = 'var(--ig-accent-gradient-hover)';
-                    target.style.transform = 'translateY(-1px)';
-                    target.style.boxShadow = 'var(--ig-shadow-lg)';
+                    (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient-hover)';
                   }}
                   onMouseLeave={(e) => {
-                    const target = e.target as HTMLButtonElement;
-                    target.style.background = 'var(--ig-accent-gradient)';
-                    target.style.transform = 'translateY(0)';
-                    target.style.boxShadow = 'var(--ig-shadow-md)';
+                    (e.target as HTMLButtonElement).style.background = 'var(--ig-accent-gradient)';
                   }}
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
