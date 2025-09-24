@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import { api } from '../../services/api';
-import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate, TemplateType } from '@/types';
+import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate } from '@/types';
 
 export default function PromptTemplateManager() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth0();
   const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
   const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -12,8 +12,9 @@ export default function PromptTemplateManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'admin' | 'user' | 'all'>(user?.is_admin ? 'all' : 'user');
+  // Check admin status from Auth0 custom claims
+  const isAdmin = user?.['https://ignacio.app/is_admin'] || false;
+  const [viewMode, setViewMode] = useState<'admin' | 'user' | 'all'>(isAdmin ? 'all' : 'user');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -30,13 +31,9 @@ export default function PromptTemplateManager() {
     try {
       setIsLoading(true);
       setError(null);
-      const [templateData, tagsData] = await Promise.all([
-        api.promptTemplates.getTemplatesForUser(user.id, false), // Get both active and inactive
-        api.promptTemplates.getAllTags()
-      ]);
+      const templateData = await api.promptTemplates.getTemplatesForUser(false); // Get both active and inactive
       setAdminTemplates(templateData.adminTemplates);
       setUserTemplates(templateData.userTemplates);
-      setAvailableTags(tagsData);
     } catch (err) {
       console.error('Failed to load prompt templates:', err);
       setError(err instanceof Error ? err.message : 'Failed to load templates');
@@ -81,7 +78,7 @@ export default function PromptTemplateManager() {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id) return;
+    if (!user?.sub) return;
 
     setIsSubmitting(true);
     try {
@@ -93,14 +90,14 @@ export default function PromptTemplateManager() {
           tags: formData.tags,
           is_active: formData.is_active
         };
-        await api.promptTemplates.updatePromptTemplate(editingTemplate.id, updateData, user.id);
+        await api.promptTemplates.updatePromptTemplate(editingTemplate.id, updateData);
       } else {
         // Create new template
         const createData: PromptTemplateCreate = {
           title: formData.title,
           content: formData.content,
           tags: formData.tags,
-          created_by: user.id,
+          created_by: user.sub || '',
           is_active: formData.is_active
         };
         await api.promptTemplates.createPromptTemplate(createData);
@@ -119,14 +116,14 @@ export default function PromptTemplateManager() {
 
   // Handle delete
   const handleDelete = async (template: PromptTemplate) => {
-    if (!user?.id) return;
+    if (!user?.sub) return;
     
     if (!confirm(`Are you sure you want to delete "${template.title}"? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      await api.promptTemplates.deletePromptTemplate(template.id, user.id);
+      await api.promptTemplates.deletePromptTemplate(template.id);
       await loadTemplates(); // Reload templates
     } catch (err) {
       console.error('Failed to delete template:', err);
@@ -158,7 +155,7 @@ export default function PromptTemplateManager() {
     }));
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--ig-text-accent)' }}></div>
@@ -172,10 +169,10 @@ export default function PromptTemplateManager() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold" style={{ color: 'var(--ig-text-primary)' }}>
-            {user?.is_admin ? 'Template Management' : 'My Templates'}
+            {isAdmin ? 'Template Management' : 'My Templates'}
           </h2>
           <p style={{ color: 'var(--ig-text-muted)' }}>
-            {user?.is_admin 
+            {isAdmin
               ? 'Manage prompt templates for all users'
               : 'Create and manage your personal prompt templates'
             }
@@ -221,7 +218,7 @@ export default function PromptTemplateManager() {
       )}
 
       {/* View mode selector for admins */}
-      {user?.is_admin && (
+      {isAdmin && (
         <div className="mb-6">
           <div className="flex space-x-2">
             {(['all', 'admin', 'user'] as const).map((mode) => (
@@ -360,7 +357,7 @@ export default function PromptTemplateManager() {
                 
                 <div className="flex items-center space-x-2 ml-4">
                   {/* Only show edit/delete for templates the user can modify */}
-                  {(user?.is_admin || (template.created_by === user?.id && !template.isAdminTemplate)) && (
+                  {(isAdmin || (template.created_by === user?.sub && !template.isAdminTemplate)) && (
                     <>
                       <button
                         onClick={() => handleEdit(template)}

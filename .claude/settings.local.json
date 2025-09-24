@@ -27,7 +27,9 @@
       "Bash(npm create:*)",
       "Bash(grep:*)",
       "WebSearch",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "WebFetch(domain:developer.auth0.com)",
+      "Read(//home/salomon/git/api_fastapi_python_hello-world/**)"
     ],
     "deny": [],
     "ask": []

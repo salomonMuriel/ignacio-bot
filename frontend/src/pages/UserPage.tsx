@@ -1,10 +1,10 @@
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 
 export default function UserPage() {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth0();
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -37,8 +37,7 @@ export default function UserPage() {
   };
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/');
+    logout({ logoutParams: { returnTo: window.location.origin } });
   };
 
   return (
@@ -124,25 +123,25 @@ export default function UserPage() {
             {/* User Details */}
             <div className="flex-1">
               <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--ig-text-primary)' }}>
-                {user.name || 'User'}
+                {user?.name || user?.nickname || 'User'}
               </h2>
               <p className="text-lg mb-2" style={{ color: 'var(--ig-text-secondary)' }}>
-                {user.phone_number}
+                {user?.phone_number || user?.email || 'Not provided'}
               </p>
               <div className="flex items-center space-x-4">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  user.is_admin
+                  user?.['https://app.ignacio.com/roles']?.includes('admin')
                     ? 'text-purple-300 bg-purple-900/30 border border-purple-500/30'
                     : 'text-blue-300 bg-blue-900/30 border border-blue-500/30'
                 }`}>
-                  {user.is_admin ? 'Administrator' : 'User'}
+                  {user?.['https://app.ignacio.com/roles']?.includes('admin') ? 'Administrator' : 'User'}
                 </span>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  user.is_active
+                  user?.email_verified
                     ? 'text-green-300 bg-green-900/30 border border-green-500/30'
-                    : 'text-red-300 bg-red-900/30 border border-red-500/30'
+                    : 'text-yellow-300 bg-yellow-900/30 border border-yellow-500/30'
                 }`}>
-                  {user.is_active ? 'Active' : 'Inactive'}
+                  {user?.email_verified ? 'Verified' : 'Unverified'}
                 </span>
               </div>
             </div>
@@ -168,7 +167,7 @@ export default function UserPage() {
                     background: 'var(--ig-surface-glass)',
                     border: '1px solid var(--ig-border-glass)'
                   }}>
-                    {user.id}
+                    {user?.sub}
                   </p>
                 </div>
                 <div>
@@ -176,7 +175,7 @@ export default function UserPage() {
                     Phone Number
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user.phone_number}
+                    {user?.phone_number || user?.email || 'Not provided'}
                   </p>
                 </div>
                 <div>
@@ -184,7 +183,7 @@ export default function UserPage() {
                     Name
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user.name || 'Not provided'}
+                    {user?.name || user?.nickname || 'Not provided'}
                   </p>
                 </div>
               </div>
@@ -204,7 +203,7 @@ export default function UserPage() {
                     Account Created
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {formatDate(user.created_at)}
+                    {user?.updated_at ? formatDate(user.updated_at) : 'Not available'}
                   </p>
                 </div>
                 <div>
@@ -212,7 +211,7 @@ export default function UserPage() {
                     Last Updated
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {formatDate(user.updated_at)}
+                    {user?.updated_at ? formatDate(user.updated_at) : 'Not available'}
                   </p>
                 </div>
                 <div>
@@ -220,7 +219,7 @@ export default function UserPage() {
                     Account Status
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user.is_active ? 'Active and enabled' : 'Inactive'}
+                    {user?.email_verified ? 'Verified and enabled' : 'Unverified'}
                   </p>
                 </div>
               </div>
@@ -228,7 +227,7 @@ export default function UserPage() {
           </div>
 
           {/* Admin Features */}
-          {user.is_admin && (
+          {user?.['https://app.ignacio.com/roles']?.includes('admin') && (
             <div className="mt-8 rounded-lg p-6" style={{
               background: 'var(--ig-surface-glass)',
               border: '1px solid var(--ig-border-accent)',

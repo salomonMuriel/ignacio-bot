@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import type { PromptTemplateCreate } from '@/types';
 
 interface SaveTemplateModalProps {
@@ -18,7 +18,7 @@ export default function SaveTemplateModal({
   initialContent,
   onTemplateCreated
 }: SaveTemplateModalProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth0();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState(initialContent);
   const [tags, setTags] = useState<string[]>([]);
@@ -94,7 +94,7 @@ export default function SaveTemplateModal({
   };
 
   const handleSave = async () => {
-    if (!user) {
+    if (!isAuthenticated || !user) {
       setError('You must be logged in to save templates');
       return;
     }
@@ -117,7 +117,7 @@ export default function SaveTemplateModal({
         title: title.trim(),
         content: content.trim(),
         tags: tags,
-        created_by: user.id,
+        created_by: user.sub || '',
         is_active: true
       };
 

@@ -1,13 +1,16 @@
 """
 Chat API endpoints for Ignacio Bot
-Handles conversations and messages for Phase 2 (without authentication)
+Handles conversations and messages with Auth0 JWT authentication
 """
 
 from uuid import UUID
 from typing import List
 
-from fastapi import APIRouter, HTTPException, status, File, Form, UploadFile
+from fastapi import APIRouter, HTTPException, status, File, Form, UploadFile, Depends
 from pydantic import BaseModel
+
+from app.auth.dependencies import get_current_active_user
+from app.auth.models import AuthUser
 
 from app.models.database import ConversationUpdate, MessageType
 from app.services.ai_service import get_ignacio_service

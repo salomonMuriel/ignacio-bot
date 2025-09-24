@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useConversations } from '../../contexts/ConversationsContext';
-import type { UserFile, UserFileWithConversations } from '@/types';
+import type { UserFileWithConversations } from '@/types';
 
 interface FileAttachmentModalProps {
   isOpen: boolean;
@@ -20,7 +20,7 @@ export default function FileAttachmentModal({
   onClose,
   onFileSelect
 }: FileAttachmentModalProps) {
-  const { user } = useAuth();
+  const { user } = useAuth0();
   const { conversations } = useConversations();
   const [activeTab, setActiveTab] = useState<'upload' | 'existing'>('upload');
   const [fileSelection, setFileSelection] = useState<FileSelectionState>({
@@ -101,7 +101,7 @@ export default function FileAttachmentModal({
 
     setIsLoadingFiles(true);
     try {
-      const files = await api.files.getUserFilesWithConversations(user.id);
+      const files = await api.files.getUserFilesWithConversations();
       setUserFiles(files);
     } catch (err) {
       setError('Failed to load your files');
@@ -149,10 +149,10 @@ export default function FileAttachmentModal({
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.currentTarget.style.borderColor = 'var(--ig-border-glass)';
-    e.currentTarget.style.background = 'var(--ig-surface-glass-light)';
+    (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--ig-border-glass)';
+    (e.currentTarget as HTMLDivElement).style.background = 'var(--ig-surface-glass-light)';
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
@@ -485,7 +485,7 @@ export default function FileAttachmentModal({
                     background: showFilters ? 'var(--ig-surface-glass-dark)' : 'var(--ig-surface-glass-light)',
                     border: '1px solid var(--ig-border-glass)',
                     color: 'var(--ig-text-primary)',
-                    ringColor: showFilters ? 'var(--ig-accent-primary)' : 'transparent'
+                    outline: showFilters ? '2px solid var(--ig-accent-primary)' : '2px solid transparent'
                   }}
                   title="Toggle filters"
                 >
@@ -618,9 +618,9 @@ export default function FileAttachmentModal({
                           border: `1px solid ${fileSelection.selectedExistingFile?.id === file.id
                             ? 'var(--ig-accent-primary)'
                             : 'var(--ig-border-glass)'}`,
-                          ringColor: fileSelection.selectedExistingFile?.id === file.id
-                            ? 'var(--ig-accent-primary)'
-                            : 'transparent'
+                          outline: fileSelection.selectedExistingFile?.id === file.id
+                            ? '1px solid var(--ig-accent-primary)'
+                            : '1px solid transparent'
                         }}
                       >
                         <div className="flex items-center gap-2.5">
@@ -688,9 +688,9 @@ export default function FileAttachmentModal({
                           border: `1px solid ${fileSelection.selectedExistingFile?.id === file.id
                             ? 'var(--ig-accent-primary)'
                             : 'var(--ig-border-glass)'}`,
-                          ringColor: fileSelection.selectedExistingFile?.id === file.id
-                            ? 'var(--ig-accent-primary)'
-                            : 'transparent'
+                          outline: fileSelection.selectedExistingFile?.id === file.id
+                            ? '1px solid var(--ig-accent-primary)'
+                            : '1px solid transparent'
                         }}
                         onMouseEnter={(e) => {
                           if (fileSelection.selectedExistingFile?.id !== file.id) {

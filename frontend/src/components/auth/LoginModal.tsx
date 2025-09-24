@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 
 interface LoginModalProps {
   onClose: () => void;

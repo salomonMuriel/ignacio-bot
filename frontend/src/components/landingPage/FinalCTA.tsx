@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 
 export default function FinalCTA() {
-    const { user } = useAuth();
+    const { user } = useAuth0();
     const { projects } = useProjects();
     const navigate = useNavigate();
 

@@ -22,7 +22,7 @@ export {
 } from './useAsync';
 
 // Context Hooks (re-exported for convenience)
-export { useAuth } from '@/contexts/AuthContext';
+export { useAuth0 } from '@auth0/auth0-react';
 export { useProjects } from '@/contexts/ProjectsContext';
 export { useConversations } from '@/contexts/ConversationsContext';
 export { useGlobal } from '@/contexts/GlobalContext';

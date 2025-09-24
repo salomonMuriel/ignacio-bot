@@ -7,7 +7,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { Project, ProjectCreate, ProjectUpdate } from '@/types';
 import { api } from '@/services/api';
-import { useAuth } from './AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 
 // Projects State Interface
 interface ProjectsState {
@@ -155,7 +155,7 @@ interface ProjectsProviderProps {
 
 export function ProjectsProvider({ children }: ProjectsProviderProps) {
   const [state, dispatch] = useReducer(projectsReducer, initialState);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuth0();
 
   // Load projects when user is authenticated
   useEffect(() => {

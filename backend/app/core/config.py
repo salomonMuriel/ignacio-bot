@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 1440
 
+    # Auth0
+    auth0_domain: str
+    auth0_audience: str
+
     # Application
     app_env: str = "development"
     debug: bool = True

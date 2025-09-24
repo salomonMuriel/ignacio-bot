@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import AuthRequiredScreen from '../components/ui/AuthRequiredScreen';
 import PromptTemplateManager from '../components/admin/PromptTemplateManager';
 
 type AdminTab = 'prompt-templates' | 'user-management' | 'statistics';
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth0();
   const [activeTab, setActiveTab] = useState<AdminTab>('prompt-templates');
 
-  if (!user) {
+  if (isLoading) {
     return <AuthRequiredScreen />;
   }
 
-  if (!user.is_admin) {
+  if (!isAuthenticated || !user) {
+    return <AuthRequiredScreen />;
+  }
+
+  // For now, we'll need to check admin status differently since Auth0 user object
+  // doesn't have is_admin - this will need to be handled by your backend/user management
+  const isAdmin = user['https://ignacio.app/is_admin'] || false; // Custom claim example
+
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--ig-bg-gradient)' }}>
         <div className="text-center p-8 rounded-xl glass-surface" style={{
@@ -105,7 +113,7 @@ export default function AdminPage() {
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm" style={{ color: 'var(--ig-text-muted)' }}>
-                {user.name || user.phone_number}
+                {user.name || user.email}
               </span>
               <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{
                 background: 'var(--ig-surface-glass-light)',

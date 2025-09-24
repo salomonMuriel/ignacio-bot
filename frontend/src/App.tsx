@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Context Providers
-import { AuthProvider } from './contexts/AuthContext';
 import { ProjectsProvider } from './contexts/ProjectsContext';
 import { ConversationsProvider } from './contexts/ConversationsContext';
 import { GlobalProvider } from './contexts/GlobalContext';
@@ -11,6 +10,7 @@ import { GlobalProvider } from './contexts/GlobalContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProjectGuard from './components/ProjectGuard';
+import Auth0Init from './components/Auth0Provider';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -23,8 +23,8 @@ import AdminPage from './pages/AdminPage';
 function App() {
   return (
     <ErrorBoundary>
-      <GlobalProvider>
-        <AuthProvider>
+      <Auth0Init>
+        <GlobalProvider>
           <ProjectsProvider>
             <ConversationsProvider>
               <Router>
@@ -103,8 +103,8 @@ function App() {
               </Router>
             </ConversationsProvider>
           </ProjectsProvider>
-        </AuthProvider>
-      </GlobalProvider>
+        </GlobalProvider>
+      </Auth0Init>
     </ErrorBoundary>
   );
 }

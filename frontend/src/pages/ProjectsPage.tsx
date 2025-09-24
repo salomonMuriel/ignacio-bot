@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useNavigate } from 'react-router-dom';
 import { type Project } from '../types';
@@ -8,7 +8,7 @@ import ProjectFormModal from '@/components/projectsPage/ProjectForm';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 
 export default function ProjectsPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth0();
   const { 
     projects, 
     activeProject, 
@@ -22,7 +22,13 @@ export default function ProjectsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
-  if (!user) {
+  if (authLoading) {
+    return (
+      <LoadingScreen/>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--ig-bg-gradient)' }}>
         <div className="text-lg" style={{ color: 'var(--ig-text-primary)' }}>Please log in to manage projects.</div>

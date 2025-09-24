@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-import type { PromptTemplate, TemplateType } from '@/types';
+import { useAuth0 } from '@auth0/auth0-react';
+import type { PromptTemplate } from '@/types';
 
 // Template Card Component
 interface TemplateCardProps {
@@ -97,14 +97,14 @@ export default function PromptTemplateSelector({
   onClose,
   refreshTrigger
 }: PromptTemplateSelectorProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth0();
   const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
   const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<{ admin: PromptTemplate[], user: PromptTemplate[] }>({
     admin: [],
     user: []
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -191,9 +191,9 @@ export default function PromptTemplateSelector({
     if (!user) return;
     
     try {
-      setIsLoading(true);
+      setIsLoadingTemplates(true);
       const [templateData, tagsData] = await Promise.all([
-        api.promptTemplates.getTemplatesForUser(user.id, true), // Get admin + user templates
+        api.promptTemplates.getTemplatesForUser(true), // Get admin + user templates
         api.promptTemplates.getAllTags()
       ]);
       
@@ -203,7 +203,7 @@ export default function PromptTemplateSelector({
     } catch (err) {
       console.error('Failed to load prompt templates:', err);
     } finally {
-      setIsLoading(false);
+      setIsLoadingTemplates(false);
     }
   };
 
@@ -351,7 +351,7 @@ export default function PromptTemplateSelector({
 
         {/* Templates List */}
         <div className="flex-1 overflow-auto p-6">
-          {isLoading ? (
+          {isLoading || isLoadingTemplates ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--ig-text-accent)' }}></div>
             </div>

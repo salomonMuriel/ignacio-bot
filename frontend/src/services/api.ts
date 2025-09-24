@@ -21,8 +21,42 @@ import type {
   UserFileWithConversations,
 } from '@/types';
 
-// Mock user ID from backend (Phase 2 - no authentication yet)
-const MOCK_USER_ID = 'a456f25a-6269-4de3-87df-48b0a3389d01';
+// Get Auth0 instance for token management
+let auth0Instance: any = null;
+
+export function setAuth0Instance(instance: any) {
+  auth0Instance = instance;
+}
+
+async function getAuthToken(): Promise<string | null> {
+  if (!auth0Instance) {
+    console.warn('Auth0 instance not set. Call setAuth0Instance() first.');
+    return null;
+  }
+
+  try {
+    const token = await auth0Instance.getAccessTokenSilently();
+    return token;
+  } catch (error) {
+    console.error('Failed to get access token:', error);
+    return null;
+  }
+}
+
+async function getCurrentUserId(): Promise<string | null> {
+  if (!auth0Instance) {
+    console.warn('Auth0 instance not set. Call setAuth0Instance() first.');
+    return null;
+  }
+
+  try {
+    const user = auth0Instance.user;
+    return user?.sub || null;
+  } catch (error) {
+    console.error('Failed to get current user ID:', error);
+    return null;
+  }
+}
 
 // API Base Configuration
 const API_BASE_URL = 'http://localhost:8000';
@@ -43,12 +77,19 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
+    const token = await getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options.headers as Record<string, string>,
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       ...options,
     };
 
@@ -93,10 +134,18 @@ class ApiClient {
 
   async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
+    const token = await getAuthToken();
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     try {
       const response = await fetch(url, {
         method: 'POST',
+        headers,
         body: formData,
       });
       
@@ -123,14 +172,18 @@ const projectClient = new ApiClient(PROJECT_BASE_URL);
 export const projectApi = {
   // Get all projects for current user
   async getProjects(): Promise<Project[]> {
-    return projectClient.get<Project[]>(`/by_user/${MOCK_USER_ID}`);
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    return projectClient.get<Project[]>(`/by_user/${userId}`);
   },
 
   // Create new project
   async createProject(projectData: Omit<ProjectCreate, 'user_id'>): Promise<Project> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     const data: ProjectCreate = {
       ...projectData,
-      user_id: MOCK_USER_ID,
+      user_id: userId,
     };
     return projectClient.post<Project>('/', data);
   },
@@ -354,18 +407,21 @@ const promptTemplateApi = {
     return promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?${params}`);
   },
 
-  // Get templates available to a specific user (admin + user's own templates)
-  async getTemplatesForUser(userId: string, activeOnly: boolean = true): Promise<{
+  // Get templates available to current user (admin + user's own templates)
+  async getTemplatesForUser(activeOnly: boolean = true): Promise<{
     adminTemplates: PromptTemplate[];
     userTemplates: PromptTemplate[];
   }> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
     const [adminTemplates, userTemplates] = await Promise.all([
       // Get admin templates (visible to all users)
       promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?active_only=${activeOnly}&template_type=admin`),
       // Get user's own templates
       promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?active_only=${activeOnly}&template_type=user&user_id=${userId}`)
     ]);
-    
+
     return { adminTemplates, userTemplates };
   },
 
@@ -381,19 +437,24 @@ const promptTemplateApi = {
 
   // Update a prompt template (with ownership validation)
   async updatePromptTemplate(
-    templateId: string, 
-    templateData: PromptTemplateUpdate, 
-    userId: string
+    templateId: string,
+    templateData: PromptTemplateUpdate
   ): Promise<PromptTemplate> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
     const params = new URLSearchParams({ user_id: userId });
     return promptTemplateClient.put<PromptTemplate>(
-      `/api/prompt-templates/${templateId}?${params}`, 
+      `/api/prompt-templates/${templateId}?${params}`,
       templateData
     );
   },
 
   // Delete a prompt template (with ownership validation)
-  async deletePromptTemplate(templateId: string, userId: string): Promise<{ message: string }> {
+  async deletePromptTemplate(templateId: string): Promise<{ message: string }> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
     const params = new URLSearchParams({ user_id: userId });
     return promptTemplateClient.delete<{ message: string }>(
       `/api/prompt-templates/${templateId}?${params}`
@@ -411,18 +472,24 @@ const fileClient = new ApiClient(FILES_BASE_URL);
 
 // File API Service
 const fileApi = {
-  // Get all files for a user
-  async getUserFiles(userId: string): Promise<UserFile[]> {
+  // Get all files for current user
+  async getUserFiles(): Promise<UserFile[]> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     return fileClient.get<UserFile[]>(`/user/${userId}`);
   },
 
   // Get file metadata
-  async getFileMetadata(fileId: string, userId: string): Promise<UserFile> {
+  async getFileMetadata(fileId: string): Promise<UserFile> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     return fileClient.get<UserFile>(`/${fileId}?user_id=${userId}`);
   },
 
   // Get a signed URL for file access/preview
-  async getFileUrl(fileId: string, userId: string, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> {
+  async getFileUrl(fileId: string, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     return fileClient.get<{ url: string; expires_in: number }>(`/${fileId}/url?user_id=${userId}&expires_in=${expiresIn}`);
   },
 
@@ -432,14 +499,25 @@ const fileApi = {
   },
 
   // Delete a file
-  async deleteFile(fileId: string, userId: string): Promise<{ message: string }> {
+  async deleteFile(fileId: string): Promise<{ message: string }> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     return fileClient.delete<{ message: string }>(`/${fileId}?user_id=${userId}`);
   },
 
   // Download file content
-  async downloadFile(fileId: string, userId: string): Promise<Blob> {
+  async downloadFile(fileId: string): Promise<Blob> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const token = await getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const url = `${FILES_BASE_URL}/${fileId}/download?user_id=${userId}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       throw new Error(`Failed to download file: ${response.statusText}`);
@@ -451,25 +529,31 @@ const fileApi = {
   // NEW: File reuse methods
 
   // Get files with conversation usage data
-  async getUserFilesWithConversations(userId: string): Promise<UserFileWithConversations[]> {
+  async getUserFilesWithConversations(): Promise<UserFileWithConversations[]> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     return fileClient.get<UserFileWithConversations[]>(`/user/${userId}/with-conversations`);
   },
 
   // Get conversation history for a specific file
-  async getFileConversations(fileId: string, userId: string): Promise<Array<{
+  async getFileConversations(fileId: string): Promise<Array<{
     conversation_id: string;
     conversation_title: string;
     used_at: string;
   }>> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     return fileClient.get(`/${fileId}/conversations?user_id=${userId}`);
   },
 
   // Reuse an existing file in a conversation
-  async reuseFile(fileId: string, conversationId: string, userId: string): Promise<{
+  async reuseFile(fileId: string, conversationId: string): Promise<{
     message: string;
     file_id: string;
     conversation_id: string;
   }> {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     return fileClient.post(`/${fileId}/reuse?conversation_id=${conversationId}&user_id=${userId}`, {});
   },
 };
@@ -481,34 +565,28 @@ export const api = {
   promptTemplates: promptTemplateApi,
   files: fileApi,
   
-  // Mock authentication service for Phase 2
+  // Auth0 authentication service
   auth: {
-    // Mock current user
+    // Get current authenticated user
     async getCurrentUser(): Promise<User> {
+      if (!auth0Instance) {
+        throw new Error('Auth0 instance not set. Call setAuth0Instance() first.');
+      }
+
+      const user = auth0Instance.user;
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
+
       return {
-        id: MOCK_USER_ID,
-        phone_number: '+1234567890',
-        name: 'Salomon',
+        id: user.sub,
+        phone_number: user.phone_number || '',
+        name: user.name || user.nickname || 'Unknown User',
         is_active: true,
-        is_admin: false, // Regular user for testing
+        is_admin: user['https://app.ignacio.com/roles']?.includes('admin') || false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-    },
-
-    // Mock login (will be implemented in Phase 4)
-    async login(whatsappNumber: string): Promise<{ message: string }> {
-      return { message: 'Mock login successful' };
-    },
-
-    // Mock OTP verification (will be implemented in Phase 4)
-    async verifyOTP(whatsappNumber: string, otp: string): Promise<{ token: string; user: User }> {
-      const user = await this.getCurrentUser();
-      return { token: 'mock-jwt-token', user };
-    },
-
-    // Mock logout
-    async logout(): Promise<void> {
     },
   },
 };

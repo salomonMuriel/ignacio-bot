@@ -1,5 +1,5 @@
 import type { ConversationDetailResponse } from '@/types';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
 import ignacioAvatar from '../../assets/ignacio_avatar.png';
 
@@ -8,7 +8,7 @@ interface ChatHeaderProps {
 }
 
 export default function ChatHeader({ activeConversation }: ChatHeaderProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
   return (
     <div className="p-6 flex-shrink-0 glass-surface" style={{
@@ -45,7 +45,7 @@ export default function ChatHeader({ activeConversation }: ChatHeaderProps) {
         </div>
 
         {/* User Avatar */}
-        {user && (
+        {isAuthenticated && user && (
           <button
             onClick={() => navigate('/user')}
             className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden transition-all duration-200"
