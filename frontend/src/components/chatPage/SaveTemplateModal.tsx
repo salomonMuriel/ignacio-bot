@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { api } from '../../services/api';
+import { useApi } from '@/hooks/useApi';
 import { useAuth0 } from '@auth0/auth0-react';
 import type { PromptTemplateCreate } from '@/types';
 
@@ -19,6 +19,7 @@ export default function SaveTemplateModal({
   onTemplateCreated
 }: SaveTemplateModalProps) {
   const { user, isAuthenticated } = useAuth0();
+  const api = useApi();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState(initialContent);
   const [tags, setTags] = useState<string[]>([]);
@@ -121,7 +122,7 @@ export default function SaveTemplateModal({
         is_active: true
       };
 
-      await api.promptTemplates.createPromptTemplate(templateData);
+      await api.createPromptTemplate(templateData);
       onTemplateCreated?.(); // Refresh template list
       onSaved();
     } catch (err) {

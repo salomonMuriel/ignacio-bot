@@ -13,7 +13,7 @@ import type {
   MessageType,
  
 } from '@/types';
-import { api } from '@/services/api';
+import { useApi } from '@/hooks/useApi';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useProjects } from './ProjectsContext';
 
@@ -225,6 +225,7 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
   const [state, dispatch] = useReducer(conversationsReducer, initialState);
   const { isAuthenticated, user } = useAuth0();
   const { activeProject } = useProjects();
+  const api = useApi();
 
   // Load conversations when user is authenticated
   useEffect(() => {
@@ -237,7 +238,7 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
     try {
       dispatch({ type: 'CONVERSATIONS_LOADING' });
       
-      const conversations = await api.chat.getConversations();
+      const conversations = await api.getConversations();
       dispatch({ type: 'CONVERSATIONS_SUCCESS', payload: conversations });
       
     } catch (error) {
@@ -253,7 +254,7 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
     try {
       dispatch({ type: 'ACTIVE_CONVERSATION_LOADING' });
       
-      const conversation = await api.chat.getConversation(conversationId);
+      const conversation = await api.getConversation(conversationId);
       dispatch({ type: 'ACTIVE_CONVERSATION_SUCCESS', payload: conversation });
       
     } catch (error) {
@@ -279,7 +280,7 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
       // Use active project if no project specified
       const projectId = params.projectId || activeProject?.id;
 
-      const response = await api.chat.sendMessage({
+      const response = await api.sendMessage({
         content: params.content,
         conversationId: params.conversationId,
         projectId,
@@ -316,7 +317,7 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
     updates: { title?: string; project_id?: string }
   ): Promise<void> => {
     try {
-      const updatedConversation = await api.chat.updateConversation(conversationId, updates);
+      const updatedConversation = await api.updateConversation(conversationId, updates);
       dispatch({ type: 'CONVERSATION_UPDATED', payload: updatedConversation });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update conversation';
@@ -327,7 +328,7 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
 
   const deleteConversation = async (conversationId: string): Promise<void> => {
     try {
-      await api.chat.deleteConversation(conversationId);
+      await api.deleteConversation(conversationId);
       dispatch({ type: 'CONVERSATION_DELETED', payload: conversationId });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete conversation';
@@ -351,7 +352,7 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
 
   const getConversationSummary = async (conversationId: string) => {
     try {
-      return await api.chat.getConversationSummary(conversationId);
+      return await api.getConversationSummary(conversationId);
     } catch (error) {
       console.error('Failed to get conversation summary:', error);
       throw error;
@@ -360,7 +361,7 @@ export function ConversationsProvider({ children }: ConversationsProviderProps) 
 
   const associateConversationWithProject = async (conversationId: string, projectId: string) => {
     try {
-      await api.chat.associateConversationWithProject(conversationId, projectId);
+      await api.associateConversationWithProject(conversationId, projectId);
       // Reload conversation to reflect the association
       if (state.activeConversation?.id === conversationId) {
         loadConversation(conversationId);
