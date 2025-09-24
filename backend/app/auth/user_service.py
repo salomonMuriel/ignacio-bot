@@ -78,11 +78,7 @@ class UserAuthService:
         try:
             # Extract user information from profile
             name = user_profile.get("name") or user_profile.get("nickname")
-            phone_number = user_profile.get("phone_number", "")
-
-            # If no phone number in profile, try email as fallback
-            if not phone_number and user_profile.get("email"):
-                phone_number = user_profile["email"]
+            phone_number = user_profile.get("phone_number")  # Allow None for progressive profiling
 
             # Create user data
             user_create = UserCreate(

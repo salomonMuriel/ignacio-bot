@@ -351,3 +351,26 @@ export interface PromptTemplateUpdate {
   is_active?: boolean;
   template_type?: TemplateType;
 }
+
+// Profile Types
+
+export interface ProfileUpdate {
+  name?: string,
+  phone_number?: string,
+  email?: string
+}
+
+interface MissingFields {
+  name: boolean;
+  phoneNumber: boolean;
+}
+
+export interface ProfileCompletionStatusResponse {
+  is_complete: boolean;
+  missing_fields: MissingFields;
+}
+
+export interface ProfileUpdateResponse {
+  message: string;
+  user: User;
+}

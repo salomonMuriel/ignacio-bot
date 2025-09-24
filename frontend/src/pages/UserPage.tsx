@@ -1,11 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
 import LoadingScreen from '@/components/ui/LoadingScreen';
+import { useApi } from '@/hooks/useApi';
+import type { User } from '@/types';
 
 export default function UserPage() {
-  const { user, isLoading, logout } = useAuth0();
+  const { user: auth_user, isLoading, logout } = useAuth0();
+  const [user, setUser] = useState<User | null>(null)
+  const api = useApi();
   const navigate = useNavigate();
+
+  useEffect(() => {
+
+    const getUser = async () => {
+      try {
+        const user_response = await api.getProfile();
+        // Update state with the result from the API
+        console.log(user_response)
+        setUser(user_response); 
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+        // Handle error case, e.g., assume incomplete
+      }
+    };
+    
+    getUser();
+  
+  }, []);
+
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -123,25 +146,25 @@ export default function UserPage() {
             {/* User Details */}
             <div className="flex-1">
               <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--ig-text-primary)' }}>
-                {user?.name || user?.nickname || 'User'}
+                {user?.name || auth_user?.name || 'User'}
               </h2>
               <p className="text-lg mb-2" style={{ color: 'var(--ig-text-secondary)' }}>
-                {user?.phone_number || user?.email || 'Not provided'}
+                {user?.phone_number || 'Not provided'}
               </p>
               <div className="flex items-center space-x-4">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  user?.['https://app.ignacio.com/roles']?.includes('admin')
+                  user?.is_admin
                     ? 'text-purple-300 bg-purple-900/30 border border-purple-500/30'
                     : 'text-blue-300 bg-blue-900/30 border border-blue-500/30'
                 }`}>
-                  {user?.['https://app.ignacio.com/roles']?.includes('admin') ? 'Administrator' : 'User'}
+                  {user?.is_admin ? 'Administrator' : 'Fellow'}
                 </span>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  user?.email_verified
+                  user?.is_active
                     ? 'text-green-300 bg-green-900/30 border border-green-500/30'
                     : 'text-yellow-300 bg-yellow-900/30 border border-yellow-500/30'
                 }`}>
-                  {user?.email_verified ? 'Verified' : 'Unverified'}
+                  {user?.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
@@ -167,7 +190,7 @@ export default function UserPage() {
                     background: 'var(--ig-surface-glass)',
                     border: '1px solid var(--ig-border-glass)'
                   }}>
-                    {user?.sub}
+                    {auth_user?.sub}
                   </p>
                 </div>
                 <div>
@@ -175,7 +198,7 @@ export default function UserPage() {
                     Phone Number
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.phone_number || user?.email || 'Not provided'}
+                    {user?.phone_number || 'Not provided'}
                   </p>
                 </div>
                 <div>
@@ -183,7 +206,7 @@ export default function UserPage() {
                     Name
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.name || user?.nickname || 'Not provided'}
+                    {user?.name || 'Not provided'}
                   </p>
                 </div>
               </div>
@@ -203,7 +226,7 @@ export default function UserPage() {
                     Account Created
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.updated_at ? formatDate(user.updated_at) : 'Not available'}
+                    {user?.created_at ? formatDate(user.updated_at) : 'Not available'}
                   </p>
                 </div>
                 <div>
@@ -219,7 +242,7 @@ export default function UserPage() {
                     Account Status
                   </label>
                   <p style={{ color: 'var(--ig-text-primary)' }}>
-                    {user?.email_verified ? 'Verified and enabled' : 'Unverified'}
+                    {user?.is_active ? 'Verified and enabled' : 'Inactive'}
                   </p>
                 </div>
               </div>
@@ -227,7 +250,7 @@ export default function UserPage() {
           </div>
 
           {/* Admin Features */}
-          {user?.['https://app.ignacio.com/roles']?.includes('admin') && (
+          {user?.is_admin && (
             <div className="mt-8 rounded-lg p-6" style={{
               background: 'var(--ig-surface-glass)',
               border: '1px solid var(--ig-border-accent)',

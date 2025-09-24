@@ -10,7 +10,7 @@ class AuthUser(BaseModel):
     """Represents an authenticated user"""
     id: UUID
     auth_user_id: str
-    phone_number: str
+    phone_number: str | None
     name: str | None
     is_admin: bool
     is_active: bool

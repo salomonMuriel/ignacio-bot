@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Any, Dict, List
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class MessageType(str, Enum):
@@ -56,7 +56,8 @@ class TemplateType(str, Enum):
 
 # Base models for database tables
 class UserBase(BaseModel):
-    phone_number: str
+    phone_number: str | None = None
+    email: EmailStr | None = None
     name: str | None = None
     is_admin: bool = False
     is_active: bool = True
@@ -65,7 +66,6 @@ class UserBase(BaseModel):
 
 class User(UserBase):
     model_config = ConfigDict(from_attributes=True)
-
     id: UUID
     created_at: datetime
     updated_at: datetime
@@ -77,6 +77,8 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     name: str | None = None
+    phone_number: str | None = None
+    email: str | None = None
     is_admin: bool | None = None
     is_active: bool | None = None
 

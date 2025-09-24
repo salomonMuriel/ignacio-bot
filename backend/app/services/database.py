@@ -112,6 +112,10 @@ class DatabaseService:
         update_dict = {}
         if user_data.name is not None:
             update_dict["name"] = user_data.name
+        if user_data.phone_number is not None:
+            update_dict["phone_number"] = user_data.phone_number
+        if user_data.phone_number is not None:
+            update_dict["email"] = user_data.email
         if user_data.is_admin is not None:
             update_dict["is_admin"] = user_data.is_admin
         if user_data.is_active is not None:

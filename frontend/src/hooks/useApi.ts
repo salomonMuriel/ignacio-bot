@@ -14,7 +14,10 @@ import type {
   TemplateType,
   UserFile,
   UserFileWithConversations,
-  User
+  User,
+  ProfileUpdateResponse,
+  ProfileUpdate,
+  ProfileCompletionStatusResponse
 } from '@/types';
 import * as apiService from '@/services/api';
 
@@ -240,6 +243,21 @@ export const useApi = () => {
     return apiService.reuseFile(fileId, conversationId, userId, token);
   }, [getAccessTokenSilently, getUserId]);
 
+  const getProfile = useCallback(async (): Promise<User> => {
+    const token = await getAccessTokenSilently();
+    return apiService.getProfile(token);
+  }, [getAccessTokenSilently]);
+
+  const updateProfile = useCallback(async (updatePayload: ProfileUpdate): Promise<ProfileUpdateResponse> => {
+    const token = await getAccessTokenSilently();
+    return apiService.updateProfile(updatePayload, token);
+  }, [getAccessTokenSilently]);
+
+  const getProfileCompletion = useCallback(async (): Promise<ProfileCompletionStatusResponse> => {
+    const token = await getAccessTokenSilently();
+    return apiService.getProfileCompletion(token);
+  }, [getAccessTokenSilently]);
+
   // --- Auth ---
   const getCurrentUser = useCallback((): User => {
     if (!user) {
@@ -295,5 +313,10 @@ export const useApi = () => {
 
     // Auth
     getCurrentUser,
+
+    // Profiles
+    getProfile,
+    updateProfile,
+    getProfileCompletion
   };
 };

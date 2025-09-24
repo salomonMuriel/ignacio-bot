@@ -18,6 +18,9 @@ import type {
   TemplateType,
   UserFile,
   UserFileWithConversations,
+  ProfileUpdate,
+  ProfileCompletionStatusResponse,
+  ProfileUpdateResponse
 } from '@/types';
 
 // API Base Configuration
@@ -65,6 +68,11 @@ const apiRoutes = {
     fileConversations: (fileId: string) => `/files/${fileId}/conversations`,
     reuseFile: (fileId: string) => `/files/${fileId}/reuse`,
   },
+  users: {
+    updateProfile: () => `/users/profile`,
+    getProfile: () => `/users/profile`,
+    getProfileCompletion: () => `/users/profile/completion-status`
+  }
 };
 
 // HTTP Client Configuration
@@ -479,6 +487,25 @@ export const reuseFile = (fileId: string, conversationId: string, userId: string
   conversation_id: string;
 }> => {
   return apiClient.post(`${apiRoutes.files.reuseFile(fileId)}?conversation_id=${conversationId}&user_id=${userId}`, {}, token);
+};
+
+export const getProfile = (token: string): Promise<User> => {
+  return apiClient.get(`${apiRoutes.users.getProfile()}`, token);
+};
+
+
+export const updateProfile = (updatePayload: ProfileUpdate, token: string): Promise<ProfileUpdateResponse> => {
+  return apiClient.put(`${apiRoutes.users.updateProfile()}`, updatePayload, token);
+};
+
+export const getProfileCompletion = (
+  token: string
+): Promise<ProfileCompletionStatusResponse> => {
+  // Assuming a route like: apiRoutes.profile.completionStatus() -> '/profile/completion-status'
+  return apiClient.get<ProfileCompletionStatusResponse>(
+    apiRoutes.users.getProfileCompletion(), 
+    token
+  );
 };
 
 // Auth utility function to convert Auth0 user to User type

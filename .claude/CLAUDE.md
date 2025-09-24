@@ -17,7 +17,7 @@ Normal Users:
 * Users should be able to upload any other kind of file to Ignacio (documents, PDFs, presentations, etc). Ignacio should be able to pull these into context when it needs to.
 * Ignacio should respond to the user according to their questions on the project. Prompts for these interactions should be tailored to the response at hand. Example, if the user asks about a marketing problem, Ignacio should act as a marketing expert.
 * Users authenticate via Auth0 for the web platform with secure JWT token-based authentication.
-* Users shouldn't be able to create a new account. Accounts are created by administrators manually.
+* Users can create new accounts through Auth0 authentication. New users are automatically synchronized to the internal database.
 * WhatsApp integration uses phone number validation against Auth0 user profiles.
 
 Administrators:

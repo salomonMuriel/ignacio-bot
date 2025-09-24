@@ -18,6 +18,7 @@ import ChatPage from './pages/ChatPage';
 import ProjectsPage from './pages/ProjectsPage';
 import UserPage from './pages/UserPage';
 import AdminPage from './pages/AdminPage';
+import ProfileCompletionPage from './pages/ProfileCompletionPage';
 
 function App() {
   return (
@@ -32,6 +33,16 @@ function App() {
                   <Route path="/" element={<LandingPage />} />
 
                   {/* Protected Routes */}
+
+                  <Route
+                    path="/profile-completion"
+                    element={
+                      <ProtectedRoute>
+                        <ProfileCompletionPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
                   <Route
                     path="/create-project"
                     element={
