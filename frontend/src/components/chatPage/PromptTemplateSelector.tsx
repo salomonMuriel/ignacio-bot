@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { api } from '../../services/api';
+import { useApi } from '@/hooks/useApi';
 import { useAuth0 } from '@auth0/auth0-react';
 import type { PromptTemplate } from '@/types';
 
@@ -91,13 +91,14 @@ interface PromptTemplateSelectorProps {
   refreshTrigger?: number; // Trigger to refresh template list
 }
 
-export default function PromptTemplateSelector({ 
-  onTemplateSelect, 
-  isOpen, 
+export default function PromptTemplateSelector({
+  onTemplateSelect,
+  isOpen,
   onClose,
   refreshTrigger
 }: PromptTemplateSelectorProps) {
   const { user, isAuthenticated, isLoading } = useAuth0();
+  const api = useApi();
   const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
   const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<{ admin: PromptTemplate[], user: PromptTemplate[] }>({
@@ -193,8 +194,8 @@ export default function PromptTemplateSelector({
     try {
       setIsLoadingTemplates(true);
       const [templateData, tagsData] = await Promise.all([
-        api.promptTemplates.getTemplatesForUser(true), // Get admin + user templates
-        api.promptTemplates.getAllTags()
+        api.getTemplatesForUser(true), // Get admin + user templates
+        api.getAllTags()
       ]);
       
       setAdminTemplates(templateData.adminTemplates);
