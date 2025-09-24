@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useProjects } from '../../contexts/ProjectsContext';
 import ignacioVideo from '../../assets/ignacio_video_optimized.mp4';
 
 
@@ -12,10 +11,10 @@ export default function HeroSection() {
 
     const handleStartChatting = () => {
         if (!user) {
-            loginWithRedirect()
+            loginWithRedirect();
+        } else {
+            navigate('/chat');
         }
-        
-        navigate('/chat');
       };
 
     return (
