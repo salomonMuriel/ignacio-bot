@@ -51,7 +51,7 @@ async def sync_file_to_openai(user_id: UUID, file_id: UUID):
         logger.info(f"Starting OpenAI sync for user file {file_id}")
         # For user files without conversation_id, we'd need to implement user-based sync
         # For now, we'll skip since we're moving away from vector stores for chat
-        logger.info(f"Vector store sync skipped - using direct Agent SDK processing")
+        logger.info("Vector store sync skipped - using direct Agent SDK processing")
 
     except Exception as e:
         logger.error(f"OpenAI sync failed for file {file_id}: {str(e)}")
@@ -69,7 +69,7 @@ async def upload_file(
     - Images: All image formats (image/*)
     - PDFs: application/pdf
     """
-    user_uuid = UUID(current_user.id)
+    user_uuid = current_user.id
 
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
@@ -119,8 +119,8 @@ async def upload_file(
 async def get_file_metadata(file_id: str, current_user: AuthUser = Depends(get_current_active_user)):
     """Get file metadata"""
 
-    file_uuid = UUID(file_id)
-    user_uuid = UUID(current_user.id)
+    file_uuid = file_id
+    user_uuid = current_user.id
 
 
     try:
@@ -147,8 +147,8 @@ async def get_file_metadata(file_id: str, current_user: AuthUser = Depends(get_c
 async def download_file(file_id: str, current_user: AuthUser = Depends(get_current_active_user)):
     """Download a file"""
 
-    file_uuid = UUID(file_id)
-    user_uuid = UUID(current_user.id)
+    file_uuid = file_id
+    user_uuid = current_user.id
 
 
     try:
@@ -194,8 +194,8 @@ async def download_file(file_id: str, current_user: AuthUser = Depends(get_curre
 async def get_file_url(file_id: str, expires_in: int = 3600, current_user: AuthUser = Depends(get_current_active_user)):
     """Get a signed URL for file access"""
 
-    file_uuid = UUID(file_id)
-    user_uuid = UUID(current_user.id)
+    file_uuid = file_id
+    user_uuid = current_user.id
 
     try:
         signed_url = await storage_service.get_file_url(
@@ -219,7 +219,7 @@ async def get_file_url(file_id: str, expires_in: int = 3600, current_user: AuthU
 async def get_user_files(current_user: AuthUser = Depends(get_current_active_user)):
     """Get all files for a user"""
     try:
-        user_uuid = UUID(current_user.id)
+        user_uuid = current_user.id
     except ValueError as e:
         raise HTTPException(status_code=400, detail="Invalid user ID format") from e
 
@@ -236,7 +236,7 @@ async def get_user_files(current_user: AuthUser = Depends(get_current_active_use
 async def get_user_files_admin(user_id: str, current_user: AuthUser = Depends(get_admin_user)):
     """Get all files for a user"""
 
-    user_uuid = UUID(user_id)
+    user_uuid = user_id
 
     try:
         files = await storage_service.get_user_files(user_uuid)
@@ -252,7 +252,7 @@ async def get_user_files_admin(user_id: str, current_user: AuthUser = Depends(ge
 async def get_conversation_files(conversation_id: str, current_user: AuthUser = Depends(get_current_active_user)):
     """Get all files for a conversation"""
 
-    conv_uuid = UUID(conversation_id)
+    conv_uuid = conversation_id
 
 
     try:
@@ -281,8 +281,8 @@ async def upload_file_to_conversation(
     - PDFs: application/pdf
     """
 
-    conv_uuid = UUID(conversation_id)
-    user_uuid = UUID(current_user.id)
+    conv_uuid = conversation_id
+    user_uuid = current_user.id
 
 
     if not file.filename:
@@ -334,8 +334,8 @@ async def upload_file_to_conversation(
 async def delete_file(file_id: str, current_user: AuthUser = Depends(get_current_active_user)):
     """Delete a file"""
 
-    file_uuid = UUID(file_id)
-    user_uuid = UUID(current_user.id)
+    file_uuid = file_id
+    user_uuid = current_user.id
 
 
     try:
@@ -358,8 +358,8 @@ async def delete_file(file_id: str, current_user: AuthUser = Depends(get_current
 async def get_file_conversations(file_id: str, current_user: AuthUser = Depends(get_current_active_user)):
     """Get all conversations where a file has been used"""
 
-    file_uuid = UUID(file_id)
-    user_uuid = UUID(current_user.id)
+    file_uuid = file_id
+    user_uuid = current_user.id
 
 
     try:
@@ -385,9 +385,9 @@ async def get_file_conversations(file_id: str, current_user: AuthUser = Depends(
 async def reuse_file(file_id: str, conversation_id: str, current_user: AuthUser = Depends(get_current_active_user)):
     """Reuse an existing file in a conversation"""
 
-    file_uuid = UUID(file_id)
-    conv_uuid = UUID(conversation_id)
-    user_uuid = UUID(current_user.id)
+    file_uuid = file_id
+    conv_uuid = conversation_id
+    user_uuid = current_user.id
 
 
     try:
@@ -425,7 +425,7 @@ async def reuse_file(file_id: str, conversation_id: str, current_user: AuthUser 
 async def get_user_files_with_conversations(current_user: AuthUser = Depends(get_current_active_user)):
     """Get all files for a user with their conversation usage data"""
 
-    user_uuid = UUID(current_user.id)
+    user_uuid = current_user.id
 
 
     try:

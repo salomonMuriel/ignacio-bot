@@ -237,7 +237,7 @@ class Project(ProjectBase):
 
 
 class ProjectCreate(ProjectBase):
-    user_id: UUID
+    user_id: UUID | None = None
 
 
 class ProjectUpdate(BaseModel):

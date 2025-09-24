@@ -33,7 +33,7 @@ type ProjectAction =
 interface ProjectsContextType extends ProjectsState {
   // Actions
   loadProjects: () => Promise<void>;
-  createProject: (projectData: Omit<ProjectCreate, 'user_id'>) => Promise<Project>;
+  createProject: (projectData: ProjectCreate) => Promise<Project>;
   updateProject: (projectId: string, updates: ProjectUpdate) => Promise<Project>;
   deleteProject: (projectId: string) => Promise<void>;
   setActiveProject: (project: Project | null) => void;
@@ -199,7 +199,7 @@ export function ProjectsProvider({ children }: ProjectsProviderProps) {
     }
   };
 
-  const createProject = async (projectData: Omit<ProjectCreate, 'user_id'>): Promise<Project> => {
+  const createProject = async (projectData: ProjectCreate): Promise<Project> => {
     try {
       const newProject = await api.createProject(projectData);
       dispatch({ type: 'PROJECT_CREATED', payload: newProject });

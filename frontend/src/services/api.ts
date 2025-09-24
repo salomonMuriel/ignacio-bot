@@ -55,13 +55,13 @@ const apiRoutes = {
     tags: '/api/prompt-templates/tags/all',
   },
   files: {
-    userFiles: (userId: string) => `/files/user/${userId}`,
+    userFiles: () => `/files/user/me`,
     details: (fileId: string) => `/files/${fileId}`,
     url: (fileId: string) => `/files/${fileId}/url`,
     conversation: (conversationId: string) => `/files/conversation/${conversationId}`,
     delete: (fileId: string) => `/files/${fileId}`,
     download: (fileId: string) => `/files/${fileId}/download`,
-    userFilesWithConversations: (userId: string) => `/files/user/${userId}/with-conversations`,
+    userFilesWithConversations: () => `/files/user/me/with-conversations`,
     fileConversations: (fileId: string) => `/files/${fileId}/conversations`,
     reuseFile: (fileId: string) => `/files/${fileId}/reuse`,
   },
@@ -425,8 +425,8 @@ export const getAllTags = (token: string): Promise<string[]> => {
 };
 
 // File API Service
-export const getUserFiles = (userId: string, token: string): Promise<UserFile[]> => {
-  return apiClient.get<UserFile[]>(apiRoutes.files.userFiles(userId), token);
+export const getUserFiles = (token: string): Promise<UserFile[]> => {
+  return apiClient.get<UserFile[]>(apiRoutes.files.userFiles(), token);
 };
 
 export const getFileMetadata = (fileId: string, userId: string, token: string): Promise<UserFile> => {
@@ -461,8 +461,8 @@ export const downloadFile = async (fileId: string, userId: string, token: string
   return response.blob();
 };
 
-export const getUserFilesWithConversations = (userId: string, token: string): Promise<UserFileWithConversations[]> => {
-  return apiClient.get<UserFileWithConversations[]>(apiRoutes.files.userFilesWithConversations(userId), token);
+export const getUserFilesWithConversations = (token: string): Promise<UserFileWithConversations[]> => {
+  return apiClient.get<UserFileWithConversations[]>(apiRoutes.files.userFilesWithConversations(), token);
 };
 
 export const getFileConversations = (fileId: string, userId: string, token: string): Promise<Array<{

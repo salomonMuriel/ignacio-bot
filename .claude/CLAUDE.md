@@ -107,6 +107,13 @@ Code formatting is automatically enforced via pre-commit hooks:
 - **Frontend**: http://localhost:3000 (Vite dev server)
 - **Backend**: http://localhost:8000 (FastAPI + uvicorn)
 
+### **Authentication Refactoring Status (COMPLETED - September 2025)**
+- ✅ **Clean Architecture**: API service now token-based, Auth0 separated into useApi hook
+- ✅ **useApi Hook**: Centralized Auth0 token management with automatic token retrieval
+- ✅ **Component Updates**: All 7 components/contexts migrated to new pattern
+- ✅ **Backward Compatibility**: Same interfaces maintained, no breaking changes
+- ✅ **Better Testing**: API service testable independently of Auth0
+
 ### **File Attachment System Status (September 2025)**
 - ✅ **Phase 1-5 Complete**: File upload modal with tabbed interface, search, filtering, sorting, reuse
 - ✅ **FileAttachmentModal.tsx**: Two-tab modal (Upload New / Previous Files) with enhanced UX

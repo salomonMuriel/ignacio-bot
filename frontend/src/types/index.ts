@@ -85,7 +85,6 @@ export interface Project {
 }
 
 export interface ProjectCreate {
-  user_id: string;
   project_name: string;
   project_type?: ProjectType;
   description?: string;

@@ -37,8 +37,7 @@ export const useApi = () => {
 
   const createProject = useCallback(async (projectData: ProjectCreate): Promise<Project> => {
     const token = await getAccessTokenSilently();
-    const userId = getUserId();
-    const data = { ...projectData, user_id: userId };
+    const data = { ...projectData};
     return apiService.createProject(data, token);
   }, [getAccessTokenSilently, getUserId]);
 
@@ -192,8 +191,7 @@ export const useApi = () => {
   // --- Files ---
   const getUserFiles = useCallback(async (): Promise<UserFile[]> => {
     const token = await getAccessTokenSilently();
-    const userId = getUserId();
-    return apiService.getUserFiles(userId, token);
+    return apiService.getUserFiles(token);
   }, [getAccessTokenSilently, getUserId]);
 
   const getFileMetadata = useCallback(async (fileId: string): Promise<UserFile> => {
@@ -227,8 +225,7 @@ export const useApi = () => {
 
   const getUserFilesWithConversations = useCallback(async (): Promise<UserFileWithConversations[]> => {
     const token = await getAccessTokenSilently();
-    const userId = getUserId();
-    return apiService.getUserFilesWithConversations(userId, token);
+    return apiService.getUserFilesWithConversations(token);
   }, [getAccessTokenSilently, getUserId]);
 
   const getFileConversations = useCallback(async (fileId: string) => {

@@ -87,7 +87,7 @@ async def create_project(project_data: ProjectCreate, current_user: AuthUser = D
 
         # Convert to dict for database service
         data = {
-            "user_id": project_data.user_id,
+            "user_id": current_user.id,
             "project_name": project_data.project_name,
             "project_type": project_data.project_type.value
             if project_data.project_type
