@@ -32,14 +32,7 @@ class UserAuthService:
         """
         try:
             # Query user by auth_user_id
-            user_data = await db_service.fetch_one(
-                """
-                SELECT id, auth_user_id, phone_number, name, is_admin, is_active
-                FROM users
-                WHERE auth_user_id = $1 AND is_active = true
-                """,
-                auth_user_id
-            )
+            user_data = await db_service.get_user_by_auth_id(auth_user_id)
 
             if not user_data:
                 logger.warning(f"User not found for auth_user_id: {auth_user_id}")
@@ -47,12 +40,12 @@ class UserAuthService:
 
             # Convert to AuthUser model
             auth_user = AuthUser(
-                id=user_data["id"],
-                auth_user_id=user_data["auth_user_id"],
-                phone_number=user_data["phone_number"],
-                name=user_data["name"],
-                is_admin=user_data["is_admin"] or False,
-                is_active=user_data["is_active"]
+                id=user_data.id,
+                auth_user_id=user_data.auth_user_id,
+                phone_number=user_data.phone_number,
+                name=user_data.name,
+                is_admin=user_data.is_admin or False,
+                is_active=user_data.is_active
             )
 
             logger.debug(f"Successfully retrieved user: {auth_user.id} for auth_id: {auth_user_id}")
@@ -63,7 +56,7 @@ class UserAuthService:
 
         except Exception as e:
             logger.error(f"Error retrieving user by auth_id {auth_user_id}: {str(e)}")
-            raise UserNotFoundException()
+            raise UserNotFoundException() from e
 
     async def get_user_by_id(self, user_id: UUID) -> AuthUser:
         """
@@ -79,14 +72,7 @@ class UserAuthService:
             UserNotFoundException: User not found in database
         """
         try:
-            user_data = await db_service.fetch_one(
-                """
-                SELECT id, auth_user_id, phone_number, name, is_admin, is_active
-                FROM users
-                WHERE id = $1 AND is_active = true
-                """,
-                user_id
-            )
+            user_data = await db_service.get_user_by_id(user_id)
 
             if not user_data:
                 logger.warning(f"User not found for user_id: {user_id}")
@@ -108,7 +94,7 @@ class UserAuthService:
 
         except Exception as e:
             logger.error(f"Error retrieving user by id {user_id}: {str(e)}")
-            raise UserNotFoundException()
+            raise UserNotFoundException() from e
 
 
 # Global service instance

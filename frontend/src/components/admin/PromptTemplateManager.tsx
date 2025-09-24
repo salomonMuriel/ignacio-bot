@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { api } from '../../services/api';
+import { useApi } from '@/hooks/useApi';
 import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate } from '@/types';
 
 export default function PromptTemplateManager() {
   const { user, isLoading: authLoading } = useAuth0();
+  const api = useApi();
   const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
   const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +32,7 @@ export default function PromptTemplateManager() {
     try {
       setIsLoading(true);
       setError(null);
-      const templateData = await api.promptTemplates.getTemplatesForUser(false); // Get both active and inactive
+      const templateData = await api.getTemplatesForUser(false); // Get both active and inactive
       setAdminTemplates(templateData.adminTemplates);
       setUserTemplates(templateData.userTemplates);
     } catch (err) {
@@ -90,7 +91,7 @@ export default function PromptTemplateManager() {
           tags: formData.tags,
           is_active: formData.is_active
         };
-        await api.promptTemplates.updatePromptTemplate(editingTemplate.id, updateData);
+        await api.updatePromptTemplate(editingTemplate.id, updateData);
       } else {
         // Create new template
         const createData: PromptTemplateCreate = {
@@ -100,7 +101,7 @@ export default function PromptTemplateManager() {
           created_by: user.sub || '',
           is_active: formData.is_active
         };
-        await api.promptTemplates.createPromptTemplate(createData);
+        await api.createPromptTemplate(createData);
       }
 
       setIsModalOpen(false);
@@ -123,7 +124,7 @@ export default function PromptTemplateManager() {
     }
 
     try {
-      await api.promptTemplates.deletePromptTemplate(template.id);
+      await api.deletePromptTemplate(template.id);
       await loadTemplates(); // Reload templates
     } catch (err) {
       console.error('Failed to delete template:', err);

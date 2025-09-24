@@ -10,7 +10,6 @@ import { GlobalProvider } from './contexts/GlobalContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProjectGuard from './components/ProjectGuard';
-import Auth0Init from './components/Auth0Provider';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -23,88 +22,86 @@ import AdminPage from './pages/AdminPage';
 function App() {
   return (
     <ErrorBoundary>
-      <Auth0Init>
-        <GlobalProvider>
-          <ProjectsProvider>
-            <ConversationsProvider>
-              <Router>
-                <div className="App">
-                  <Routes>
-                    {/* Public Route - Landing Page */}
-                    <Route path="/" element={<LandingPage />} />
-                    
-                    {/* Protected Routes */}
-                    <Route
-                      path="/create-project"
-                      element={
-                        <ProtectedRoute>
-                          <CreateProjectPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    <Route
-                      path="/projects"
-                      element={
-                        <ProtectedRoute>
-                          <ProjectGuard requiresProject={false}>
-                            <ProjectsPage />
-                          </ProjectGuard>
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    <Route
-                      path="/chat"
-                      element={
-                        <ProtectedRoute>
-                          <ProjectGuard requiresProject={true}>
-                            <ChatPage />
-                          </ProjectGuard>
-                        </ProtectedRoute>
-                      }
-                    />
+      <GlobalProvider>
+        <ProjectsProvider>
+          <ConversationsProvider>
+            <Router>
+              <div className="App">
+                <Routes>
+                  {/* Public Route - Landing Page */}
+                  <Route path="/" element={<LandingPage />} />
 
-                    <Route
-                      path="/user"
-                      element={
-                        <ProtectedRoute>
-                          <UserPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                  {/* Protected Routes */}
+                  <Route
+                    path="/create-project"
+                    element={
+                      <ProtectedRoute>
+                        <CreateProjectPage />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                    <Route
-                      path="/admin"
-                      element={
-                        <ProtectedRoute>
-                          <AdminPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                  <Route
+                    path="/projects"
+                    element={
+                      <ProtectedRoute>
+                        <ProjectGuard requiresProject={false}>
+                          <ProjectsPage />
+                        </ProjectGuard>
+                      </ProtectedRoute>
+                    }
+                  />
 
-                    {/* Catch all - redirect to landing */}
-                    <Route path="*" element={<LandingPage />} />
-                  </Routes>
-                </div>
-                
-                {/* Global Toast Notifications */}
-                <Toaster
-                  position="top-right"
-                  toastOptions={{
-                    duration: 4000,
-                    className: '',
-                    style: {
-                      background: '#363636',
-                      color: '#fff',
-                    },
-                  }}
-                />
-              </Router>
-            </ConversationsProvider>
-          </ProjectsProvider>
-        </GlobalProvider>
-      </Auth0Init>
+                  <Route
+                    path="/chat"
+                    element={
+                      <ProtectedRoute>
+                        <ProjectGuard requiresProject={true}>
+                          <ChatPage />
+                        </ProjectGuard>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/user"
+                    element={
+                      <ProtectedRoute>
+                        <UserPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute>
+                        <AdminPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Catch all - redirect to landing */}
+                  <Route path="*" element={<LandingPage />} />
+                </Routes>
+              </div>
+
+              {/* Global Toast Notifications */}
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  className: '',
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
+                  },
+                }}
+              />
+            </Router>
+          </ConversationsProvider>
+        </ProjectsProvider>
+      </GlobalProvider>
     </ErrorBoundary>
   );
 }

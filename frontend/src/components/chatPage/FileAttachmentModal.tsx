@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { api } from '../../services/api';
+import { useApi } from '@/hooks/useApi';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useConversations } from '../../contexts/ConversationsContext';
 import type { UserFileWithConversations } from '@/types';
@@ -22,6 +22,7 @@ export default function FileAttachmentModal({
 }: FileAttachmentModalProps) {
   const { user } = useAuth0();
   const { conversations } = useConversations();
+  const api = useApi();
   const [activeTab, setActiveTab] = useState<'upload' | 'existing'>('upload');
   const [fileSelection, setFileSelection] = useState<FileSelectionState>({
     newFile: null,
@@ -101,7 +102,7 @@ export default function FileAttachmentModal({
 
     setIsLoadingFiles(true);
     try {
-      const files = await api.files.getUserFilesWithConversations();
+      const files = await api.getUserFilesWithConversations();
       setUserFiles(files);
     } catch (err) {
       setError('Failed to load your files');

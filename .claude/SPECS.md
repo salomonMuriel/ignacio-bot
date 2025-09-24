@@ -7,8 +7,8 @@
 - **Frontend**: React 19.1 with TypeScript and Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
 - **Storage**: Supabase Storage with OpenAI Vector Stores
-- **External Integrations**: WhatsApp Business API, OpenAI API
-- **Authentication**: OTP-based authentication via WhatsApp
+- **External Integrations**: WhatsApp Business API, OpenAI API, Auth0
+- **Authentication**: Auth0 JWT-based authentication for web, OTP via WhatsApp for messaging
 
 ### System Components
 1. **Web Frontend** - React 19.1 application with global state management
@@ -16,7 +16,7 @@
 3. **WhatsApp Service** - Integration service for WhatsApp Business API
 4. **AI Processing Service** - OpenAI Agent SDK with 8 specialized domain experts and handoff monitoring
 5. **File Processing Service** - Media, document handling, and vector store integration
-6. **Authentication Service** - OTP and session management
+6. **Authentication Service** - Auth0 JWT tokens and session management
 7. **Project Management Service** - Multi-project context management
 
 ## 2. Multi-Project Architecture
@@ -35,21 +35,36 @@
 ## 3. API Architecture
 
 ### Project Management Endpoints
-- `GET/POST /project/projects` - List/create user projects
-- `GET/PUT/DELETE /project/projects/{id}` - Manage specific projects
-- `GET /project/projects/{id}/conversations` - Get project conversations
-- `GET/PUT /project/projects/{id}/context` - Manage project-specific context
-- `GET /project/types` - Available project types
-- `GET /project/stages` - Available project stages
+- `GET /project/by_user/me` - Get current user's projects (authenticated)
+- `GET /project/by_user/{user_id}` - Get user's projects (admin only)
+- `POST /project/` - Create new project (authenticated)
+- `GET /project/{project_id}` - Get specific project (authenticated)
+- `PUT /project/{project_id}` - Update specific project (authenticated)
+- `DELETE /project/{project_id}` - Delete specific project (authenticated)
+- `GET /project/conversations/{project_id}` - Get project conversations (authenticated)
+- `GET /project/{project_id}/context` - Get project-specific context (authenticated)
+- `PUT /project/{project_id}/context` - Update project-specific context (authenticated)
+- `GET /project/types` - Available project types (authenticated)
+- `GET /project/stages` - Available project stages (authenticated)
 
 ### Enhanced Chat Endpoints (IMPLEMENTED & WORKING)
-- `GET /chat/conversations` - Get user's conversations
-- `POST /chat/messages` - Unified message endpoint (handles both new/continue conversations)
-- `GET /chat/conversations/{conversation_id}` - Get conversation with messages
-- `PUT /chat/conversations/{conversation_id}` - Update conversation details
-- `PUT /chat/conversations/{conversation_id}/project` - Associate conversation with project
-- `GET /chat/conversations/{conversation_id}/messages` - Get conversation messages
-- `DELETE /chat/conversations/{conversation_id}` - Delete conversation
+- `GET /chat/conversations` - Get user's conversations (authenticated)
+- `POST /chat/messages` - Unified message endpoint (handles both new/continue conversations) (authenticated)
+- `GET /chat/conversations/{conversation_id}` - Get conversation with messages (authenticated)
+- `PUT /chat/conversations/{conversation_id}` - Update conversation details (authenticated)
+- `PUT /chat/conversations/{conversation_id}/project` - Associate conversation with project (authenticated)
+- `GET /chat/conversations/{conversation_id}/messages` - Get conversation messages (authenticated)
+- `GET /chat/conversations/{conversation_id}/summary` - Get conversation summary (authenticated)
+- `GET /chat/conversations/{conversation_id}/interactions` - Get agent interactions (authenticated)
+- `DELETE /chat/conversations/{conversation_id}` - Delete conversation (authenticated)
+
+### Prompt Templates Endpoints
+- `GET /api/prompt-templates/` - Get prompt templates with filtering (authenticated)
+- `GET /api/prompt-templates/{template_id}` - Get specific prompt template (authenticated)
+- `POST /api/prompt-templates/` - Create new prompt template (authenticated)
+- `PUT /api/prompt-templates/{template_id}` - Update prompt template (authenticated, with ownership validation)
+- `DELETE /api/prompt-templates/{template_id}` - Delete prompt template (authenticated, with ownership validation)
+- `GET /api/prompt-templates/tags/all` - Get all unique template tags (authenticated)
 
 ## 4. Database Schema
 
@@ -85,14 +100,18 @@
 - **File Reuse**: Ability to reuse files across multiple conversations
 
 ### File API Endpoints
-- `GET /files/user/{user_id}` - Get user's files
-- `GET /files/{file_id}` - Get file metadata
-- `GET /files/{file_id}/url` - Get signed URL for file access
-- `GET /files/conversation/{conversation_id}` - Get files for conversation
-- `GET /files/{file_id}/conversations` - Get conversation history for file
-- `POST /files/{file_id}/reuse` - Reuse file in new conversation
-- `DELETE /files/{file_id}` - Delete file
-- `GET /files/{file_id}/download` - Download file content
+- `POST /files/upload` - Upload file (authenticated)
+- `GET /files/{file_id}` - Get file metadata (authenticated)
+- `GET /files/{file_id}/download` - Download file content (authenticated)
+- `GET /files/{file_id}/url` - Get signed URL for file access (authenticated)
+- `GET /files/user/me` - Get current user's files (authenticated)
+- `GET /files/user/{user_id}` - Get user's files (admin only)
+- `GET /files/conversation/{conversation_id}` - Get files for conversation (authenticated)
+- `POST /files/conversations/{conversation_id}/files` - Upload file to conversation (authenticated)
+- `DELETE /files/{file_id}` - Delete file (authenticated)
+- `GET /files/{file_id}/conversations` - Get conversation history for file (authenticated)
+- `POST /files/{file_id}/reuse` - Reuse file in new conversation (authenticated)
+- `GET /files/user/me/with-conversations` - Get user files with conversation usage (authenticated)
 
 ### File Reuse System
 - **Storage Efficiency**: Single storage object with multiple metadata records

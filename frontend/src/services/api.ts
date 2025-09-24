@@ -1,7 +1,6 @@
 /**
  * API Service Layer for Ignacio Bot Frontend
  * Handles all HTTP requests to the FastAPI backend
- * Uses mocked authentication with test user for Phase 2
  */
 
 import type {
@@ -21,48 +20,52 @@ import type {
   UserFileWithConversations,
 } from '@/types';
 
-// Get Auth0 instance for token management
-let auth0Instance: any = null;
-
-export function setAuth0Instance(instance: any) {
-  auth0Instance = instance;
-}
-
-async function getAuthToken(): Promise<string | null> {
-  if (!auth0Instance) {
-    console.warn('Auth0 instance not set. Call setAuth0Instance() first.');
-    return null;
-  }
-
-  try {
-    const token = await auth0Instance.getAccessTokenSilently();
-    return token;
-  } catch (error) {
-    console.error('Failed to get access token:', error);
-    return null;
-  }
-}
-
-async function getCurrentUserId(): Promise<string | null> {
-  if (!auth0Instance) {
-    console.warn('Auth0 instance not set. Call setAuth0Instance() first.');
-    return null;
-  }
-
-  try {
-    const user = auth0Instance.user;
-    return user?.sub || null;
-  } catch (error) {
-    console.error('Failed to get current user ID:', error);
-    return null;
-  }
-}
-
 // API Base Configuration
 const API_BASE_URL = 'http://localhost:8000';
-const CHAT_BASE_URL = `${API_BASE_URL}/chat`;
-const PROJECT_BASE_URL = `${API_BASE_URL}/project`;
-const FILES_BASE_URL = `${API_BASE_URL}/files`;
+
+// API Routes Configuration
+const apiRoutes = {
+  projects: {
+    list: '/project/by_user/me',
+    create: '/project/',
+    details: (projectId: string) => `/project/${projectId}`,
+    update: (projectId: string) => `/project/${projectId}`,
+    delete: (projectId: string) => `/project/${projectId}`,
+    context: (projectId: string) => `/project/${projectId}/context`,
+    conversations: (projectId: string) => `/project/conversations/${projectId}`,
+    types: '/project/types',
+    stages: '/project/stages',
+  },
+  chat: {
+    conversations: '/chat/conversations',
+    messages: '/chat/messages',
+    conversation: (conversationId: string) => `/chat/conversations/${conversationId}`,
+    updateConversation: (conversationId: string) => `/chat/conversations/${conversationId}`,
+    associateProject: (conversationId: string) => `/chat/conversations/${conversationId}/project`,
+    conversationMessages: (conversationId: string) => `/chat/conversations/${conversationId}/messages`,
+    summary: (conversationId: string) => `/chat/conversations/${conversationId}/summary`,
+    interactions: (conversationId: string) => `/chat/conversations/${conversationId}/interactions`,
+  },
+  promptTemplates: {
+    list: '/api/prompt-templates',
+    details: (templateId: string) => `/api/prompt-templates/${templateId}`,
+    create: '/api/prompt-templates',
+    update: (templateId: string) => `/api/prompt-templates/${templateId}`,
+    delete: (templateId: string) => `/api/prompt-templates/${templateId}`,
+    tags: '/api/prompt-templates/tags/all',
+  },
+  files: {
+    userFiles: (userId: string) => `/files/user/${userId}`,
+    details: (fileId: string) => `/files/${fileId}`,
+    url: (fileId: string) => `/files/${fileId}/url`,
+    conversation: (conversationId: string) => `/files/conversation/${conversationId}`,
+    delete: (fileId: string) => `/files/${fileId}`,
+    download: (fileId: string) => `/files/${fileId}/download`,
+    userFilesWithConversations: (userId: string) => `/files/user/${userId}/with-conversations`,
+    fileConversations: (fileId: string) => `/files/${fileId}/conversations`,
+    reuseFile: (fileId: string) => `/files/${fileId}/reuse`,
+  },
+};
 
 // HTTP Client Configuration
 class ApiClient {
@@ -74,11 +77,11 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
+    token: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
-    const token = await getAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>,
@@ -95,7 +98,7 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
@@ -110,32 +113,31 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' });
+  async get<T>(endpoint: string, token: string): Promise<T> {
+    return this.request<T>(endpoint, token, { method: 'GET' });
   }
 
-  async post<T>(endpoint: string, data: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
+  async post<T>(endpoint: string, data: unknown, token: string): Promise<T> {
+    return this.request<T>(endpoint, token, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async put<T>(endpoint: string, data: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
+  async put<T>(endpoint: string, data: unknown, token: string): Promise<T> {
+    return this.request<T>(endpoint, token, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  async delete<T>(endpoint: string, token: string): Promise<T> {
+    return this.request<T>(endpoint, token, { method: 'DELETE' });
   }
 
-  async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
+  async postFormData<T>(endpoint: string, formData: FormData, token: string): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
-    const token = await getAuthToken();
     const headers: Record<string, string> = {};
 
     if (token) {
@@ -148,7 +150,7 @@ class ApiClient {
         headers,
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
@@ -164,431 +166,330 @@ class ApiClient {
   }
 }
 
-// Create API client instances
-const chatClient = new ApiClient(CHAT_BASE_URL);
-const projectClient = new ApiClient(PROJECT_BASE_URL);
+// Create API client instance
+const apiClient = new ApiClient(API_BASE_URL);
 
 // Project API Service
-export const projectApi = {
-  // Get all projects for current user
-  async getProjects(): Promise<Project[]> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    return projectClient.get<Project[]>(`/by_user/${userId}`);
-  },
+export const getProjects = (token: string): Promise<Project[]> => {
+  return apiClient.get<Project[]>(apiRoutes.projects.list, token);
+};
 
-  // Create new project
-  async createProject(projectData: Omit<ProjectCreate, 'user_id'>): Promise<Project> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    const data: ProjectCreate = {
-      ...projectData,
-      user_id: userId,
-    };
-    return projectClient.post<Project>('/', data);
-  },
+export const createProject = (projectData: ProjectCreate, token: string): Promise<Project> => {
+  return apiClient.post<Project>(apiRoutes.projects.create, projectData, token);
+};
 
-  // Get project by ID
-  async getProject(projectId: string): Promise<Project> {
-    return projectClient.get<Project>(`/${projectId}`);
-  },
+export const getProject = (projectId: string, token: string): Promise<Project> => {
+  return apiClient.get<Project>(apiRoutes.projects.details(projectId), token);
+};
 
-  // Update project
-  async updateProject(projectId: string, updates: ProjectUpdate): Promise<Project> {
-    return projectClient.put<Project>(`/${projectId}`, updates);
-  },
+export const updateProject = (projectId: string, updates: ProjectUpdate, token: string): Promise<Project> => {
+  return apiClient.put<Project>(apiRoutes.projects.update(projectId), updates, token);
+};
 
-  // Delete project
-  async deleteProject(projectId: string): Promise<{ message: string }> {
-    return projectClient.delete<{ message: string }>(`/${projectId}`);
-  },
+export const deleteProject = (projectId: string, token: string): Promise<{ message: string }> => {
+  return apiClient.delete<{ message: string }>(apiRoutes.projects.delete(projectId), token);
+};
 
-  // Get project context
-  async getProjectContext(projectId: string): Promise<{
-    project_id: string;
-    project_name: string;
-    project_type: string | null;
-    description: string | null;
-    current_stage: string | null;
-    target_audience: string | null;
-    problem_statement: string | null;
-    solution_approach: string | null;
-    business_model: string | null;
-    context_data: Record<string, unknown>;
-  }> {
-    return projectClient.get(`/${projectId}/context`);
-  },
+export const getProjectContext = (projectId: string, token: string): Promise<{
+  project_id: string;
+  project_name: string;
+  project_type: string | null;
+  description: string | null;
+  current_stage: string | null;
+  target_audience: string | null;
+  problem_statement: string | null;
+  solution_approach: string | null;
+  business_model: string | null;
+  context_data: Record<string, unknown>;
+}> => {
+  return apiClient.get(apiRoutes.projects.context(projectId), token);
+};
 
-  // Update project context
-  async updateProjectContext(
-    projectId: string, 
-    contextData: Record<string, unknown>
-  ): Promise<{ message: string }> {
-    return projectClient.put(`/${projectId}/context`, contextData);
-  },
+export const updateProjectContext = (
+  projectId: string,
+  contextData: Record<string, unknown>,
+  token: string
+): Promise<{ message: string }> => {
+  return apiClient.put(apiRoutes.projects.context(projectId), contextData, token);
+};
 
-  // Get project conversations
-  async getProjectConversations(projectId: string): Promise<Conversation[]> {
-    return projectClient.get<Conversation[]>(`/conversations/${projectId}`);
-  },
+export const getProjectConversations = (projectId: string, token: string): Promise<Conversation[]> => {
+  return apiClient.get<Conversation[]>(apiRoutes.projects.conversations(projectId), token);
+};
 
-  // Get available project types
-  async getProjectTypes(): Promise<Array<{ value: string; label: string }>> {
-    return projectClient.get<Array<{ value: string; label: string }>>('/types');
-  },
+export const getProjectTypes = (token: string): Promise<Array<{ value: string; label: string }>> => {
+  return apiClient.get<Array<{ value: string; label: string }>>(apiRoutes.projects.types, token);
+};
 
-  // Get available project stages
-  async getProjectStages(): Promise<Array<{ value: string; label: string }>> {
-    return projectClient.get<Array<{ value: string; label: string }>>('/stages');
-  },
+export const getProjectStages = (token: string): Promise<Array<{ value: string; label: string }>> => {
+  return apiClient.get<Array<{ value: string; label: string }>>(apiRoutes.projects.stages, token);
 };
 
 // Chat API Service
-export const chatApi = {
-  // Get all conversations for current user
-  async getConversations(): Promise<Conversation[]> {
-    return chatClient.get<Conversation[]>('/conversations');
-  },
-
-  // Get conversation with messages
-  async getConversation(conversationId: string): Promise<ConversationDetailResponse> {
-    return chatClient.get<ConversationDetailResponse>(`/conversations/${conversationId}`);
-  },
-
-  // Update conversation (title, project association)
-  async updateConversation(
-    conversationId: string, 
-    updates: { title?: string; project_id?: string }
-  ): Promise<Conversation> {
-    return chatClient.put<Conversation>(`/conversations/${conversationId}`, updates);
-  },
-
-  // Delete conversation
-  async deleteConversation(conversationId: string): Promise<{ message: string }> {
-    return chatClient.delete<{ message: string }>(`/conversations/${conversationId}`);
-  },
-
-  // Get messages for a conversation
-  async getMessages(
-    conversationId: string, 
-    limit: number = 50, 
-    offset: number = 0
-  ): Promise<Message[]> {
-    const params = new URLSearchParams({
-      limit: limit.toString(),
-      offset: offset.toString(),
-    });
-    return chatClient.get<Message[]>(`/conversations/${conversationId}/messages?${params}`);
-  },
-
-  // Send message (unified endpoint - handles both new and existing conversations)
-  async sendMessage(params: {
-    content: string;
-    conversationId?: string;
-    projectId?: string;
-    file?: File;
-    existingFileId?: string; // NEW: Support for reusing existing files
-  }): Promise<AgentMessageResponse> {
-    console.log('[API] Preparing sendMessage request:', {
-      hasContent: !!params.content,
-      hasConversationId: !!params.conversationId,
-      hasProjectId: !!params.projectId,
-      hasFile: !!params.file,
-      hasExistingFileId: !!params.existingFileId,
-      fileInfo: params.file ? {
-        name: params.file.name,
-        size: params.file.size,
-        type: params.file.type
-      } : null
-    });
-
-    const formData = new FormData();
-    formData.append('content', params.content);
-
-    if (params.conversationId) {
-      formData.append('conversation_id', params.conversationId);
-    }
-
-    if (params.projectId) {
-      formData.append('project_id', params.projectId);
-    }
-
-    if (params.file) {
-      formData.append('file', params.file);
-      console.log('[API] File attached to FormData:', {
-        name: params.file.name,
-        size: params.file.size
-      });
-    }
-
-    if (params.existingFileId) {
-      formData.append('existing_file_id', params.existingFileId);
-      console.log('[API] Existing file ID attached to FormData:', params.existingFileId);
-    }
-
-    console.log('[API] Sending request to /messages endpoint');
-    try {
-      const response = await chatClient.postFormData<AgentMessageResponse>('/messages', formData);
-      console.log('[API] Request successful:', {
-        conversationId: response.conversation_id,
-        agentUsed: response.agent_used
-      });
-      return response;
-    } catch (error) {
-      console.error('[API] Request failed:', error);
-      throw error;
-    }
-  },
-
-  // Associate conversation with project
-  async associateConversationWithProject(
-    conversationId: string, 
-    projectId: string
-  ): Promise<{ message: string }> {
-    return chatClient.put<{ message: string }>(
-      `/conversations/${conversationId}/project`, 
-      { project_id: projectId }
-    );
-  },
-
-  // Get conversation summary
-  async getConversationSummary(conversationId: string): Promise<{
-    conversation_id: string;
-    total_messages: number;
-    agent_interactions: number;
-    tools_used: string[];
-    key_topics: string[];
-    project_context: Record<string, unknown>;
-    last_activity: string;
-  }> {
-    return chatClient.get(`/conversations/${conversationId}/summary`);
-  },
-
-  // Get conversation interactions
-  async getConversationInteractions(conversationId: string): Promise<Array<{
-    id: string;
-    agent_name: string;
-    input_text: string;
-    output_text: string;
-    tools_used: string[];
-    execution_time_ms: number;
-    created_at: string;
-  }>> {
-    return chatClient.get(`/conversations/${conversationId}/interactions`);
-  },
+export const getConversations = (token: string): Promise<Conversation[]> => {
+  return apiClient.get<Conversation[]>(apiRoutes.chat.conversations, token);
 };
 
-// Prompt Templates API Client
-const promptTemplateClient = new ApiClient();
-
-const promptTemplateApi = {
-  // Get all prompt templates with optional filtering
-  async getPromptTemplates(
-    activeOnly: boolean = true, 
-    tags?: string[], 
-    templateType?: TemplateType, 
-    userId?: string
-  ): Promise<PromptTemplate[]> {
-    const params = new URLSearchParams();
-    params.append('active_only', activeOnly.toString());
-    
-    if (tags && tags.length > 0) {
-      tags.forEach(tag => params.append('tags', tag));
-    }
-    
-    if (templateType) {
-      params.append('template_type', templateType);
-    }
-    
-    if (userId) {
-      params.append('user_id', userId);
-    }
-    
-    return promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?${params}`);
-  },
-
-  // Get templates available to current user (admin + user's own templates)
-  async getTemplatesForUser(activeOnly: boolean = true): Promise<{
-    adminTemplates: PromptTemplate[];
-    userTemplates: PromptTemplate[];
-  }> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-
-    const [adminTemplates, userTemplates] = await Promise.all([
-      // Get admin templates (visible to all users)
-      promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?active_only=${activeOnly}&template_type=admin`),
-      // Get user's own templates
-      promptTemplateClient.get<PromptTemplate[]>(`/api/prompt-templates?active_only=${activeOnly}&template_type=user&user_id=${userId}`)
-    ]);
-
-    return { adminTemplates, userTemplates };
-  },
-
-  // Get a specific prompt template
-  async getPromptTemplate(templateId: string): Promise<PromptTemplate> {
-    return promptTemplateClient.get<PromptTemplate>(`/api/prompt-templates/${templateId}`);
-  },
-
-  // Create a new prompt template (type determined by user's admin status)
-  async createPromptTemplate(templateData: PromptTemplateCreate): Promise<PromptTemplate> {
-    return promptTemplateClient.post<PromptTemplate>('/api/prompt-templates', templateData);
-  },
-
-  // Update a prompt template (with ownership validation)
-  async updatePromptTemplate(
-    templateId: string,
-    templateData: PromptTemplateUpdate
-  ): Promise<PromptTemplate> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-
-    const params = new URLSearchParams({ user_id: userId });
-    return promptTemplateClient.put<PromptTemplate>(
-      `/api/prompt-templates/${templateId}?${params}`,
-      templateData
-    );
-  },
-
-  // Delete a prompt template (with ownership validation)
-  async deletePromptTemplate(templateId: string): Promise<{ message: string }> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-
-    const params = new URLSearchParams({ user_id: userId });
-    return promptTemplateClient.delete<{ message: string }>(
-      `/api/prompt-templates/${templateId}?${params}`
-    );
-  },
-
-  // Get all unique tags
-  async getAllTags(): Promise<string[]> {
-    return promptTemplateClient.get<string[]>('/api/prompt-templates/tags/all');
-  },
+export const getConversation = (conversationId: string, token: string): Promise<ConversationDetailResponse> => {
+  return apiClient.get<ConversationDetailResponse>(apiRoutes.chat.conversation(conversationId), token);
 };
 
-// File API Client
-const fileClient = new ApiClient(FILES_BASE_URL);
+export const updateConversation = (
+  conversationId: string,
+  updates: { title?: string; project_id?: string },
+  token: string
+): Promise<Conversation> => {
+  return apiClient.put<Conversation>(apiRoutes.chat.updateConversation(conversationId), updates, token);
+};
+
+export const deleteConversation = (conversationId: string, token: string): Promise<{ message: string }> => {
+  return apiClient.delete<{ message: string }>(apiRoutes.chat.conversation(conversationId), token);
+};
+
+export const getMessages = (
+  conversationId: string,
+  token: string,
+  limit: number = 50,
+  offset: number = 0
+): Promise<Message[]> => {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+  });
+  return apiClient.get<Message[]>(`${apiRoutes.chat.conversationMessages(conversationId)}?${params}`, token);
+};
+
+export const sendMessage = (params: {
+  content: string;
+  conversationId?: string;
+  projectId?: string;
+  file?: File;
+  existingFileId?: string;
+}, token: string): Promise<AgentMessageResponse> => {
+  console.log('[API] Preparing sendMessage request:', {
+    hasContent: !!params.content,
+    hasConversationId: !!params.conversationId,
+    hasProjectId: !!params.projectId,
+    hasFile: !!params.file,
+    hasExistingFileId: !!params.existingFileId,
+    fileInfo: params.file ? {
+      name: params.file.name,
+      size: params.file.size,
+      type: params.file.type
+    } : null
+  });
+
+  const formData = new FormData();
+  formData.append('content', params.content);
+
+  if (params.conversationId) {
+    formData.append('conversation_id', params.conversationId);
+  }
+
+  if (params.projectId) {
+    formData.append('project_id', params.projectId);
+  }
+
+  if (params.file) {
+    formData.append('file', params.file);
+    console.log('[API] File attached to FormData:', {
+      name: params.file.name,
+      size: params.file.size
+    });
+  }
+
+  if (params.existingFileId) {
+    formData.append('existing_file_id', params.existingFileId);
+    console.log('[API] Existing file ID attached to FormData:', params.existingFileId);
+  }
+
+  console.log('[API] Sending request to /messages endpoint');
+  try {
+    const response = apiClient.postFormData<AgentMessageResponse>(apiRoutes.chat.messages, formData, token);
+    console.log('[API] Request successful');
+    return response;
+  } catch (error) {
+    console.error('[API] Request failed:', error);
+    throw error;
+  }
+};
+
+export const associateConversationWithProject = (
+  conversationId: string,
+  projectId: string,
+  token: string
+): Promise<{ message: string }> => {
+  return apiClient.put<{ message: string }>(
+    apiRoutes.chat.associateProject(conversationId),
+    { project_id: projectId },
+    token
+  );
+};
+
+export const getConversationSummary = (conversationId: string, token: string): Promise<{
+  conversation_id: string;
+  total_messages: number;
+  agent_interactions: number;
+  tools_used: string[];
+  key_topics: string[];
+  project_context: Record<string, unknown>;
+  last_activity: string;
+}> => {
+  return apiClient.get(apiRoutes.chat.summary(conversationId), token);
+};
+
+export const getConversationInteractions = (conversationId: string, token: string): Promise<Array<{
+  id: string;
+  agent_name: string;
+  input_text: string;
+  output_text: string;
+  tools_used: string[];
+  execution_time_ms: number;
+  created_at: string;
+}>> => {
+  return apiClient.get(apiRoutes.chat.interactions(conversationId), token);
+};
+
+// Prompt Templates API Service
+export const getPromptTemplates = (
+  token: string,
+  activeOnly: boolean = true,
+  tags?: string[],
+  templateType?: TemplateType
+): Promise<PromptTemplate[]> => {
+  const params = new URLSearchParams();
+  params.append('active_only', activeOnly.toString());
+
+  if (tags && tags.length > 0) {
+    tags.forEach(tag => params.append('tags', tag));
+  }
+
+  if (templateType) {
+    params.append('template_type', templateType);
+  }
+
+  return apiClient.get<PromptTemplate[]>(`${apiRoutes.promptTemplates.list}?${params}`, token);
+};
+
+export const getTemplatesForUser = (token: string, activeOnly: boolean = true): Promise<{
+  adminTemplates: PromptTemplate[];
+  userTemplates: PromptTemplate[];
+}> => {
+  const adminParams = new URLSearchParams({
+    active_only: activeOnly.toString(),
+    template_type: 'admin'
+  });
+  const userParams = new URLSearchParams({
+    active_only: activeOnly.toString(),
+    template_type: 'user'
+  });
+
+  return Promise.all([
+    apiClient.get<PromptTemplate[]>(`${apiRoutes.promptTemplates.list}?${adminParams}`, token),
+    apiClient.get<PromptTemplate[]>(`${apiRoutes.promptTemplates.list}?${userParams}`, token)
+  ]).then(([adminTemplates, userTemplates]) => ({ adminTemplates, userTemplates }));
+};
+
+export const getPromptTemplate = (templateId: string, token: string): Promise<PromptTemplate> => {
+  return apiClient.get<PromptTemplate>(apiRoutes.promptTemplates.details(templateId), token);
+};
+
+export const createPromptTemplate = (templateData: PromptTemplateCreate, token: string): Promise<PromptTemplate> => {
+  return apiClient.post<PromptTemplate>(apiRoutes.promptTemplates.create, templateData, token);
+};
+
+export const updatePromptTemplate = (
+  templateId: string,
+  templateData: PromptTemplateUpdate,
+  userId: string,
+  token: string
+): Promise<PromptTemplate> => {
+  const params = new URLSearchParams({ user_id: userId });
+  return apiClient.put<PromptTemplate>(
+    `${apiRoutes.promptTemplates.update(templateId)}?${params}`,
+    templateData,
+    token
+  );
+};
+
+export const deletePromptTemplate = (templateId: string, userId: string, token: string): Promise<{ message: string }> => {
+  const params = new URLSearchParams({ user_id: userId });
+  return apiClient.delete<{ message: string }>(
+    `${apiRoutes.promptTemplates.delete(templateId)}?${params}`,
+    token
+  );
+};
+
+export const getAllTags = (token: string): Promise<string[]> => {
+  return apiClient.get<string[]>(apiRoutes.promptTemplates.tags, token);
+};
 
 // File API Service
-const fileApi = {
-  // Get all files for current user
-  async getUserFiles(): Promise<UserFile[]> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    return fileClient.get<UserFile[]>(`/user/${userId}`);
-  },
-
-  // Get file metadata
-  async getFileMetadata(fileId: string): Promise<UserFile> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    return fileClient.get<UserFile>(`/${fileId}?user_id=${userId}`);
-  },
-
-  // Get a signed URL for file access/preview
-  async getFileUrl(fileId: string, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    return fileClient.get<{ url: string; expires_in: number }>(`/${fileId}/url?user_id=${userId}&expires_in=${expiresIn}`);
-  },
-
-  // Get files for a specific conversation
-  async getConversationFiles(conversationId: string): Promise<UserFile[]> {
-    return fileClient.get<UserFile[]>(`/conversation/${conversationId}`);
-  },
-
-  // Delete a file
-  async deleteFile(fileId: string): Promise<{ message: string }> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    return fileClient.delete<{ message: string }>(`/${fileId}?user_id=${userId}`);
-  },
-
-  // Download file content
-  async downloadFile(fileId: string): Promise<Blob> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-
-    const token = await getAuthToken();
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const url = `${FILES_BASE_URL}/${fileId}/download?user_id=${userId}`;
-    const response = await fetch(url, { headers });
-
-    if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.statusText}`);
-    }
-
-    return response.blob();
-  },
-
-  // NEW: File reuse methods
-
-  // Get files with conversation usage data
-  async getUserFilesWithConversations(): Promise<UserFileWithConversations[]> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    return fileClient.get<UserFileWithConversations[]>(`/user/${userId}/with-conversations`);
-  },
-
-  // Get conversation history for a specific file
-  async getFileConversations(fileId: string): Promise<Array<{
-    conversation_id: string;
-    conversation_title: string;
-    used_at: string;
-  }>> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    return fileClient.get(`/${fileId}/conversations?user_id=${userId}`);
-  },
-
-  // Reuse an existing file in a conversation
-  async reuseFile(fileId: string, conversationId: string): Promise<{
-    message: string;
-    file_id: string;
-    conversation_id: string;
-  }> {
-    const userId = await getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-    return fileClient.post(`/${fileId}/reuse?conversation_id=${conversationId}&user_id=${userId}`, {});
-  },
+export const getUserFiles = (userId: string, token: string): Promise<UserFile[]> => {
+  return apiClient.get<UserFile[]>(apiRoutes.files.userFiles(userId), token);
 };
 
-// Combined API service export
-export const api = {
-  projects: projectApi,
-  chat: chatApi,
-  promptTemplates: promptTemplateApi,
-  files: fileApi,
-  
-  // Auth0 authentication service
-  auth: {
-    // Get current authenticated user
-    async getCurrentUser(): Promise<User> {
-      if (!auth0Instance) {
-        throw new Error('Auth0 instance not set. Call setAuth0Instance() first.');
-      }
-
-      const user = auth0Instance.user;
-      if (!user) {
-        throw new Error('No authenticated user found');
-      }
-
-      return {
-        id: user.sub,
-        phone_number: user.phone_number || '',
-        name: user.name || user.nickname || 'Unknown User',
-        is_active: true,
-        is_admin: user['https://app.ignacio.com/roles']?.includes('admin') || false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-    },
-  },
+export const getFileMetadata = (fileId: string, userId: string, token: string): Promise<UserFile> => {
+  return apiClient.get<UserFile>(`${apiRoutes.files.details(fileId)}?user_id=${userId}`, token);
 };
 
-export default api;
+export const getFileUrl = (fileId: string, userId: string, token: string, expiresIn: number = 3600): Promise<{ url: string; expires_in: number }> => {
+  return apiClient.get<{ url: string; expires_in: number }>(`${apiRoutes.files.url(fileId)}?user_id=${userId}&expires_in=${expiresIn}`, token);
+};
+
+export const getConversationFiles = (conversationId: string, token: string): Promise<UserFile[]> => {
+  return apiClient.get<UserFile[]>(apiRoutes.files.conversation(conversationId), token);
+};
+
+export const deleteFile = (fileId: string, userId: string, token: string): Promise<{ message: string }> => {
+  return apiClient.delete<{ message: string }>(`${apiRoutes.files.delete(fileId)}?user_id=${userId}`, token);
+};
+
+export const downloadFile = async (fileId: string, userId: string, token: string): Promise<Blob> => {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const url = `${API_BASE_URL}${apiRoutes.files.download(fileId)}?user_id=${userId}`;
+  const response = await fetch(url, { headers });
+
+  if (!response.ok) {
+    throw new Error(`Failed to download file: ${response.statusText}`);
+  }
+
+  return response.blob();
+};
+
+export const getUserFilesWithConversations = (userId: string, token: string): Promise<UserFileWithConversations[]> => {
+  return apiClient.get<UserFileWithConversations[]>(apiRoutes.files.userFilesWithConversations(userId), token);
+};
+
+export const getFileConversations = (fileId: string, userId: string, token: string): Promise<Array<{
+  conversation_id: string;
+  conversation_title: string;
+  used_at: string;
+}>> => {
+  return apiClient.get(`${apiRoutes.files.fileConversations(fileId)}?user_id=${userId}`, token);
+};
+
+export const reuseFile = (fileId: string, conversationId: string, userId: string, token: string): Promise<{
+  message: string;
+  file_id: string;
+  conversation_id: string;
+}> => {
+  return apiClient.post(`${apiRoutes.files.reuseFile(fileId)}?conversation_id=${conversationId}&user_id=${userId}`, {}, token);
+};
+
+// Auth utility function to convert Auth0 user to User type
+export const createUserFromAuth0 = (auth0User: any): User => {
+  return {
+    id: auth0User.sub,
+    phone_number: auth0User.phone_number || '',
+    name: auth0User.name || auth0User.nickname || 'Unknown User',
+    is_active: true,
+    is_admin: auth0User['https://app.ignacio.com/roles']?.includes('admin') || false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+};

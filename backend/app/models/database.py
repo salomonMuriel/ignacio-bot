@@ -60,6 +60,7 @@ class UserBase(BaseModel):
     name: str | None = None
     is_admin: bool = False
     is_active: bool = True
+    auth_user_id: str
 
 
 class User(UserBase):
