@@ -17,7 +17,7 @@ from app.models.database import (
 )
 from app.services.database import db_service
 
-router = APIRouter(prefix="/api/prompt-templates", tags=["prompt-templates"])
+router = APIRouter(prefix="/prompt-templates", tags=["prompt-templates"])
 
 
 @router.get("/")
