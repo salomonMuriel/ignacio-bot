@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
 import { useApi } from '@/hooks/useApi';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate, TemplateType } from '@/types';
 
 export default function PromptTemplateManager() {
-  const { user, isLoading: authLoading } = useAuth0();
+  const { user, isAdmin } = useUserProfile();
   const api = useApi();
   const [adminTemplates, setAdminTemplates] = useState<PromptTemplate[]>([]);
   const [userTemplates, setUserTemplates] = useState<PromptTemplate[]>([]);
@@ -13,8 +13,6 @@ export default function PromptTemplateManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Check admin status from Auth0 custom claims
-  const isAdmin = user?.is_admin || false;
   const [viewMode, setViewMode] = useState<'admin' | 'user' | 'all'>(isAdmin ? 'all' : 'user');
 
   // Form state
@@ -82,7 +80,7 @@ export default function PromptTemplateManager() {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.sub) return;
+    if (!user?.id) return;
 
     setIsSubmitting(true);
     try {
@@ -121,7 +119,7 @@ export default function PromptTemplateManager() {
 
   // Handle delete
   const handleDelete = async (template: PromptTemplate) => {
-    if (!user?.sub) return;
+    if (!user?.id) return;
     
     if (!confirm(`Are you sure you want to delete "${template.title}"? This action cannot be undone.`)) {
       return;
@@ -160,7 +158,7 @@ export default function PromptTemplateManager() {
     }));
   };
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--ig-text-accent)' }}></div>
@@ -362,7 +360,7 @@ export default function PromptTemplateManager() {
                 
                 <div className="flex items-center space-x-2 ml-4">
                   {/* Only show edit/delete for templates the user can modify */}
-                  {(isAdmin || (template.created_by === user?.sub && !template.isAdminTemplate)) && (
+                  {(isAdmin || (template.created_by === user?.id && !template.isAdminTemplate)) && (
                     <>
                       <button
                         onClick={() => handleEdit(template)}

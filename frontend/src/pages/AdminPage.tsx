@@ -3,22 +3,22 @@ import { useAuth0 } from '@auth0/auth0-react';
 import AuthRequiredScreen from '../components/ui/AuthRequiredScreen';
 import PromptTemplateManager from '../components/admin/PromptTemplateManager';
 import LoadingScreen from '@/components/ui/LoadingScreen';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 
 type AdminTab = 'prompt-templates' | 'user-management' | 'statistics';
 
 export default function AdminPage() {
-  const { user, isAuthenticated, isLoading } = useAuth0();
+  const { isAuthenticated, isLoading: authLoading } = useAuth0();
+  const { user, isLoading: profileLoading, isAdmin } = useUserProfile();
   const [activeTab, setActiveTab] = useState<AdminTab>('prompt-templates');
 
-  if (isLoading) {
+  if (authLoading || profileLoading) {
     return <LoadingScreen />;
   }
 
   if (!isAuthenticated || !user) {
     return <AuthRequiredScreen />;
   }
-
-  const isAdmin = user.is_admin || false;
 
   if (!isAdmin) {
     return (

@@ -22,7 +22,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
           const completeStatus = await api.getProfileCompletion();
           // Update state with the result from the API
           setIsComplete(completeStatus.is_complete); 
-          console.log(completeStatus)
         } catch (error) {
           console.error("Failed to fetch profile completion status:", error);
           // Handle error case, e.g., assume incomplete

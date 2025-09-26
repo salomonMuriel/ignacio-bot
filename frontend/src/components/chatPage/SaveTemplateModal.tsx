@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApi } from '@/hooks/useApi';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import type { PromptTemplateCreate, TemplateType } from '@/types';
 import LoadingScreen from '../ui/LoadingScreen';
-import { Navigate } from 'react-router-dom';
 
 interface SaveTemplateModalProps {
   isOpen: boolean;
@@ -20,7 +20,8 @@ export default function SaveTemplateModal({
   initialContent,
   onTemplateCreated
 }: SaveTemplateModalProps) {
-  const { user, isAuthenticated, isLoading: isUserLoading } = useAuth0();
+  const { isAuthenticated, isLoading: authLoading } = useAuth0();
+  const { user, isAdmin, isLoading: profileLoading } = useUserProfile();
   const api = useApi();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState(initialContent);
@@ -29,15 +30,12 @@ export default function SaveTemplateModal({
   const [templateType, setTemplateType] = useState<TemplateType>('user' as TemplateType);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (isUserLoading) {
-    return <LoadingScreen />;
-  }
-  console.log(user)
-  // Check admin status from Auth0 custom claims
-  const isAdmin = user?.is_admin || false;
   const modalRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  if (authLoading || profileLoading) {
+    return <LoadingScreen />;
+  }
 
   // Reset form when modal opens/closes
   useEffect(() => {

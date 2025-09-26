@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { ProjectsProvider } from './contexts/ProjectsContext';
 import { ConversationsProvider } from './contexts/ConversationsContext';
 import { GlobalProvider } from './contexts/GlobalContext';
+import { UserProfileProvider } from './contexts/UserProfileContext';
 
 // Components
 import ErrorBoundary from './components/ErrorBoundary';
@@ -24,8 +25,9 @@ function App() {
   return (
     <ErrorBoundary>
       <GlobalProvider>
-        <ProjectsProvider>
-          <ConversationsProvider>
+        <UserProfileProvider>
+          <ProjectsProvider>
+            <ConversationsProvider>
             <Router>
               <div className="App">
                 <Routes>
@@ -110,8 +112,9 @@ function App() {
                 }}
               />
             </Router>
-          </ConversationsProvider>
-        </ProjectsProvider>
+            </ConversationsProvider>
+          </ProjectsProvider>
+        </UserProfileProvider>
       </GlobalProvider>
     </ErrorBoundary>
   );
