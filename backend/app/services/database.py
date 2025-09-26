@@ -615,7 +615,7 @@ class DatabaseService:
 
     # Prompt Template operations
     async def create_prompt_template(
-        self, template_data: PromptTemplateCreate
+        self, template_data: PromptTemplateCreate, created_by: UUID
     ) -> PromptTemplate:
         """Create a new prompt template"""
         response = (
@@ -625,7 +625,7 @@ class DatabaseService:
                     "title": template_data.title,
                     "content": template_data.content,
                     "tags": template_data.tags,
-                    "created_by": str(template_data.created_by),
+                    "created_by": str(created_by),
                     "is_active": template_data.is_active,
                     "template_type": template_data.template_type.value,
                 }

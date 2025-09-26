@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApi } from '@/hooks/useApi';
 import { useAuth0 } from '@auth0/auth0-react';
-import type { PromptTemplateCreate } from '@/types';
+import type { PromptTemplateCreate, TemplateType } from '@/types';
+import LoadingScreen from '../ui/LoadingScreen';
+import { Navigate } from 'react-router-dom';
 
 interface SaveTemplateModalProps {
   isOpen: boolean;
@@ -18,14 +20,22 @@ export default function SaveTemplateModal({
   initialContent,
   onTemplateCreated
 }: SaveTemplateModalProps) {
-  const { user, isAuthenticated } = useAuth0();
+  const { user, isAuthenticated, isLoading: isUserLoading } = useAuth0();
   const api = useApi();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState(initialContent);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [templateType, setTemplateType] = useState<TemplateType>('user' as TemplateType);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (isUserLoading) {
+    return <LoadingScreen />;
+  }
+  console.log(user)
+  // Check admin status from Auth0 custom claims
+  const isAdmin = user?.is_admin || false;
   const modalRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,6 +46,7 @@ export default function SaveTemplateModal({
       setContent(initialContent);
       setTags([]);
       setTagInput('');
+      setTemplateType('user' as TemplateType);
       setError(null);
       // Focus title input when modal opens
       setTimeout(() => {
@@ -118,8 +129,8 @@ export default function SaveTemplateModal({
         title: title.trim(),
         content: content.trim(),
         tags: tags,
-        created_by: user.sub || '',
-        is_active: true
+        is_active: true,
+        template_type: templateType
       };
 
       await api.createPromptTemplate(templateData);
@@ -292,6 +303,51 @@ export default function SaveTemplateModal({
               </p>
             </div>
           </div>
+
+          {/* Template type selector (admin only) */}
+          {isAdmin && (
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ig-text-primary)' }}>
+                Template Type
+              </label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id="save_template_type_user"
+                    name="save_template_type"
+                    value="user"
+                    checked={templateType === 'user'}
+                    onChange={(e) => setTemplateType(e.target.value as TemplateType)}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="save_template_type_user" className="text-sm" style={{ color: 'var(--ig-text-primary)' }}>
+                    <span className="font-medium">Personal Template</span>
+                    <div className="text-xs" style={{ color: 'var(--ig-text-muted)' }}>
+                      Only visible to you
+                    </div>
+                  </label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id="save_template_type_admin"
+                    name="save_template_type"
+                    value="admin"
+                    checked={templateType === 'admin'}
+                    onChange={(e) => setTemplateType(e.target.value as TemplateType)}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="save_template_type_admin" className="text-sm" style={{ color: 'var(--ig-text-primary)' }}>
+                    <span className="font-medium">Curated Template</span>
+                    <div className="text-xs" style={{ color: 'var(--ig-text-muted)' }}>
+                      Visible to all system users
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Content preview */}
           <div>

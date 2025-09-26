@@ -18,7 +18,6 @@ export default function UserPage() {
       try {
         const user_response = await api.getProfile();
         // Update state with the result from the API
-        console.log(user_response)
         setUser(user_response);
         setIsLoadingUser(false);
       } catch (error) {

@@ -87,13 +87,19 @@ async def create_prompt_template(template_data: PromptTemplateCreate, current_us
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Set template type based on user's admin status
-        if user.is_admin:
-            template_data.template_type = TemplateType.ADMIN
-        else:
+        # Handle template type selection
+        # Default to USER template type if not specified
+        if not template_data.template_type:
             template_data.template_type = TemplateType.USER
 
-        template = await db_service.create_prompt_template(template_data)
+        # Only admins can create ADMIN templates
+        if template_data.template_type == TemplateType.ADMIN and not user.is_admin:
+            raise HTTPException(
+                status_code=403,
+                detail="Only admin users can create curated templates"
+            )
+
+        template = await db_service.create_prompt_template(template_data, current_user.id)
         return template
     except HTTPException:
         raise

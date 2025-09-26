@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useApi } from '@/hooks/useApi';
-import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate } from '@/types';
+import type { PromptTemplate, PromptTemplateCreate, PromptTemplateUpdate, TemplateType } from '@/types';
 
 export default function PromptTemplateManager() {
   const { user, isLoading: authLoading } = useAuth0();
@@ -14,7 +14,7 @@ export default function PromptTemplateManager() {
   const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Check admin status from Auth0 custom claims
-  const isAdmin = user?.['https://ignacio.app/is_admin'] || false;
+  const isAdmin = user?.is_admin || false;
   const [viewMode, setViewMode] = useState<'admin' | 'user' | 'all'>(isAdmin ? 'all' : 'user');
 
   // Form state
@@ -22,7 +22,8 @@ export default function PromptTemplateManager() {
     title: '',
     content: '',
     tags: [] as string[],
-    is_active: true
+    is_active: true,
+    template_type: 'user' as TemplateType
   });
 
   // Load templates
@@ -53,7 +54,8 @@ export default function PromptTemplateManager() {
       title: '',
       content: '',
       tags: [],
-      is_active: true
+      is_active: true,
+      template_type: 'user' as TemplateType
     });
     setEditingTemplate(null);
   };
@@ -70,7 +72,8 @@ export default function PromptTemplateManager() {
       title: template.title,
       content: template.content,
       tags: [...template.tags],
-      is_active: template.is_active
+      is_active: template.is_active,
+      template_type: template.template_type
     });
     setEditingTemplate(template);
     setIsModalOpen(true);
@@ -89,7 +92,8 @@ export default function PromptTemplateManager() {
           title: formData.title,
           content: formData.content,
           tags: formData.tags,
-          is_active: formData.is_active
+          is_active: formData.is_active,
+          template_type: formData.template_type
         };
         await api.updatePromptTemplate(editingTemplate.id, updateData);
       } else {
@@ -98,8 +102,8 @@ export default function PromptTemplateManager() {
           title: formData.title,
           content: formData.content,
           tags: formData.tags,
-          created_by: user.sub || '',
-          is_active: formData.is_active
+          is_active: formData.is_active,
+          template_type: formData.template_type
         };
         await api.createPromptTemplate(createData);
       }
@@ -548,6 +552,51 @@ export default function PromptTemplateManager() {
                     Active (visible to users)
                   </label>
                 </div>
+
+                {/* Template type selector (admin only) */}
+                {isAdmin && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ig-text-primary)' }}>
+                      Template Type
+                    </label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="radio"
+                          id="template_type_user"
+                          name="template_type"
+                          value="user"
+                          checked={formData.template_type === 'user'}
+                          onChange={(e) => setFormData(prev => ({ ...prev, template_type: e.target.value as TemplateType }))}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="template_type_user" className="text-sm" style={{ color: 'var(--ig-text-primary)' }}>
+                          <span className="font-medium">Personal Template</span>
+                          <div className="text-xs" style={{ color: 'var(--ig-text-muted)' }}>
+                            Only visible to you
+                          </div>
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="radio"
+                          id="template_type_admin"
+                          name="template_type"
+                          value="admin"
+                          checked={formData.template_type === 'admin'}
+                          onChange={(e) => setFormData(prev => ({ ...prev, template_type: e.target.value as TemplateType }))}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="template_type_admin" className="text-sm" style={{ color: 'var(--ig-text-primary)' }}>
+                          <span className="font-medium">Curated Template</span>
+                          <div className="text-xs" style={{ color: 'var(--ig-text-muted)' }}>
+                            Visible to all system users
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}

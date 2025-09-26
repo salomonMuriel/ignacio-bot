@@ -334,7 +334,7 @@ class PromptTemplate(PromptTemplateBase):
 
 
 class PromptTemplateCreate(PromptTemplateBase):
-    created_by: UUID
+    pass
 
 
 class PromptTemplateUpdate(BaseModel):

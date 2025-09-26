@@ -339,7 +339,6 @@ export interface PromptTemplateCreate {
   title: string;
   content: string;
   tags: string[];
-  created_by: string;
   is_active?: boolean;
   template_type?: TemplateType;
 }

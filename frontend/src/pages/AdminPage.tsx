@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import AuthRequiredScreen from '../components/ui/AuthRequiredScreen';
 import PromptTemplateManager from '../components/admin/PromptTemplateManager';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 type AdminTab = 'prompt-templates' | 'user-management' | 'statistics';
 
@@ -10,16 +11,14 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('prompt-templates');
 
   if (isLoading) {
-    return <AuthRequiredScreen />;
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated || !user) {
     return <AuthRequiredScreen />;
   }
 
-  // For now, we'll need to check admin status differently since Auth0 user object
-  // doesn't have is_admin - this will need to be handled by your backend/user management
-  const isAdmin = user['https://ignacio.app/is_admin'] || false; // Custom claim example
+  const isAdmin = user.is_admin || false;
 
   if (!isAdmin) {
     return (
