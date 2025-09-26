@@ -50,9 +50,9 @@ const apiRoutes = {
     interactions: (conversationId: string) => `/chat/conversations/${conversationId}/interactions`,
   },
   promptTemplates: {
-    list: '/prompt-templates',
+    list: '/prompt-templates/',
     details: (templateId: string) => `/prompt-templates/${templateId}`,
-    create: '/prompt-templates',
+    create: '/prompt-templates/',
     update: (templateId: string) => `/prompt-templates/${templateId}`,
     delete: (templateId: string) => `/prompt-templates/${templateId}`,
     tags: '/prompt-templates/tags/all',
